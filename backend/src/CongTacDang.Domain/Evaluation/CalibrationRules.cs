@@ -29,6 +29,9 @@ public static class CalibrationRules
     public static bool IsEligibleStatus(RecordStatus status) =>
         status is RecordStatus.AwaitingDirectorReview or RecordStatus.AwaitingDecision;
 
+    /// <summary>Hồ sơ mới đưa vào biên bản: đã qua nhận xét, đang chờ quyết định (chốt trước nhận xét thì biên bản hết hiệu lực khi nhận xét xong).</summary>
+    public static bool IsCandidateStatus(RecordStatus status) => status == RecordStatus.AwaitingDecision;
+
     /// <summary>Hồ sơ đã ghi nhận quyết định hoặc đã công bố.</summary>
     public static bool IsDecidedStatus(RecordStatus status) =>
         status is RecordStatus.AwaitingPublish or RecordStatus.Published;

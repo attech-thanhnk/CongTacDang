@@ -486,7 +486,7 @@ public sealed class CalibrationIntegrationTests
             var records = owners.Select((o, i) => new EvaluationRecord
             {
                 PeriodId = period.Id, MemberId = o.Id, DepartmentId = dept.Id, ApprovalAuthority = ApprovalAuthority.CoSo, WeightFrameCode = "K2",
-                Status = decisionReady ? RecordStatus.AwaitingDecision : RecordStatus.AwaitingDirectorReview, AppraisalProposedGrade = grades[i].Item1, AppraisalScore = grades[i].Item2,
+                Status = RecordStatus.AwaitingDecision, AppraisalProposedGrade = grades[i].Item1, AppraisalScore = grades[i].Item2,
                 AppraisedAt = DateTime.UtcNow.AddHours(-1), SelfScoredAt = DateTime.UtcNow.AddDays(-1), TotalSelfScore = grades[i].Item2
             }).ToList();
             db.AddRange(records);

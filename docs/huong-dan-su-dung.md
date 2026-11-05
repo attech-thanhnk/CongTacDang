@@ -427,7 +427,7 @@ Với cơ quan ngoài hệ thống, người yêu cầu tự nhập kết quả 
 **a) Cơ quan thẩm định lập biên bản**
 
 1. Menu **Duyệt kết quả**, thẻ **Họp thống nhất**. Chọn kỳ ở ô chọn kỳ phía trên bảng (mặc định là kỳ đang chọn).
-2. Bấm **Lập biên bản**. Trong hộp "Lập biên bản": nhập **Nhóm chức danh / phạm vi** (tên nhóm cán bộ cùng chức danh hoặc công việc tương đồng), tích chọn các hồ sơ (có **Chọn tất cả**; lọc được theo diện quyết định), bấm **Lập biên bản**. Danh sách chỉ gồm hồ sơ đã thẩm định, chưa ghi nhận quyết định, chưa thuộc biên bản khác, thuộc diện có dùng hiệu chuẩn và trong phạm vi của bạn. Không có hồ sơ nào thì hộp ghi "Chưa có hồ sơ đã thẩm định để họp thống nhất."
+2. Bấm **Lập biên bản**. Trong hộp "Lập biên bản": nhập **Nhóm chức danh / phạm vi** (tên nhóm cán bộ cùng chức danh hoặc công việc tương đồng), tích chọn các hồ sơ (có **Chọn tất cả**; lọc được theo diện quyết định), bấm **Lập biên bản**. Danh sách chỉ gồm hồ sơ đang chờ quyết định (đã thẩm định và nhận xét), chưa thuộc biên bản khác, thuộc diện bắt buộc họp thống nhất và trong phạm vi của bạn. Không có hồ sơ nào thì hộp ghi "Chưa có hồ sơ chờ quyết định để họp thống nhất."
 3. Mỗi biên bản chỉ gồm hồ sơ của **một đơn vị hoặc một tổ chức Đảng**. Hồ sơ thuộc đơn vị khác thì lập biên bản riêng cho đơn vị đó (chọn hồ sơ lẫn nhiều đơn vị, hệ thống báo "Lập biên bản không thành công: các hồ sơ đã chọn không cùng một đơn vị hay tổ chức Đảng.").
 4. Trang biên bản mở ra, trạng thái "Đang soạn". Điền các khối:
    - **Cuộc họp**: nhóm chức danh / công việc tương đồng, **Ngày họp**, **Địa điểm**, **Chủ trì**, **Thư ký**, **Phạm vi, số lượng hồ sơ**.

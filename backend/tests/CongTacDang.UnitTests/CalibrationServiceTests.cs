@@ -57,6 +57,33 @@ public sealed class CalibrationServiceTests
     }
 
     [Fact]
+    public async Task Candidates_OnlyAwaitingDecisionWithRequiredGate_SameRuleWhenAdding()
+    {
+        var h = new Harness();
+        // Còn chờ nhận xét; diện cấp trên quyết định (cổng họp thống nhất chỉ ghi nhận).
+        h.Records[0].Status = RecordStatus.AwaitingDirectorReview;
+        h.Records[1].ApprovalAuthority = ApprovalAuthority.CapTren;
+        var settings = PeriodSettings.Parse(h.Period.Settings);
+        Assert.Equal(GateMode.Recorded, EvaluationMapping.ProfileOf(settings, h.Records[1]).GateModeOf(WorkflowGates.Calibration));
+
+        Assert.Empty(await h.Service.ListCandidatesAsync(h.Period.Id, null, null));
+        var waiting = await Assert.ThrowsAsync<ConflictException>(() => h.Service.CreateAsync(h.CreateRequest(h.Records[0])));
+        Assert.Contains("chờ quyết định", waiting.Message);
+        var upper = await Assert.ThrowsAsync<ConflictException>(() => h.Service.CreateAsync(h.CreateRequest(h.Records[1])));
+        Assert.Contains("không bắt buộc họp thống nhất", upper.Message);
+
+        // Hồ sơ đủ điều kiện có trong danh sách; đã vào biên bản thì vẫn lưu được khi hồ sơ trở lại chờ nhận xét.
+        h.Records[0].Status = RecordStatus.AwaitingDecision;
+        Assert.Equal(new[] { h.Records[0].Id }, (await h.Service.ListCandidatesAsync(h.Period.Id, null, null)).Select(c => c.RecordId));
+        var created = await h.Service.CreateAsync(h.CreateRequest(h.Records[0]));
+        h.Records[0].Status = RecordStatus.AwaitingDirectorReview;
+        var content = h.FullContent(created.Version);
+        content.RecordIds = new List<Guid> { h.Records[0].Id };
+        content.Cases = new();
+        await h.Service.UpdateAsync(created.Id, content);
+    }
+
+    [Fact]
     public async Task Create_RecordAlreadyInAnotherSession_IsRejected()
     {
         var h = new Harness();
@@ -412,7 +439,7 @@ public sealed class CalibrationServiceTests
             {
                 Id = Guid.NewGuid(), PeriodId = Period.Id, Period = Period, MemberId = memberId,
                 Member = new PartyMemberProfile { Id = memberId, FullName = name },
-                DepartmentId = DepartmentId, Status = RecordStatus.AwaitingDirectorReview, ApprovalAuthority = ApprovalAuthority.CoSo,
+                DepartmentId = DepartmentId, Status = RecordStatus.AwaitingDecision, ApprovalAuthority = ApprovalAuthority.CoSo,
                 AppraisalProposedGrade = grade, AppraisalScore = score, AppraisedAt = DateTime.UtcNow.AddHours(-1)
             };
         }

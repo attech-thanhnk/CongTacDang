@@ -348,7 +348,7 @@ export default function QualityControlPage() {
         busy={creating}
         askGroupName
         groupNameRequired
-        emptyText={active === "calibration" ? "Chưa có hồ sơ đã thẩm định để họp thống nhất." : "Chưa có hồ sơ chờ quyết định để kiểm tra."}
+        emptyText={active === "calibration" ? "Chưa có hồ sơ chờ quyết định để họp thống nhất." : "Chưa có hồ sơ chờ quyết định để kiểm tra."}
         onCancel={() => setPickerOpen(false)}
         onConfirm={create}
       />

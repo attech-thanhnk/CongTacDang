@@ -130,16 +130,16 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             return new List<CalibrationCandidateDto>();
 
         var settings = ParseSettings(period);
-        var scope = _guard.GetScope(PermissionCodes.EvaluationCalibrationManage);
-        var records = await _records.ListRecordsByStatusAsync(new[] { periodId },
-            new[] { RecordStatus.AwaitingDirectorReview, RecordStatus.AwaitingDecision }, ct);
+        // Cùng điều kiện với lúc đưa hồ sơ vào biên bản (ResolveRecordsAsync).
+        var records = await _records.ListRecordsByStatusAsync(new[] { periodId }, new[] { RecordStatus.AwaitingDecision }, ct);
         var taken = await _repo.GetActiveSessionByRecordAsync(records.Select(r => r.Id).ToList(), null, ct);
         var profileCode = workflowProfileCode?.Trim();
 
         var result = new List<CalibrationCandidateDto>();
         foreach (var r in records.OrderBy(r => r.Member?.FullName))
         {
-            if (IsOwn(r) || taken.ContainsKey(r.Id) || !scope.Matches(null, r.DepartmentId, r.PartyCellId))
+            if (IsOwn(r) || taken.ContainsKey(r.Id)
+                || !_guard.Can(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForRecord(r).ForWrite()))
                 continue;
             if (departmentId is { } dept && r.DepartmentId != dept)
                 continue;
@@ -148,7 +148,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             var profile = EvaluationMapping.ProfileOf(settings, r);
             var (grade, score) = CalibrationRules.Before(r);
             if (!CalibrationRules.HasAppraisal(r) || grade == EvaluationGrade.ChuaXepLoai
-                || profile.GateModeOf(WorkflowGates.Calibration) == GateMode.Off)
+                || profile.GateModeOf(WorkflowGates.Calibration) != GateMode.Required)
                 continue;
             result.Add(new CalibrationCandidateDto
             {
@@ -469,8 +469,17 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             EnsureStillEligible(record, "Đưa hồ sơ vào biên bản");
             if (!CalibrationRules.HasAppraisal(record) || CalibrationRules.Before(record).Grade == EvaluationGrade.ChuaXepLoai)
                 throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {NameOf(record)} chưa có kết quả thẩm định.");
-            if (EvaluationMapping.ProfileOf(settings, record).GateModeOf(WorkflowGates.Calibration) == GateMode.Off)
+            var gate = EvaluationMapping.ProfileOf(settings, record).GateModeOf(WorkflowGates.Calibration);
+            if (gate == GateMode.Off)
                 throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: diện quyết định của {NameOf(record)} không dùng bước họp thống nhất.");
+            // Hồ sơ đã có trong biên bản giữ điều kiện cũ; hồ sơ mới phải khớp danh sách hồ sơ chọn được.
+            if (session.Records.Any(r => r.RecordId == record.Id))
+                continue;
+            if (!CalibrationRules.IsCandidateStatus(record.Status))
+                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {NameOf(record)} đang ở bước \"{WorkflowSteps.StatusDisplayName(record.Status)}\". "
+                    + "Chỉ đưa vào họp thống nhất hồ sơ đang chờ quyết định.");
+            if (gate != GateMode.Required)
+                throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: diện quyết định của {NameOf(record)} không bắt buộc họp thống nhất.");
         }
 
         var taken = await _repo.GetActiveSessionByRecordAsync(ids, session.Id, ct);

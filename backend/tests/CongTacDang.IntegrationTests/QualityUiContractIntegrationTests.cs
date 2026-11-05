@@ -25,7 +25,7 @@ public sealed class QualityUiContractIntegrationTests
     public async Task Calibration_UiBodies_CreateSaveTwiceConcludeReopenVoid()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
-        var w = await SetupAsync(AwaitingStatus.DirectorReview);
+        var w = await SetupAsync(CalibrationGate.On);
 
         // Danh sách ứng viên gọi chỉ với kỳ.
         var candidates = await Data(w.PreparerC, $"/api/calibrations/candidates?periodId={w.PeriodId}");
@@ -114,7 +114,7 @@ public sealed class QualityUiContractIntegrationTests
     public async Task Calibration_Create_RecordsOfDifferentUnits_AreRefusedWithGuidance_AndPickerHasUnitInfo()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
-        var w = await SetupAsync(AwaitingStatus.DirectorReview);
+        var w = await SetupAsync(CalibrationGate.On);
         await _factory.WithDbAsync(async db =>
         {
             var d = new AdministrativeDepartment { Code = $"UI-P2-{Guid.NewGuid():N}"[..14], Name = "Phòng khác giao diện" };
@@ -139,7 +139,7 @@ public sealed class QualityUiContractIntegrationTests
     public async Task ControlCheck_UiBodies_CandidatesSaveWithRecordsAndClearedText_SubmitConfirm()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
-        var w = await SetupAsync(AwaitingStatus.Decision);
+        var w = await SetupAsync(CalibrationGate.Off);
 
         // Người chỉ có quyền lập phiếu (không có quyền xem hồ sơ) vẫn lấy được ứng viên.
         var candidates = await Data(w.ControlPerformerOnlyC, $"/api/control-checks/candidates?periodId={w.PeriodId}");
@@ -242,7 +242,7 @@ public sealed class QualityUiContractIntegrationTests
         Assert.Contains("PDF", await response.Content.ReadAsStringAsync());
     }
 
-    private enum AwaitingStatus { DirectorReview, Decision }
+    private enum CalibrationGate { On, Off }
 
     private static string[] Codes() => Enumerable.Range(1, 10).Select(i => $"K{i:00}").ToArray();
 
@@ -252,7 +252,7 @@ public sealed class QualityUiContractIntegrationTests
         public HttpClient PreparerC = null!, ConcluderC = null!, ControlPerformerOnlyC = null!, ControlConfirmerC = null!, OwnerPerformerC = null!, NobodyC = null!;
     }
 
-    private async Task<World> SetupAsync(AwaitingStatus status)
+    private async Task<World> SetupAsync(CalibrationGate status)
     {
         var w = new World();
         var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
@@ -264,7 +264,7 @@ public sealed class QualityUiContractIntegrationTests
             var dept = new AdministrativeDepartment { Code = $"UI-P-{suffix}", Name = $"Phòng UI {suffix}" };
             var settings = PeriodSettings.Default();
             foreach (var profile in settings.Profiles)
-                profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = status == AwaitingStatus.Decision ? GateMode.Off : GateMode.Required };
+                profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = status == CalibrationGate.Off ? GateMode.Off : GateMode.Required };
             var period = new EvaluationPeriod
             {
                 Year = 2100 + Random.Shared.Next(0, 800), Quarter = EvaluationQuarter.Quy2, Name = $"Kỳ UI {suffix}",
@@ -279,7 +279,7 @@ public sealed class QualityUiContractIntegrationTests
             var records = owners.Select((o, i) => new EvaluationRecord
             {
                 PeriodId = period.Id, MemberId = o.Id, DepartmentId = dept.Id, ApprovalAuthority = ApprovalAuthority.CoSo, WeightFrameCode = "K2",
-                Status = status == AwaitingStatus.Decision ? RecordStatus.AwaitingDecision : RecordStatus.AwaitingDirectorReview,
+                Status = RecordStatus.AwaitingDecision,
                 AppraisalProposedGrade = grades[i].Item1, AppraisalScore = grades[i].Item2,
                 AppraisedAt = DateTime.UtcNow.AddHours(-1), SelfScoredAt = DateTime.UtcNow.AddDays(-1), TotalSelfScore = grades[i].Item2
             }).ToList();
