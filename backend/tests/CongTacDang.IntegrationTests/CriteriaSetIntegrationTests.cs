@@ -214,9 +214,10 @@ public sealed class CriteriaSetIntegrationTests
         var badAxis = await PostAsync(w.Owner1C, r1, "tasks/submit", Tasks("T7"), await VersionAsync(w, r1));
         Assert.Equal(HttpStatusCode.BadRequest, badAxis.StatusCode);
         Assert.Contains("\"T7\"", await MessageAsync(badAxis));
-        var registered = await StepAsync(w, w.Owner1C, r1, "tasks/submit", Tasks("t1"), "AwaitingTaskApproval");
+        var registered = await StepAsync(w, w.Owner1C, r1, "tasks/submit", Tasks("t1"), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, r1);
         Assert.All(registered.GetProperty("tasks").EnumerateArray(), t => Assert.Equal("T1", t.GetProperty("axisCode").GetString()));
-        await StepAsync(w, w.DeptLeadC, r1, "tasks/approve", new { comment = "Đồng ý" }, "AwaitingSelfScore");
+        await StepAsync(w, w.DirectorC, r1, "tasks/approve", new { comment = "Đồng ý" }, "AwaitingSelfScore");
 
         // Tự chấm A-B-C-D theo khung K2 của hồ sơ, làm tròn 1 chữ số (bộ mặc định): TC-1 dòng 1, 2, 4.
         var record = await Data(w.Owner1C, $"/api/evaluations/records/{r1}");
@@ -325,18 +326,19 @@ public sealed class CriteriaSetIntegrationTests
         Assert.Equal(10, period.GetProperty("criteria").GetProperty("content").GetProperty("parameters").GetProperty("frameAdjustLimit").GetDouble());
         var r1 = await AddParticipantAsync(w, periodId, w.Owner1.Id); // khung K2: A 15 · B 50 · C 15 · D 20
         await OpenAsync(w, periodId);
-        await StepAsync(w, w.Owner1C, r1, "tasks/submit", Tasks("T1"), "AwaitingTaskApproval");
+        await StepAsync(w, w.Owner1C, r1, "tasks/submit", Tasks("T1"), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, r1);
 
         // Lệch quá ±10 điểm phần trăm → 400; tổng khác 100 → 400.
-        var tooFar = await PostAsync(w.DeptLeadC, r1, "tasks/approve", new { frameAdjustment = new { a = 15, b = 35, c = 30, d = 20 } }, await VersionAsync(w, r1));
+        var tooFar = await PostAsync(w.DirectorC, r1, "tasks/approve", new { frameAdjustment = new { a = 15, b = 35, c = 30, d = 20 } }, await VersionAsync(w, r1));
         Assert.Equal(HttpStatusCode.BadRequest, tooFar.StatusCode);
         Assert.Contains("lệch quá 10", await MessageAsync(tooFar));
-        var badSum = await PostAsync(w.DeptLeadC, r1, "tasks/approve", new { frameAdjustment = new { a = 20, b = 50, c = 15, d = 20 } }, await VersionAsync(w, r1));
+        var badSum = await PostAsync(w.DirectorC, r1, "tasks/approve", new { frameAdjustment = new { a = 20, b = 50, c = 15, d = 20 } }, await VersionAsync(w, r1));
         Assert.Equal(HttpStatusCode.BadRequest, badSum.StatusCode);
         Assert.Contains("100%", await MessageAsync(badSum));
 
         // Hợp lệ: A 25 · B 40 · C 15 · D 20.
-        var approved = await StepAsync(w, w.DeptLeadC, r1, "tasks/approve",
+        var approved = await StepAsync(w, w.DirectorC, r1, "tasks/approve",
             new { comment = "Đồng ý", frameAdjustment = new { a = 25, b = 40, c = 15, d = 20 } }, "AwaitingSelfScore");
         Assert.True(approved.GetProperty("weightFrameAdjusted").GetBoolean());
         Assert.Equal(0.25, approved.GetProperty("weightFrame").GetProperty("a").GetDouble(), 6);
@@ -416,15 +418,16 @@ public sealed class CriteriaSetIntegrationTests
         await Data(await w.Manager.PostAsJsonAsync($"/api/criteria-sets/{cloneId}/archive", new { version = published.GetProperty("version").GetUInt32() }));
 
         var owner2 = await _factory.LoginAsAsync(owner.Username, owner.Password, distinctClientIp: true);
-        await StepAsync(w, owner2, r2, "tasks/submit", Tasks("T1"), "AwaitingTaskApproval");
-        var refused = await PostAsync(w.DeptLeadC, r2, "tasks/approve", new { frameAdjustment = new { a = 25, b = 35, c = 20, d = 20 } }, await VersionAsync(w, r2));
+        await StepAsync(w, owner2, r2, "tasks/submit", Tasks("T1"), "AwaitingUnitSubmit");
+        await ForwardAndReviewAsync(w, r2);
+        var refused = await PostAsync(w.DirectorC, r2, "tasks/approve", new { frameAdjustment = new { a = 25, b = 35, c = 20, d = 20 } }, await VersionAsync(w, r2));
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Contains("không cho điều chỉnh", await MessageAsync(refused));
         var record = await Data(w.Manager, $"/api/evaluations/records/{r2}");
         Assert.Equal(JsonValueKind.Null, record.GetProperty("frameAdjustLimit").ValueKind);
 
         // Không gửi điều chỉnh → duyệt bình thường.
-        var approved = await StepAsync(w, w.DeptLeadC, r2, "tasks/approve", new { comment = "Đồng ý" }, "AwaitingSelfScore");
+        var approved = await StepAsync(w, w.DirectorC, r2, "tasks/approve", new { comment = "Đồng ý" }, "AwaitingSelfScore");
         Assert.False(approved.GetProperty("weightFrameAdjusted").GetBoolean());
     }
 
@@ -550,6 +553,13 @@ public sealed class CriteriaSetIntegrationTests
         if (action == "appraisal")
             await AppraisalTestData.AddTaskLevelsAsync(client, recordId, json);
         return await client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/{action}", json);
+    }
+
+    /// <summary>Trưởng đơn vị gửi, cơ quan tổ chức cán bộ rà soát trình: danh mục tới bước duyệt.</summary>
+    private static async Task ForwardAndReviewAsync(World w, Guid recordId)
+    {
+        await StepAsync(w, w.DeptLeadC, recordId, "tasks/forward", new { comment = "Gửi danh mục" }, "AwaitingTaskReview");
+        await StepAsync(w, w.AppraiserC, recordId, "tasks/review", new { comment = "Đủ điều kiện trình" }, "AwaitingTaskApproval");
     }
 
     private static async Task<JsonElement> StepAsync(World w, HttpClient client, Guid recordId, string action, object body, string expectedStatus)

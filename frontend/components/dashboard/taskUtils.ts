@@ -69,6 +69,8 @@ export function normalizeText(value: string): string {
 /** Tên nút theo việc; dùng chung cho Tổng quan và Việc cần xử lý. */
 const STEP_ACTIONS: Record<string, string> = {
   B1_REGISTER: "Đăng ký",
+  B1_UNIT_SUBMIT: "Gửi",
+  B1_HR_REVIEW: "Trình duyệt",
   B1_APPROVE: "Duyệt",
   B2_SELF_SCORE: "Tự chấm",
   B2_CELL_CONFIRM: "Xác nhận",
@@ -85,6 +87,8 @@ const STEP_ACTIONS: Record<string, string> = {
 
 /** Bước do cấp trên thực hiện: nút ghi nhận kết quả của đúng bước đó. */
 const EXTERNAL_ACTIONS: Record<string, string> = {
+  B1_UNIT_SUBMIT: "Ghi nhận gửi",
+  B1_HR_REVIEW: "Ghi nhận rà soát",
   B1_APPROVE: "Ghi nhận duyệt",
   B2_CELL_CONFIRM: "Ghi nhận xác nhận",
   B3A_COLLECTIVE: "Ghi nhận đề xuất",

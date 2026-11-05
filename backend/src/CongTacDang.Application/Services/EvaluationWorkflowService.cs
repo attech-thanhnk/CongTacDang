@@ -21,6 +21,10 @@ namespace CongTacDang.Application.Services;
 public interface IEvaluationWorkflowService
 {
     Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> ForwardTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> ReturnByUnitAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> ReviewTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
+    Task<EvaluationRecordDto> ReturnByReviewerAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> RevokeTaskApprovalAsync(Guid recordId, WorkflowRequestDto request, CancellationToken ct = default);
@@ -160,6 +164,44 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         }, ct);
 
     /// <inheritdoc />
+    public Task<EvaluationRecordDto> ForwardTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
+        ExecuteAsync(recordId, request, WorkflowActions.ForwardTasks, null, ctx =>
+        {
+            ctx.Record.TasksForwardedById = ctx.ActorId;
+            ctx.Record.TasksForwardedByName = ctx.ActorName;
+            ctx.Record.TasksForwardedAt = ctx.Now;
+            ctx.Record.TasksForwardComment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
+            return Task.FromResult<string?>("Trưởng đơn vị gửi danh mục sản phẩm.");
+        }, ct);
+
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> ReturnByUnitAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
+        ExecuteAsync(recordId, request, WorkflowActions.ReturnByUnit, request.Reason, ctx =>
+        {
+            ctx.Record.ClearTaskSignoffs();
+            return Task.FromResult<string?>(null);
+        }, ct, unlockUntil: request.UnlockUntil);
+
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> ReviewTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
+        ExecuteAsync(recordId, request, WorkflowActions.ReviewTasks, null, ctx =>
+        {
+            ctx.Record.TasksReviewedById = ctx.ActorId;
+            ctx.Record.TasksReviewedByName = ctx.ActorName;
+            ctx.Record.TasksReviewedAt = ctx.Now;
+            ctx.Record.TasksReviewComment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
+            return Task.FromResult<string?>("Rà soát danh mục sản phẩm, trình duyệt.");
+        }, ct);
+
+    /// <inheritdoc />
+    public Task<EvaluationRecordDto> ReturnByReviewerAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
+        ExecuteAsync(recordId, request, WorkflowActions.ReturnByReviewer, request.Reason, ctx =>
+        {
+            ctx.Record.ClearTaskSignoffs();
+            return Task.FromResult<string?>(null);
+        }, ct, unlockUntil: request.UnlockUntil);
+
+    /// <inheritdoc />
     public Task<EvaluationRecordDto> ApproveTasksAsync(Guid recordId, ApproveTasksRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.ApproveTasks, null, ctx =>
         {
@@ -194,9 +236,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> ReturnTasksAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.ReturnTasks, request.Reason, ctx =>
         {
-            ctx.Record.TasksApprovedById = null;
-            ctx.Record.TasksApprovedByName = null;
-            ctx.Record.TasksApprovedAt = null;
+            ctx.Record.ClearTaskSignoffs();
             return Task.FromResult<string?>(null);
         }, ct, unlockUntil: request.UnlockUntil);
 
@@ -248,9 +288,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var gradeBefore = record.EffectiveGrade();
 
         record.Status = RecordStatus.AwaitingRegistration;
-        record.TasksApprovedById = null;
-        record.TasksApprovedByName = null;
-        record.TasksApprovedAt = null;
+        record.ClearTaskSignoffs();
         record.TasksApprovalComment = null;
         record.FrameA = null;
         record.FrameB = null;
@@ -352,7 +390,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     .Select(t => $"\"{t.TaskName}\"")
                     .ToList();
                 if (missing.Count > 0)
-                    throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
+                    throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho sản phẩm: {string.Join(", ", missing)}.");
             }
 
             foreach (var task in tasks)
@@ -439,7 +477,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             .Select(t => $"\"{t.TaskName}\"")
             .ToList();
         if (missing.Count > 0)
-            throw new ValidationException($"Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: {string.Join(", ", missing)}.");
+            throw new ValidationException($"Sản phẩm đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: {string.Join(", ", missing)}.");
     }
 
     /// <summary>
@@ -1023,6 +1061,18 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     {
         switch (result.Step)
         {
+            case WorkflowStep.B1_UNIT_SUBMIT:
+                record.TasksForwardedById = null;
+                record.TasksForwardedByName = result.AuthorityName;
+                record.TasksForwardedAt = ctx.Now;
+                record.TasksForwardComment = result.Comment;
+                break;
+            case WorkflowStep.B1_HR_REVIEW:
+                record.TasksReviewedById = null;
+                record.TasksReviewedByName = result.AuthorityName;
+                record.TasksReviewedAt = ctx.Now;
+                record.TasksReviewComment = result.Comment;
+                break;
             case WorkflowStep.B1_APPROVE:
                 record.TasksApprovedById = null;
                 record.TasksApprovedByName = result.AuthorityName;
@@ -1522,7 +1572,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             record.ReturnReason = cleanReason;
         record.Status = transition.Status;
         // Kết quả hiệu chuẩn chỉ đúng khi hồ sơ còn ở sau bước thẩm định.
-        if (action.Kind is WorkflowAction.Return or WorkflowAction.Reopen && record.Status < RecordStatus.AwaitingDirectorReview)
+        if (action.Kind is WorkflowAction.Return or WorkflowAction.Reopen
+            && (WorkflowSteps.StepOf(record.Status) is not { } back || WorkflowSteps.IndexOf(back) < WorkflowSteps.IndexOf(WorkflowStep.B3C_DIRECTOR)))
             record.ClearCalibration();
 
         _repo.AddHistory(new EvaluationRecordHistory
@@ -1543,8 +1594,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             CreatedAt = now
         });
 
+        await SkipUnitSubmitIfOwnerIsHeadAsync(record, profile, now.AddMilliseconds(1), ct);
+
         if (grantUntil is { } until)
-            GrantUnlock(record, until, cleanReason, actorId, actorName, now.AddMilliseconds(1));
+            GrantUnlock(record, until, cleanReason, actorId, actorName, now.AddMilliseconds(2));
         else if (record.UnlockedUntil.HasValue
             && (WorkflowSteps.StepOf(record.Status) is not { } waiting || !WorkflowSteps.IsLockedStep(waiting)))
             ClearUnlock(record, actorId, actorName, now.AddMilliseconds(1));
@@ -1553,6 +1606,46 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         await _unitOfWork.SaveChangesAsync(ct);
         return await LoadDtoAsync(record, ct);
     }
+
+    /// <summary>
+    /// Hồ sơ tới bước Trưởng đơn vị gửi mà chủ hồ sơ chính là người giữ quyền của bước gần hồ sơ nhất (Trưởng đơn vị)
+    /// thì bước được bỏ qua, ghi lịch sử.
+    /// </summary>
+    private async Task SkipUnitSubmitIfOwnerIsHeadAsync(EvaluationRecord record, WorkflowProfile profile, DateTime at, CancellationToken ct)
+    {
+        const WorkflowStep step = WorkflowStep.B1_UNIT_SUBMIT;
+        if (record.Status != WorkflowSteps.StatusOf(step) || profile.Mode(step) != StepMode.Internal || _stepPerformers == null)
+            return;
+        var permission = WorkflowActions.PermissionFor(WorkflowActions.CompleteOf(step), profile);
+        if (!await _stepPerformers.OwnerIsNearestAsync(permission, AccessTarget.ForRecord(record), ct))
+            return;
+
+        var transition = RecordStateMachine.Apply(record.Status, profile.ActiveSteps(), WorkflowCommand.Complete(step));
+        if (!transition.Succeeded)
+            return;
+        var from = record.Status;
+        record.Status = transition.Status;
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = from,
+            ToStatus = record.Status,
+            Step = step,
+            Action = WorkflowAction.Complete,
+            ScoreBefore = record.EffectiveScore(),
+            ScoreAfter = record.EffectiveScore(),
+            GradeBefore = record.EffectiveGrade(),
+            GradeAfter = record.EffectiveGrade(),
+            ActorId = null,
+            ActorName = UnitSubmitSkippedActor,
+            Comment = UnitSubmitSkippedComment,
+            CreatedAt = at
+        });
+    }
+
+    public const string UnitSubmitSkippedActor = "Hệ thống";
+
+    public const string UnitSubmitSkippedComment = "Bỏ qua bước Trưởng đơn vị gửi: chủ hồ sơ là Trưởng đơn vị.";
 
     /// <summary>Null với hành động không phải trả lại / mở lại.</summary>
     private static WorkflowStep? BackwardTarget(WorkflowActionDefinition action, WorkflowStep? reopenTarget) => action.Kind switch

@@ -128,25 +128,30 @@ public sealed class NearestPerformerIntegrationTests
             await db.SaveChangesAsync();
         });
 
-        // Duyệt danh mục: cấp trên vẫn thấy nút như người gần nhất.
+        // Duyệt danh mục: Giám đốc duyệt cho Trưởng, Phó phòng, Trưởng trung tâm, Đội trưởng; Trưởng phòng, Trưởng trung tâm không duyệt.
         await SetStatus(RecordStatus.AwaitingTaskApproval);
-        Assert.True(await CanAsync(headC, RecordOf(deputy), "ApproveTasks"));
-        Assert.True(await CanAsync(directorC, RecordOf(deputy), "ApproveTasks"));
-        Assert.True(await CanAsync(directorC, RecordOf(head), "ApproveTasks"));
-        Assert.True(await CanAsync(centerHeadC, RecordOf(teamHead), "ApproveTasks"));
-        Assert.True(await CanAsync(directorC, RecordOf(teamHead), "ApproveTasks"));
-        Assert.True(await CanAsync(directorC, RecordOf(centerHead), "ApproveTasks"));
+        Assert.False(await CanAsync(headC, RecordOf(deputy), "ApproveTasks"));
+        Assert.False(await CanAsync(centerHeadC, RecordOf(teamHead), "ApproveTasks"));
+        foreach (var m in new[] { deputy, head, centerHead, teamHead })
+            Assert.True(await CanAsync(directorC, RecordOf(m), "ApproveTasks"));
+        Assert.True(await CanAsync(chairmanC, RecordOf(deputy), "ApproveTasks"));
+        Assert.True(await CanAsync(chairmanC, RecordOf(deputyDirector), "ApproveTasks"));
+        Assert.False(await CanAsync(directorC, RecordOf(deputyDirector), "ApproveTasks"));
 
-        // Việc cần xử lý và tên người chờ chỉ có người gần nhất.
+        // Việc cần xử lý và tên người chờ chỉ có người gần nhất: Giám đốc; Chủ tịch chỉ nhận hồ sơ ở Công ty.
         var queueIds = await QueueAsync(directorC);
-        Assert.Contains(RecordOf(head), queueIds);
-        Assert.DoesNotContain(RecordOf(deputy), queueIds);
-        Assert.DoesNotContain(RecordOf(teamHead), queueIds);
-        Assert.Contains(RecordOf(deputy), await QueueAsync(headC));
-        Assert.Equal(new[] { $"N Trưởng phòng {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(deputy)));
-        Assert.Equal(new[] { $"N Giám đốc {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(head)));
+        foreach (var m in new[] { deputy, head, centerHead, teamHead })
+            Assert.Contains(RecordOf(m), queueIds);
+        var chairmanQueue = await QueueAsync(chairmanC);
+        Assert.Contains(RecordOf(deputyDirector), chairmanQueue);
+        Assert.DoesNotContain(RecordOf(deputy), chairmanQueue);
+        Assert.DoesNotContain(RecordOf(deputy), await QueueAsync(headC));
+        Assert.DoesNotContain(RecordOf(teamHead), await QueueAsync(centerHeadC));
+        Assert.Equal(new[] { $"N Giám đốc {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(deputy)));
+        Assert.Equal(new[] { $"N Giám đốc {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(teamHead)));
+        Assert.Equal(new[] { $"N Chủ tịch {sfx}" }, await PerformerNamesAsync(managerC, RecordOf(deputyDirector)));
 
-        // Giám đốc duyệt danh mục Phó phòng khi Trưởng phòng chưa duyệt; lịch sử ghi tên Giám đốc.
+        // Giám đốc duyệt danh mục Phó phòng; lịch sử ghi tên Giám đốc.
         var record = await Data(directorC, $"/api/evaluations/records/{RecordOf(deputy)}");
         var approved = await Data(await directorC.PostAsJsonAsync($"/api/evaluations/records/{RecordOf(deputy)}/tasks/approve",
             new { version = record.GetProperty("version").GetUInt32() }));

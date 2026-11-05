@@ -8,6 +8,8 @@ export type BadgeTone = "success" | "info" | "warning" | "danger" | "neutral";
 
 const RECORD_TONES: Record<string, BadgeTone> = {
   AwaitingRegistration: "info",
+  AwaitingUnitSubmit: "warning",
+  AwaitingTaskReview: "warning",
   AwaitingTaskApproval: "warning",
   AwaitingSelfScore: "info",
   AwaitingCellConfirm: "warning",

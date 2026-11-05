@@ -56,7 +56,7 @@ public static class PersonalFormWorkbooks
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
         InfoRow(ws, row++, last, $"Họ và tên cán bộ: {data.FullName ?? Dots}", $"Mã số cán bộ: {Dots}");
         InfoRow(ws, row++, last, $"Chức danh /Vị trí công tác: {data.Position ?? Dots}", $"Đơn vị công tác: {data.Department ?? Dots}");
-        InfoRow(ws, row++, last, $"Người quản lý trực tiếp: {data.SupervisorName ?? Dots}", $"Chức vụ: {Dots}");
+        InfoRow(ws, row++, last, $"Người quản lý trực tiếp: {Dots}", $"Chức vụ: {Dots}");
         TextRow(ws, row++, last, "Khối chức danh áp dụng: ☐ Khối 1-Khai thác bay | ☐ Khối 2-Kỹ thuật CNS | ☐ Khối 3-An toàn/An ninh | ☐ Khối 4-Kế hoạch/Tài chính/Dự án | ☐ Khối 5-Công tác Đảng/TCCB/Đoàn thể | ☐ Khối 6-Văn phòng/Đối ngoại");
         TextRow(ws, row++, last, "(Ghi chú: Đăng ký từ 03 đến 07 sản phẩm/nhóm nhiệm vụ trọng tâm; Tổng trọng số cố định = 70 điểm; Hoàn thành trong 05 ngày làm việc đầu quý)", italic: true);
 
@@ -86,6 +86,15 @@ public static class PersonalFormWorkbooks
         row += 2;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT", SignNote), ("CƠ QUAN TỔ CHỨC CÁN BỘ", SignNote),
             ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("CÁ NHÂN ĐĂNG KÝ", SignNote));
+        // Dòng họ tên theo thứ tự ô ký; người chưa thực hiện trong hệ thống để dòng chấm ký tay.
+        var nameRow = row + 5;
+        var names = new[] { data.ApproverName, data.HrReviewerName, data.SupervisorName, data.RegistrantName };
+        for (var i = 0; i < 4; i++)
+        {
+            var first = 1 + i * last / 4;
+            ws.Cell(nameRow, first).Value = names[i] ?? Dots;
+            ws.Range(nameRow, first, nameRow, (i + 1) * last / 4).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        }
 
         return Save(workbook, ws);
     }

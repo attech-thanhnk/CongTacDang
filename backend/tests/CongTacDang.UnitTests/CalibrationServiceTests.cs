@@ -143,6 +143,23 @@ public sealed class CalibrationServiceTests
     }
 
     [Fact]
+    public async Task Get_IncompleteDraft_ShowsReasonToViewerWithoutConcludeRight()
+    {
+        var h = new Harness();
+        var created = await h.Service.CreateAsync(h.CreateRequest());
+
+        // Người lập chỉ có quyền lập vẫn thấy cần nhập gì; phần trăm ở thang 0–100.
+        Assert.False(created.CanConclude);
+        Assert.Equal("Cần nhập Ngày họp, Chủ trì, Thư ký, Thành phần tham dự.", created.ConcludeBlockedReason);
+        Assert.Equal(100, created.Summary.Single(s => s.GradeCode == "TOTAL").PercentBefore);
+
+        var saved = await h.Service.UpdateAsync(created.Id, h.FullContent(created.Version));
+        Assert.Null(saved.ConcludeBlockedReason);
+        h.Guard.Granted.Add(PermissionCodes.EvaluationCalibrationConclude);
+        Assert.Equal("Người chốt biên bản phải khác người lập biên bản.", (await h.Service.GetAsync(saved.Id)).ConcludeBlockedReason);
+    }
+
+    [Fact]
     public async Task Conclude_AppliesCalibratedValues_OnlyForChangedCases_AndWritesRecordHistory()
     {
         var h = new Harness();

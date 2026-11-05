@@ -303,7 +303,9 @@ function orderBlocks(blocks: { key: string; rank: number; node: React.ReactNode 
 const DANGER_ACTIONS = new Set<WorkflowActionCode>(["RevokeTaskApproval"]);
 
 const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
-  SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chờ duyệt.",
+  SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chuyển tới bước tiếp theo.",
+  ForwardTasks: "Gửi danh mục sản phẩm?",
+  ReviewTasks: "Trình duyệt danh mục sản phẩm?",
   ApproveTasks: "Duyệt danh mục sản phẩm?",
   RevokeTaskApproval: "Thu hồi duyệt? Hồ sơ sẽ quay lại bước đăng ký sản phẩm.",
   ConfirmByCell: "Xác nhận phiếu tự chấm?",
@@ -320,6 +322,8 @@ const ACTIONS_ANCHOR = "record-actions";
 const CONFLICT_ANCHOR = "record-conflict";
 const STEP_SECTION: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "step-b1",
+  B1_UNIT_SUBMIT: "step-b1",
+  B1_HR_REVIEW: "step-b1",
   B1_APPROVE: "step-b1",
   B2_SELF_SCORE: "step-b2-self",
   B2_CELL_CONFIRM: "step-b2-cell",
@@ -329,7 +333,7 @@ const STEP_SECTION: Record<WorkflowStepCode, string> = {
   B4_DECISION: "step-b4",
   B5_PUBLISH: "step-b4",
 };
-const B1_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B1_APPROVE"];
+const B1_STEPS: WorkflowStepCode[] = ["B1_REGISTER", "B1_UNIT_SUBMIT", "B1_HR_REVIEW", "B1_APPROVE"];
 const DECISION_STEPS: WorkflowStepCode[] = ["B4_DECISION", "B5_PUBLISH"];
 
 /** Cuộn mượt tới khu thao tác và đặt focus vào ô nhập / nút đầu tiên. */
@@ -536,6 +540,18 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
               Khung {record.weightFrame.code} · {describeFrame(record.weightFrame)}{record.weightFrameAdjusted ? " (đã điều chỉnh)" : ""}
             </div>
           )}
+          {record.tasksForwardedAt && (
+            <div className={styles.subline}>
+              Gửi: {record.tasksForwardedByName} · {formatDateTime(record.tasksForwardedAt)}{record.tasksForwardComment ? ` — ${record.tasksForwardComment}` : ""}
+            </div>
+          )}
+          {externalOf("B1_UNIT_SUBMIT") && <div className={styles.subline}><Fields items={externalItems("B1_UNIT_SUBMIT")} /></div>}
+          {record.tasksReviewedAt && (
+            <div className={styles.subline}>
+              Rà soát, trình: {record.tasksReviewedByName} · {formatDateTime(record.tasksReviewedAt)}{record.tasksReviewComment ? ` — ${record.tasksReviewComment}` : ""}
+            </div>
+          )}
+          {externalOf("B1_HR_REVIEW") && <div className={styles.subline}><Fields items={externalItems("B1_HR_REVIEW")} /></div>}
           {record.tasksApprovedAt && (
             <div className={styles.subline}>
               Duyệt: {record.tasksApprovedByName} · {formatDateTime(record.tasksApprovedAt)}{record.tasksApprovalComment ? ` — ${record.tasksApprovalComment}` : ""}

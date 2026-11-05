@@ -693,13 +693,10 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate
         var editable = s.Status == CalibrationStatus.Draft && s.Period.Status == PeriodStatus.Open;
         var isPreparer = s.PreparedById is { } p && p == _currentUser.UserId;
         var canConclude = editable && _guard.Can(PermissionCodes.EvaluationCalibrationConclude, target);
-        string? blocked = null;
-        if (canConclude)
-        {
-            blocked = isPreparer
-                ? "Người chốt biên bản phải khác người lập biên bản."
-                : CalibrationRules.ConclusionProblems(s) is { Count: > 0 } problems ? string.Join(" ", problems) : null;
-        }
+        // Thiếu nội dung thì ai xem cũng thấy lý do, để người lập biết cần bổ sung gì trước khi nhờ chốt.
+        var blocked = editable ? CalibrationRules.ConclusionHint(s) : null;
+        if (blocked == null && canConclude && isPreparer)
+            blocked = "Người chốt biên bản phải khác người lập biên bản.";
 
         return new CalibrationSessionDto
         {

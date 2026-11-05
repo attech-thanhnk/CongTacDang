@@ -123,7 +123,12 @@ public enum RecordStatus
     AwaitingPublish = 9,
 
     /// <summary>Đã khóa; mọi sửa đổi phải qua mở lại.</summary>
-    Published = 10
+    Published = 10,
+
+    /// <summary>Đứng ngay sau đăng ký dù số lớn hơn: so thứ tự bằng <c>WorkflowSteps.IndexOf</c>, không so số.</summary>
+    AwaitingUnitSubmit = 11,
+
+    AwaitingTaskReview = 12
 }
 
 /// <summary>Nháp → Đã xuất bản (bất biến) → Lưu trữ.</summary>

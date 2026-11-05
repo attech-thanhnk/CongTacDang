@@ -188,11 +188,11 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const toInput = (raw: string): ScoreInput => (raw === "" ? "" : Number(raw));
   const setRatio = (taskId: string, key: keyof TaskRatio, value: ScoreInput | boolean | string | null) =>
     setRatios({ ...ratios, [taskId]: { ...ratios[taskId], [key]: value } });
-  // Tệp tải lên chưa gắn; gắn vào nhiệm vụ khi lưu nháp hoặc nộp phiếu.
+  // Tệp tải lên chưa gắn; gắn vào sản phẩm khi lưu nháp hoặc nộp phiếu.
   const setEvidence = (taskId: string, file: { id: string; fileName: string } | null) =>
     setRatios((prev) => ({ ...prev, [taskId]: { ...prev[taskId], attachmentId: file?.id ?? null, attachmentName: file?.fileName ?? null } }));
   const uploadEvidence = async (taskId: string, taskName: string, file: File) =>
-    setEvidence(taskId, await attachmentService.uploadAttachment(file, "MAU02", `Minh chứng nhiệm vụ: ${taskName}`.slice(0, 500)));
+    setEvidence(taskId, await attachmentService.uploadAttachment(file, "MAU02", `Minh chứng sản phẩm: ${taskName}`.slice(0, 500)));
 
   const generalScore = useMemo(() => generalTotal(content, general), [content, general]);
   const taskScore = (weight: number, r: TaskRatio) => {
@@ -221,7 +221,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const needsReason = (item: { maxScore: number }, s: GeneralItemScore) =>
     !!s.notApplicable || (p.deductionReasonMinPoints != null && item.maxScore - (Number(s.score) || 0) + 1e-6 >= p.deductionReasonMinPoints);
 
-  /** Nội dung gửi máy chủ. Lưu nháp: bỏ nhiệm vụ còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
+  /** Nội dung gửi máy chủ. Lưu nháp: bỏ sản phẩm còn ô điểm trống (giữ trống khi mở lại, không ghi thành 0). */
   const buildPayload = (draft: boolean): Record<string, unknown> => {
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
@@ -230,7 +230,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
-    // Lưu nháp vẫn gửi nhiệm vụ chưa đủ tỷ lệ để máy chủ gắn minh chứng đã chọn.
+    // Lưu nháp vẫn gửi sản phẩm chưa đủ tỷ lệ để máy chủ gắn minh chứng đã chọn.
     const ratioOf = (v: ScoreInput) => (v === "" ? null : (Number(v) || 0) / 100);
     payload.taskScores = activeTasks
       .map((t) => ({
@@ -255,9 +255,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       const now = new Date();
       setSavedAt(now);
       toast.success(`Đã lưu nháp lúc ${timeOf(now)}.`);
-      // Nhiệm vụ mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
+      // Sản phẩm mới nhập một phần A-B-C-D không được lưu (giữ nội dung đã lưu trước đó).
       const partial = activeTasks.filter((t) => !isComplete(ratios[t.id]) && ratioKeys.some((k) => ratios[t.id][k] !== ""));
-      if (partial.length) toast.warning(`Chưa lưu tỷ lệ của nhiệm vụ nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
+      if (partial.length) toast.warning(`Chưa lưu tỷ lệ của sản phẩm nhập chưa đủ A-B-C-D: ${taskNames(partial)}.`);
     } catch (error: unknown) {
       if (!isConcurrencyConflict(error)) toast.error(errorMessage(error, "Lưu nháp không thành công."));
     } finally {
@@ -269,12 +269,12 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     e.preventDefault();
     const incomplete = activeTasks.filter((t) => !isComplete(ratios[t.id]));
     if (incomplete.length) {
-      toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: ${taskNames(incomplete)}.`);
+      toast.error(`Chưa nhập đủ tỷ lệ A-B-C-D cho sản phẩm: ${taskNames(incomplete)}.`);
       return;
     }
     const exceedNoEvidence = activeTasks.filter((t) => ratios[t.id].exceed && !ratios[t.id].attachmentId);
     if (exceedNoEvidence.length) {
-      toast.error(`Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
+      toast.error(`Sản phẩm đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: ${taskNames(exceedNoEvidence)}.`);
       return;
     }
     const noEvidence = activeTasks.filter((t) => !ratios[t.id].attachmentId);
@@ -294,7 +294,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       title: "Nộp phiếu tự chấm",
       message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
-        + (noEvidence.length ? ` Nhiệm vụ chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
+        + (noEvidence.length ? ` Sản phẩm chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
         + " Sau khi nộp, bạn không sửa được trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
       isDanger: false,
@@ -398,21 +398,21 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           : <span className="text-danger">Khung tỷ trọng "{record.weightFrameCode || "—"}" của hồ sơ không có trong bộ tiêu chí — liên hệ người quản lý kỳ.</span>}
       </div>
       <div className="table-responsive mb-2">
-        <table className="table table-sm align-middle">
+        {/* Trục, trọng số ghi dưới tên sản phẩm để cột tên đủ rộng; ô % đủ chỗ cho 100. */}
+        <table className={`table table-sm align-middle ${styles.ratioTable}`}>
           <thead>
             <tr className="small text-secondary">
-              <th>Sản phẩm</th><th style={{ width: 55 }}>Trục</th><th style={{ width: 65 }}>Trọng số</th><th style={{ width: 75 }}>A %</th><th style={{ width: 75 }}>B %</th><th style={{ width: 75 }}>C %</th><th style={{ width: 75 }}>D %</th><th style={{ width: 70 }}>Điểm</th><th style={{ width: 55 }}>Vượt</th>
+              <th>Sản phẩm</th><th className={styles.ratioCol}>A %</th><th className={styles.ratioCol}>B %</th><th className={styles.ratioCol}>C %</th><th className={styles.ratioCol}>D %</th><th style={{ width: 56 }}>Điểm</th><th style={{ width: 48 }}>Vượt</th>
             </tr>
           </thead>
           <tbody>
             {record.tasks.map((t) => {
               const r = ratios[t.id];
+              const meta = `Trục ${t.axisCode || "—"} · trọng số ${fmt(t.changeStatus ? 0 : t.weight)}`;
               if (t.changeStatus) {
                 return (
                   <tr key={t.id} className="text-secondary">
-                    <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div></td>
-                    <td className="small">{t.axisCode || "—"}</td>
-                    <td className="small">0</td>
+                    <td><div className="small">{t.taskName}<TaskChangeMark task={t} /></div><div className="small">{meta}</div></td>
                     <td colSpan={6} />
                   </tr>
                 );
@@ -420,12 +420,14 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
               return (
                 <React.Fragment key={t.id}>
                 <tr className={styles.taskMain}>
-                  <td><div className="small fw-semibold">{t.taskName}</div><div className="small text-secondary">{t.targetOutput}</div></td>
-                  <td className="small">{t.axisCode || "—"}</td>
-                  <td className="small">{t.weight}</td>
+                  <td>
+                    <div className="small fw-semibold">{t.taskName}</div>
+                    <div className="small text-secondary">{meta}</div>
+                    <div className="small text-secondary">{t.targetOutput}</div>
+                  </td>
                   {(["a", "b", "c", "d"] as const).map((k) => (
                     <td key={k}>
-                      <input type="number" min={0} max={100} step={1} className={`form-control form-control-sm${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
+                      <input type="number" min={0} max={100} step={1} inputMode="numeric" className={`form-control form-control-sm ${styles.ratioInput}${r[k] === "" ? " border-warning" : ""}`} value={r[k]} placeholder="%" title={r[k] === "" ? "Chưa nhập" : band(Number(r[k]) || 0)?.label}
                         onChange={(e) => setRatio(t.id, k, toInput(e.target.value))} aria-label={`Thành phần ${k.toUpperCase()} — ${t.taskName}`} />
                     </td>
                   ))}
@@ -435,7 +437,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
                   </td>
                 </tr>
                 <tr className={styles.taskEvidence}>
-                  <td colSpan={9}>
+                  <td colSpan={7}>
                     <div className={styles.taskEvidenceBody}>
                       <span className={styles.taskEvidenceLabel}>
                         Minh chứng{r.exceed && !r.attachmentId ? <span className="text-danger"> · cần cho việc vượt chuẩn</span> : null}

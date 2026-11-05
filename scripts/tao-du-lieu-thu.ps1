@@ -16,7 +16,7 @@ param(
     [string]$GiaiDoan,
     [switch]$LamSach,
     [string]$ApiUrl = 'http://localhost:5000',
-    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (Trưởng phòng duyệt cho Phó phòng, thư ký Văn phòng ghi đề xuất); tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
+    # Thử lần lượt, cấp gần nhất trước để đúng thực tế (thư ký Văn phòng ghi đề xuất); giang.nh: Giám đốc duyệt danh mục; tuan.nm: Trưởng trung tâm của cuong.nt; hung.nx: Chi bộ của cuong.nt; huyen.utt: Chi bộ của thanh.nn, da.dc
     [string[]]$TaiKhoan = @('duy.lm', 'dao.nta', 'trung.nb', 'tuan.nm', 'hung.nx', 'huyen.utt', 'long.nc', 'loan.ttp', 'loan.ctp', 'hung.dt', 'giang.nh', 'thinh.lt', 'thanh.nn'),
     # Mật khẩu thử chỉ dùng trên máy phát triển
     [string]$MatKhau = 'Thu12345a',
@@ -48,25 +48,25 @@ $NotRated = @{ 'nghia.tv' = 'Đi đào tạo dài hạn trong quý' }
 $Accounts = @(@($TaiKhoan) + @($Evaluated.Keys | Where-Object { -not $NotRated.ContainsKey($_) }) | Select-Object -Unique)
 $CalibrationPreparer = 'loan.ctp'
 $CalibrationConcluders = @('long.nc', 'hung.dt')
-$Steps = @('B1_REGISTER', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
+$Steps = @('B1_REGISTER', 'B1_UNIT_SUBMIT', 'B1_HR_REVIEW', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
 $StageStep = @{
     'dang-ky' = 'B1_REGISTER'; 'tu-cham' = 'B2_SELF_SCORE'; 'tap-the' = 'B3A_COLLECTIVE'; 'tham-dinh' = 'B3B_APPRAISAL'
     'nhan-xet' = 'B3C_DIRECTOR'; 'quyet-dinh' = 'B4_DECISION'; 'cong-bo' = 'B5_PUBLISH'
 }
 # Hành động trong hệ thống ứng với bước, và đường dẫn API của nó
 $StepAction = @{
-    'B1_REGISTER' = 'SubmitTasks'; 'B1_APPROVE' = 'ApproveTasks'; 'B2_SELF_SCORE' = 'SubmitSelfScore'; 'B2_CELL_CONFIRM' = 'ConfirmByCell'
+    'B1_REGISTER' = 'SubmitTasks'; 'B1_UNIT_SUBMIT' = 'ForwardTasks'; 'B1_HR_REVIEW' = 'ReviewTasks'; 'B1_APPROVE' = 'ApproveTasks'; 'B2_SELF_SCORE' = 'SubmitSelfScore'; 'B2_CELL_CONFIRM' = 'ConfirmByCell'
     'B3A_COLLECTIVE' = 'RecordCollectiveProposal'; 'B3B_APPRAISAL' = 'Appraise'; 'B3C_DIRECTOR' = 'DirectorReview'
     'B4_DECISION' = 'RecordDecision'; 'B5_PUBLISH' = 'Publish'
 }
 $ActionPath = @{
-    'SubmitTasks' = 'tasks/submit'; 'ApproveTasks' = 'tasks/approve'; 'SubmitSelfScore' = 'self-score/submit'; 'ConfirmByCell' = 'cell/confirm'
+    'SubmitTasks' = 'tasks/submit'; 'ForwardTasks' = 'tasks/forward'; 'ReviewTasks' = 'tasks/review'; 'ApproveTasks' = 'tasks/approve'; 'SubmitSelfScore' = 'self-score/submit'; 'ConfirmByCell' = 'cell/confirm'
     'RecordCollectiveProposal' = 'collective'; 'Appraise' = 'appraisal'; 'DirectorReview' = 'director-review'
     'RecordDecision' = 'decision'; 'Publish' = 'publish'
 }
 # Ngày làm việc kể từ hôm nay làm hạn tối thiểu của từng bước, để không bước nào quá hạn
 $DeadlineFloor = @{
-    'B1_REGISTER' = 2; 'B1_APPROVE' = 3; 'B2_SELF_SCORE' = 5; 'B2_CELL_CONFIRM' = 6; 'B3A_COLLECTIVE' = 7
+    'B1_REGISTER' = 2; 'B1_UNIT_SUBMIT' = 3; 'B1_HR_REVIEW' = 3; 'B1_APPROVE' = 4; 'B2_SELF_SCORE' = 5; 'B2_CELL_CONFIRM' = 6; 'B3A_COLLECTIVE' = 7
     'B3B_APPRAISAL' = 8; 'B3C_DIRECTOR' = 9; 'B4_DECISION' = 10
 }
 # Điểm tự chấm hơi khác nhau giữa các hồ sơ, đều trong khoảng Hoàn thành tốt
@@ -280,6 +280,8 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
     }
     switch ($step) {
         'B1_REGISTER' { return New-TaskList $criteria $record.fullName }
+        'B1_UNIT_SUBMIT' { return @{ comment = 'Gửi danh mục sản phẩm của đơn vị' } }
+        'B1_HR_REVIEW' { return @{ comment = 'Đã rà soát, trình duyệt' } }
         'B1_APPROVE' { return @{ comment = 'Đồng ý danh mục sản phẩm đăng ký' } }
         'B2_SELF_SCORE' { return New-SelfScore $criteria $record $username }
         'B2_CELL_CONFIRM' { return @{ comment = 'Chi bộ xác nhận phiếu tự chấm' } }
@@ -386,16 +388,47 @@ function Get-ProfileSettings($period, [string]$code) {
     return @($period.settings.profiles) | Where-Object { $_.code -eq $code } | Select-Object -First 1
 }
 
-# Trước bước quyết định: làm các cổng Bắt buộc cho hồ sơ đang chờ quyết định trong hệ thống
+# Hồ sơ đã nằm trong biên bản họp thống nhất còn hiệu lực (lập tay hoặc lần chạy trước) -> trạng thái biên bản.
+# Không dựa vào calibrationSessionId của hồ sơ: trường đó chỉ có khi biên bản đã chốt điều chỉnh kết quả của hồ sơ.
+function Get-CalibratedRecords($manager, $period) {
+    $map = @{}
+    foreach ($s in @(Invoke-ApiOk $manager 'GET' "/api/calibrations?periodId=$($period.id)" $null 'Lấy danh sách biên bản họp thống nhất')) {
+        if ($s.status -eq 'Void') { continue }
+        $detail = Invoke-ApiOk $manager 'GET' "/api/calibrations/$($s.id)" $null 'Đọc biên bản họp thống nhất'
+        foreach ($r in @($detail.records)) { $map[[string]$r.recordId] = $s.status }
+    }
+    return $map
+}
+
+# Hồ sơ đã thuộc phiếu kiểm tra còn hiệu lực (chưa hủy) -> trạng thái phiếu.
+function Get-CheckedRecords($manager, $period) {
+    $map = @{}
+    foreach ($c in @(Invoke-ApiOk $manager 'GET' "/api/control-checks?periodId=$($period.id)" $null 'Lấy danh sách phiếu kiểm tra')) {
+        if ($c.status -eq 'Cancelled') { continue }
+        $detail = Invoke-ApiOk $manager 'GET' "/api/control-checks/$($c.id)" $null 'Đọc phiếu kiểm tra'
+        foreach ($r in @($detail.records | Where-Object { $_.isCurrent })) { $map[[string]$r.recordId] = $c.status }
+    }
+    return $map
+}
+
+# Trước bước quyết định: làm các cổng Bắt buộc cho hồ sơ đang chờ quyết định trong hệ thống, bỏ hồ sơ đã có biên bản, phiếu
 function Complete-Gates($manager, $period) {
     $waiting = @(Get-Participants $manager $period.id | Where-Object { $_.currentStep -eq 'B4_DECISION' })
+    $calibrated = Get-CalibratedRecords $manager $period
+    $checked = Get-CheckedRecords $manager $period
     $calibration = @(); $control = @()
     foreach ($p in $waiting) {
         $flow = Get-ProfileSettings $period $p.workflowProfileCode
         if ($flow.steps.B4_DECISION.mode -ne 'Internal') { continue }
-        $record = Get-Record $manager $p.recordId
-        if ($flow.gates.CALIBRATION.mode -eq 'Required' -and -not $record.calibrationSessionId) { $calibration += $p }
-        if ($flow.gates.CONTROL.mode -eq 'Required') { $control += $p }
+        $id = [string]$p.recordId
+        if ($flow.gates.CALIBRATION.mode -eq 'Required') {
+            if (-not $calibrated.ContainsKey($id)) { $calibration += $p }
+            elseif ($calibrated[$id] -ne 'Concluded') { Write-Host "   $($p.fullName): biên bản họp thống nhất chưa chốt, hãy chốt trên giao diện." -ForegroundColor DarkYellow }
+        }
+        if ($flow.gates.CONTROL.mode -eq 'Required') {
+            if (-not $checked.ContainsKey($id)) { $control += $p }
+            elseif ($checked[$id] -ne 'Confirmed') { Write-Host "   $($p.fullName): phiếu kiểm tra chưa xác nhận, hãy hoàn tất trên giao diện." -ForegroundColor DarkYellow }
+        }
     }
     Complete-Calibration $manager $period $calibration
     Complete-ControlCheck $manager $period $control

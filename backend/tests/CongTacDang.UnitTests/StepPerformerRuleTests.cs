@@ -47,6 +47,29 @@ public sealed class StepPerformerRuleTests
     }
 
     [Fact]
+    public void OwnerIsNearest_OnlyWhenOwnerIsHeadOfRecordUnit()
+    {
+        const string forward = PermissionCodes.EvaluationTasksForward;
+        var company = Guid.NewGuid();
+        var center = Guid.NewGuid();
+        var staff = Guid.NewGuid();
+        var candidates = new[] { CompanyLeader(company, forward), User(center, forward, ScopeType.Department, Center, Team) };
+
+        // Trưởng Trung tâm tự đăng ký ở Trung tâm: bỏ qua bước gửi.
+        Assert.True(StepPerformerRule.OwnerIsNearest(candidates, forward, new AccessTarget(center, Center), Paths));
+        // Hồ sơ của nhân viên Trung tâm, hoặc của Trưởng Trung tâm đặt ở Đội (vẫn gần nhất): theo thứ tự trên.
+        Assert.False(StepPerformerRule.OwnerIsNearest(candidates, forward, new AccessTarget(staff, Center), Paths));
+        Assert.True(StepPerformerRule.OwnerIsNearest(candidates, forward, new AccessTarget(center, Team), Paths));
+        // Có người khác cùng cấp: người đó gửi.
+        var peer = User(Guid.NewGuid(), forward, ScopeType.Department, Center, Team);
+        Assert.False(StepPerformerRule.OwnerIsNearest(candidates.Append(peer), forward, new AccessTarget(center, Center), Paths));
+        // Chủ hồ sơ không có quyền: không bỏ qua.
+        Assert.False(StepPerformerRule.OwnerIsNearest(candidates, forward, new AccessTarget(Guid.NewGuid(), Other), Paths));
+        // Chỉ chủ hồ sơ có quyền: bỏ qua thay vì kẹt.
+        Assert.True(StepPerformerRule.OwnerIsNearest(new[] { candidates[1] }, forward, new AccessTarget(center, Center), Paths));
+    }
+
+    [Fact]
     public void Nearest_GlobalIsFarthest_SameDepthAllKept()
     {
         var global = Guid.NewGuid();

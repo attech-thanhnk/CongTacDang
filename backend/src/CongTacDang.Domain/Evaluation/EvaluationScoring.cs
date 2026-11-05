@@ -58,12 +58,12 @@ public static class EvaluationScoring
     {
         ArgumentNullException.ThrowIfNull(parameters);
         if (weights == null || weights.Count < parameters.MinTasks || weights.Count > parameters.MaxTasks)
-            return $"Số lượng nhiệm vụ đăng ký phải từ {parameters.MinTasks} đến {parameters.MaxTasks} nhiệm vụ theo bộ tiêu chí của kỳ.";
+            return $"Số sản phẩm đăng ký phải từ {parameters.MinTasks} đến {parameters.MaxTasks} theo bộ tiêu chí của kỳ.";
 
         double totalWeight = Math.Round(weights.Sum(), 2);
         if (Math.Abs(totalWeight - parameters.TotalTaskWeight) > parameters.TaskWeightTolerance)
             return string.Create(CultureInfo.InvariantCulture,
-                $"Tổng trọng số của các nhiệm vụ phải bằng đúng {parameters.TotalTaskWeight:0.0} điểm. Hiện tại là: {totalWeight} điểm.");
+                $"Tổng trọng số của các sản phẩm phải bằng đúng {parameters.TotalTaskWeight:0.0} điểm. Hiện tại là: {totalWeight} điểm.");
 
         return null;
     }

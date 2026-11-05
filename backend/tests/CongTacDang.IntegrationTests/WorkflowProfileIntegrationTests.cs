@@ -247,12 +247,13 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(1, ready.GetProperty("checkedRecords").GetInt32());
         Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.GetAsync($"/api/evaluations/periods/{periodId}/readiness")).StatusCode);
 
-        // Thu hồi bản gán Lãnh đạo Phòng 3 (người duy nhất duyệt danh mục, đề xuất của đơn vị) → hồ sơ kẹt ở B1 duyệt và B3a.
+        // Thu hồi bản gán Lãnh đạo Phòng 3 (người duy nhất gửi danh mục và đề xuất của đơn vị) → kẹt ở bước gửi và B3a; duyệt danh mục do Giám đốc nên không kẹt.
         Assert.Equal(HttpStatusCode.OK, (await w.AdminC.DeleteAsync($"/api/admin/assignments/{w.Lead3Assignment}")).StatusCode);
         var stuck = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}/readiness");
         Assert.False(stuck.GetProperty("ready").GetBoolean());
         var issues = stuck.GetProperty("issues").EnumerateArray().ToList();
-        Assert.Equal(new[] { "B1_APPROVE", "B3A_COLLECTIVE" }, issues.Select(i => i.GetProperty("step").GetString()));
+        Assert.Equal(new[] { "B1_UNIT_SUBMIT", "B3A_COLLECTIVE" }, issues.Select(i => i.GetProperty("step").GetString()));
+        Assert.Equal("evaluation.tasks.forward", issues[0].GetProperty("permission").GetString());
         var issue = issues.Single(i => i.GetProperty("step").GetString() == "B3A_COLLECTIVE");
         Assert.Equal("Trưởng đơn vị đề xuất", issue.GetProperty("stepName").GetString());
         Assert.Equal("evaluation.unit.review", issue.GetProperty("permission").GetString());

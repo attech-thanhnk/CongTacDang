@@ -1607,6 +1607,34 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("TasksForwardComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("TasksForwardedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TasksForwardedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TasksForwardedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TasksReviewComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("TasksReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TasksReviewedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TasksReviewedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<double>("TasksScore")
                         .HasColumnType("double precision");
 

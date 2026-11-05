@@ -40,6 +40,8 @@ Hạn của từng bước hệ thống tự điền khi tạo kỳ; xem và s�
 | Bước | Diện Đảng ủy cơ sở | Diện Phó Giám đốc | Diện BTV cấp trên |
 |---|---|---|---|
 | Đăng ký sản phẩm | ngày làm việc thứ 6 trước đầu quý | ngày làm việc thứ 1 đầu quý | ngày làm việc thứ 1 đầu quý |
+| Trưởng đơn vị gửi danh mục | ngày làm việc thứ 4 trước đầu quý | (không có) | (không có) |
+| Rà soát, trình duyệt danh mục | ngày làm việc thứ 3 trước đầu quý | ngày làm việc thứ 4 đầu quý | (không có) |
 | Duyệt danh mục | ngày làm việc thứ 2 trước đầu quý | ngày làm việc thứ 5 đầu quý | ngày làm việc thứ 5 đầu quý |
 | Tự chấm, Chi bộ xác nhận | ngày 9 tháng cuối quý | ngày 9 | ngày 9 |
 | Tập thể lãnh đạo đề xuất | ngày 10 | ngày 14 | ngày 14 |
@@ -66,7 +68,9 @@ Diện Bí thư/Phó Bí thư Chi bộ là nhân viên: như diện Đảng ủy
 | # | Ai | Vào đâu | Làm gì |
 |---|---|---|---|
 | 8 | Cán bộ | **Tổng quan → Mở hồ sơ** | Khung **Nộp danh mục sản phẩm**: nhập 3–7 sản phẩm, tổng trọng số 70 → **Nộp danh mục**. (HD 3.3) |
-| 9 | LĐĐV (Chủ tịch với Phó Giám đốc) | **Việc cần xử lý → Duyệt** | Xem danh mục → **Duyệt**, hoặc **Trả lại danh mục** kèm lý do. (HD 4.0) |
+| 8a | Trưởng đơn vị | **Việc cần xử lý → Gửi** | Xem danh mục của cán bộ trong đơn vị → **Gửi**, hoặc **Trả lại danh mục** kèm lý do. Hồ sơ của chính Trưởng đơn vị bỏ qua bước này. Diện Phó Giám đốc không có bước này. (HD 4.0) |
+| 8b | Phòng TCCB-LĐ | **Việc cần xử lý → Trình duyệt** | Rà soát danh mục → **Trình duyệt**, hoặc **Trả lại danh mục** kèm lý do. Phó Giám đốc phụ trách ghi ý kiến ở khối **Ý kiến trước phê duyệt** của hồ sơ. (HD 4.0) |
+| 9 | Cấp TTSD: Giám đốc (Chủ tịch với Phó Giám đốc) | **Việc cần xử lý → Duyệt** | Xem danh mục → **Duyệt**, hoặc **Trả lại danh mục** kèm lý do. (HD 4.0) |
 | 9a | VPĐU | **Việc cần xử lý → Ghi nhận duyệt** | Diện BTV cấp trên: ghi nhận kết quả duyệt của cấp trên. (HD 4.6) |
 
 ### B3. Trong quý

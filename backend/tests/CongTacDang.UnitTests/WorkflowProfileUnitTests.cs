@@ -24,7 +24,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.Equal(new[] { "co-so", "cap-tren", "bi-thu-nhan-vien", "pho-giam-doc" }, full.Profiles.Select(p => p.Code));
         Assert.Equal("co-so", full.DefaultProfileCode(ApprovalAuthority.CoSo));
         Assert.Equal("cap-tren", full.DefaultProfileCode(ApprovalAuthority.CapTren));
-
+        // Ví dụ 1: mọi bước nội bộ; Giám đốc duyệt danh mục (kiểm tra bên dưới).
         // Ví dụ 1: mọi bước nội bộ, quyền mặc định theo thiết kế.
         var baseProfile = Profile(full, "co-so");
         Assert.All(WorkflowSteps.Ordered, s => Assert.Equal(StepMode.Internal, baseProfile.Mode(s)));
@@ -57,11 +57,31 @@ public sealed class WorkflowProfileUnitTests
 
         // Chủ tịch, Giám đốc, Kiểm soát viên: HĐTV Tổng công ty duyệt danh mục sản phẩm (cấp trên thực hiện).
         Assert.Equal(StepMode.External, upper.Mode(WorkflowStep.B1_APPROVE));
+        Assert.Equal(StepMode.Off, upper.Mode(WorkflowStep.B1_UNIT_SUBMIT));
+        Assert.Equal(StepMode.Off, upper.Mode(WorkflowStep.B1_HR_REVIEW));
+
+        // Trưởng đơn vị gửi, cơ quan tổ chức cán bộ rà soát trình rồi mới tới người duyệt.
+        foreach (var p in new[] { baseProfile, staff })
+        {
+            Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_UNIT_SUBMIT));
+            Assert.Equal(PermissionCodes.EvaluationTasksForward, p.PermissionFor(WorkflowStep.B1_UNIT_SUBMIT));
+            Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_HR_REVIEW));
+            Assert.Equal(PermissionCodes.EvaluationTasksReview, p.PermissionFor(WorkflowStep.B1_HR_REVIEW));
+        }
+
+        // Trưởng, Phó phòng và tương đương, Bí thư/Phó bí thư Chi bộ là nhân viên: Giám đốc duyệt danh mục.
+        foreach (var p in new[] { baseProfile, staff })
+        {
+            Assert.Equal(StepMode.Internal, p.Mode(WorkflowStep.B1_APPROVE));
+            Assert.Equal(PermissionCodes.EvaluationDirectorReview, p.PermissionFor(WorkflowStep.B1_APPROVE));
+        }
 
         // Phó Giám đốc: Chủ tịch duyệt danh mục và nhận xét trong hệ thống; tập thể Công ty đề xuất; không có bước thẩm định riêng; BTV quyết định.
         var deputy = Profile(full, "pho-giam-doc");
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B1_APPROVE));
         Assert.Equal(PermissionCodes.EvaluationDirectorReview, deputy.PermissionFor(WorkflowStep.B1_APPROVE));
+        Assert.Equal(StepMode.Off, deputy.Mode(WorkflowStep.B1_UNIT_SUBMIT));
+        Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B1_HR_REVIEW));
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3A_COLLECTIVE));
         Assert.Equal(StepMode.Off, deputy.Mode(WorkflowStep.B3B_APPRAISAL));
         Assert.Equal(StepMode.Internal, deputy.Mode(WorkflowStep.B3C_DIRECTOR));
@@ -205,7 +225,7 @@ public sealed class WorkflowProfileUnitTests
 
         Assert.Equal("moi", profile.Code);
         Assert.Equal("Mới", profile.Name);
-        Assert.Equal(9, profile.Steps.Count);
+        Assert.Equal(11, profile.Steps.Count);
         Assert.Null(profile.Step(WorkflowStep.B2_SELF_SCORE).Permission);
         Assert.Equal(PermissionCodes.EvaluationSelf, profile.PermissionFor(WorkflowStep.B2_SELF_SCORE));
         Assert.Null(profile.Step(WorkflowStep.B3B_APPRAISAL).Permission);
@@ -236,7 +256,10 @@ public sealed class WorkflowProfileUnitTests
             "{\"schemaVersion\":3,\"profiles\":[{\"code\":\"A\",\"name\":\"Nhóm A\",\"steps\":{\"b1_register\":{\"deadline\":\"2026-10-05\"},"
             + "\"b1_approve\":{\"mode\":\"Off\"}}}],\"defaultProfiles\":{\"coso\":\"a\",\"CAPTREN\":\"A\"}}");
         var a = partial.FindProfile("a")!;
-        Assert.Equal(9, a.Steps.Count);
+        Assert.Equal(11, a.Steps.Count);
+        // Cấu hình cũ chưa có bước gửi, rà soát danh mục: coi như Tắt để hồ sơ đi đúng luồng cũ.
+        Assert.False(a.IsActive(WorkflowStep.B1_UNIT_SUBMIT));
+        Assert.False(a.IsActive(WorkflowStep.B1_HR_REVIEW));
         Assert.True(a.IsActive(WorkflowStep.B1_REGISTER));
         Assert.False(a.IsActive(WorkflowStep.B1_APPROVE));
         Assert.Equal(new DateOnly(2026, 10, 5), a.Deadline(WorkflowStep.B1_REGISTER));
@@ -278,7 +301,7 @@ public sealed class WorkflowProfileUnitTests
         settings.DefaultProfiles.Clear();
         Assert.Equal("co-so", settings.ResolveProfile(null, ApprovalAuthority.CapTren).Code);
         settings.Profiles.Clear();
-        Assert.Equal(9, settings.ResolveProfile(null, ApprovalAuthority.CoSo).ActiveSteps().Count);
+        Assert.Equal(11, settings.ResolveProfile(null, ApprovalAuthority.CoSo).ActiveSteps().Count);
     }
 
     [Fact]
@@ -286,7 +309,11 @@ public sealed class WorkflowProfileUnitTests
     {
         var settings = PeriodSettings.Default();
         var baseProfile = Profile(settings, "co-so");
-        Assert.Equal(new[] { WorkflowStep.B1_APPROVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION },
+        Assert.Equal(new[]
+            {
+                WorkflowStep.B1_UNIT_SUBMIT, WorkflowStep.B1_HR_REVIEW, WorkflowStep.B1_APPROVE,
+                WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION
+            },
             baseProfile.DifferingSteps(Profile(settings, "cap-tren")));
         Assert.Equal(new[] { WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3C_DIRECTOR }, baseProfile.DifferingSteps(Profile(settings, "bi-thu-nhan-vien")));
 
@@ -312,11 +339,13 @@ public sealed class WorkflowProfileUnitTests
             Assert.True(result.Succeeded, result.Error);
             status = result.Status;
         }
-        Assert.Equal(WorkflowSteps.Ordered, walked);
+        Assert.Equal(WorkflowSteps.Ordered.Where(s => s is not (WorkflowStep.B1_UNIT_SUBMIT or WorkflowStep.B1_HR_REVIEW)), walked);
 
         var custom = WorkflowProfile.Create("x", "X", null, new Dictionary<WorkflowStep, StepMode>
         {
             [WorkflowStep.B1_REGISTER] = StepMode.Off,
+            [WorkflowStep.B1_UNIT_SUBMIT] = StepMode.Off,
+            [WorkflowStep.B1_HR_REVIEW] = StepMode.Off,
             [WorkflowStep.B1_APPROVE] = StepMode.Off,
             [WorkflowStep.B3A_COLLECTIVE] = StepMode.Off,
             [WorkflowStep.B3B_APPRAISAL] = StepMode.Off,
@@ -330,6 +359,35 @@ public sealed class WorkflowProfileUnitTests
     }
 
     [Fact]
+    public void StateMachine_TaskListPassesUnitSubmitAndReview_ReturnsGoBackToRegistration()
+    {
+        var active = Profile(PeriodSettings.Default(), "co-so").ActiveSteps();
+        Assert.Equal(RecordStatus.AwaitingUnitSubmit,
+            RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, active, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER)).Status);
+        Assert.Equal(RecordStatus.AwaitingTaskReview,
+            RecordStateMachine.Apply(RecordStatus.AwaitingUnitSubmit, active, WorkflowCommand.Complete(WorkflowStep.B1_UNIT_SUBMIT)).Status);
+        Assert.Equal(RecordStatus.AwaitingTaskApproval,
+            RecordStateMachine.Apply(RecordStatus.AwaitingTaskReview, active, WorkflowCommand.Complete(WorkflowStep.B1_HR_REVIEW)).Status);
+        foreach (var (status, step) in new[]
+        {
+            (RecordStatus.AwaitingUnitSubmit, WorkflowStep.B1_UNIT_SUBMIT),
+            (RecordStatus.AwaitingTaskReview, WorkflowStep.B1_HR_REVIEW),
+            (RecordStatus.AwaitingTaskApproval, WorkflowStep.B1_APPROVE)
+        })
+            Assert.Equal(RecordStatus.AwaitingRegistration, RecordStateMachine.Apply(status, active, WorkflowCommand.Return(step)).Status);
+
+        // Phó Giám đốc: không qua Trưởng đơn vị, nộp xong tới rà soát.
+        var deputy = Profile(PeriodSettings.Default(), "pho-giam-doc").ActiveSteps();
+        Assert.Equal(RecordStatus.AwaitingTaskReview,
+            RecordStateMachine.Apply(RecordStatus.AwaitingRegistration, deputy, WorkflowCommand.Complete(WorkflowStep.B1_REGISTER)).Status);
+
+        // Thứ tự theo luồng, không theo số của enum.
+        Assert.True(WorkflowSteps.IsBefore(RecordStatus.AwaitingTaskReview, RecordStatus.AwaitingTaskApproval));
+        Assert.True(WorkflowSteps.IsBefore(RecordStatus.AwaitingUnitSubmit, RecordStatus.AwaitingDecision));
+        Assert.False(WorkflowSteps.IsBefore(RecordStatus.Published, RecordStatus.AwaitingUnitSubmit));
+    }
+
+    [Fact]
     public void Realign_MovesForwardOnlyWhenCurrentStepNoLongerApplies()
     {
         var baseProfile = Profile(PeriodSettings.Default(), "co-so");
@@ -337,6 +395,8 @@ public sealed class WorkflowProfileUnitTests
         var noDirector = WorkflowProfile.Create("x", "X", null, new Dictionary<WorkflowStep, StepMode> { [WorkflowStep.B3C_DIRECTOR] = StepMode.Off });
 
         Assert.Equal(RecordStatus.AwaitingSelfScore, RecordStateMachine.Realign(RecordStatus.AwaitingTaskApproval, noApproval.ActiveSteps()));
+        // Kỳ cũ (bước gửi, rà soát Tắt): hồ sơ đang chờ ở hai bước này đi tiếp tới duyệt, không kẹt.
+        Assert.Equal(RecordStatus.AwaitingTaskApproval, RecordStateMachine.Realign(RecordStatus.AwaitingUnitSubmit, Profile(PeriodSettings.Default(), "cap-tren").ActiveSteps()));
         Assert.Equal(RecordStatus.AwaitingRegistration, RecordStateMachine.Realign(RecordStatus.AwaitingRegistration, noApproval.ActiveSteps()));
         Assert.Equal(RecordStatus.AwaitingDecision, RecordStateMachine.Realign(RecordStatus.AwaitingDirectorReview, noDirector.ActiveSteps()));
         Assert.Equal(RecordStatus.AwaitingAppraisal, RecordStateMachine.Realign(RecordStatus.AwaitingAppraisal, noDirector.ActiveSteps()));

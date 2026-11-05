@@ -46,6 +46,8 @@ Trường bổ sung (task 07, sửa ở task 14):
 | `criteria.manage` | Quản lý bộ tiêu chí | không | Tạo, nhân bản, sửa bản nháp, xuất bản, lưu trữ, xóa bản nháp bộ tiêu chí và thang điểm (tiêu chí chung, trục kết quả, khung tỷ trọng, thang quy đổi, mức xếp loại, tham số). Danh sách khung tỷ trọng (chọn khung mặc định cho cán bộ): mọi người đã đăng nhập |
 | `evaluation.self` | Tham gia đánh giá (bản thân) | chủ hồ sơ | Đăng ký sản phẩm, tự chấm, giải trình, nộp minh chứng — **chỉ trên hồ sơ của mình** |
 | `evaluation.read` | Xem hồ sơ đánh giá | có | Chủ hồ sơ **luôn** xem được hồ sơ của mình (HD03: quyền được biết) |
+| `evaluation.tasks.forward` | Gửi danh mục sản phẩm của đơn vị (B1, Trưởng đơn vị) | có | |
+| `evaluation.tasks.review` | Rà soát, trình duyệt danh mục sản phẩm (B1, cơ quan tổ chức cán bộ) | có | |
 | `evaluation.tasks.approve` | Duyệt danh mục sản phẩm (B1) | có | |
 | `evaluation.cell.confirm` | Chi bộ xác nhận phiếu tự chấm (B2) | có | |
 | `evaluation.collective.record` | Ghi nhận đề xuất của tập thể lãnh đạo (B3a) | có | Ghi kết quả kiểm phiếu, không ghi phiếu từng người |
@@ -104,7 +106,7 @@ Người dùng **được** thực hiện quyền `P` trên đối tượng `T` 
 3. Luật riêng theo mã (cố định trong code, lấy từ HD03):
    - `evaluation.self`, `evaluation.appeal.submit`: chỉ khi `T.OwnerId == user.Id` (phạm vi bỏ qua).
    - `evaluation.read`: luôn đúng khi `T.OwnerId == user.Id`.
-   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`, `appeal.resolve`, `improvement.manage`, `crosscheck.request`, `calibration.manage`, `calibration.conclude`, `control.perform`, `control.confirm`) **không** áp dụng khi `T.OwnerId == user.Id`; `crosscheck.respond`/`confirm` kiểm tra trên đơn vị đối soát của phiếu nên COI theo hồ sơ của phiếu do service phiếu kiểm tra. Riêng kiến nghị: người đã thực hiện bước mà kiến nghị liên quan tới (chủ hồ sơ chọn khi gửi) cũng không xử lý được (service kiến nghị kiểm tra).
+   - **Xung đột lợi ích** (HD03 tr.4): các quyền duyệt/xác nhận/ghi nhận/thẩm định/nhận xét/đề xuất/quyết định/công bố/mở lại (`evaluation.tasks.forward`, `tasks.review`, `tasks.approve`, `cell.confirm`, `collective.record`, `appraise`, `director.review`, `unit.review`, `decide`, `external.record`, `publish`, `reopen`, `appeal.resolve`, `improvement.manage`, `crosscheck.request`, `calibration.manage`, `calibration.conclude`, `control.perform`, `control.confirm`) **không** áp dụng khi `T.OwnerId == user.Id`; `crosscheck.respond`/`confirm` kiểm tra trên đơn vị đối soát của phiếu nên COI theo hồ sơ của phiếu do service phiếu kiểm tra. Riêng kiến nghị: người đã thực hiện bước mà kiến nghị liên quan tới (chủ hồ sơ chọn khi gửi) cũng không xử lý được (service kiến nghị kiểm tra).
    - Guard **không** xét cấp quyết định (`ApprovalAuthority`). Bước nào làm trong hệ thống ("Nội bộ", với quyền thực hiện cấu hình được), bước nào do cấp trên thực hiện (ghi nhận bằng `evaluation.external.record`) hay không áp dụng là cấu hình **diện quyết định** của hồ sơ (`docs/thiet-ke/luong-danh-gia.md`); service luồng kiểm tra chế độ bước (sai → 409) rồi mới gọi guard với quyền thực hiện của bước. Cấp quyết định chỉ dùng để chọn diện quyết định mặc định khi thêm người vào kỳ.
    - Tệp đính kèm: mọi tệp gắn với một đối tượng (hồ sơ đánh giá, nhiệm vụ, kết quả bước do cấp trên thực hiện); không có tệp dùng chung, không có trang danh sách tệp riêng — tệp được nộp/xem ngay trong hồ sơ.
      - Xem/tải: `evaluation.read` trên hồ sơ gắn tệp (chủ hồ sơ luôn xem được); tệp kèm kiến nghị thêm người có `evaluation.appeal.resolve` trong phạm vi hồ sơ.
@@ -176,11 +178,11 @@ Controller dùng `[RequirePermission(PermissionCodes.X)]` = "có X ở phạm vi
 | Vai trò | Quyền | Phạm vi gán điển hình | Căn cứ HD03 (bản trích xuất) |
 |---|---|---|---|
 | Người được đánh giá | `evaluation.self`, `evaluation.results.view`, `evaluation.appeal.submit` | Global (phạm vi của bản gán = phạm vi công khai kết quả) | IV.1, IV.2; Bước 5; PL II III.2 |
-| Lãnh đạo đơn vị | `evaluation.read`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage`, `evaluation.opinion.record` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
+| Lãnh đạo đơn vị | `evaluation.read`, `evaluation.tasks.forward`, `evaluation.tasks.approve`, `evaluation.unit.review`, `evaluation.improvement.manage`, `evaluation.opinion.record` | Department | IV.1; PL II mục II; PL III ví dụ 3; Mẫu 17 |
 | Thư ký hội nghị | `evaluation.read`, `evaluation.collective.record`, `meeting.read`, `meeting.manage`, `evaluation.opinion.record` | Department hoặc Global (cấp Công ty) | IV.3a; Mẫu 11–13 |
 | Phó Giám đốc phụ trách (`PHO_GIAM_DOC_PHU_TRACH`) | `evaluation.read`, `evaluation.opinion.record` | Department (đơn vị phụ trách) | Ý kiến trước phê duyệt |
 | Chi bộ | `evaluation.read`, `evaluation.cell.confirm`, `collective.manage`, `meeting.read` | PartyCell | Mẫu 09A–9D "xác nhận của Chi bộ"; Mẫu 07 |
-| Cơ quan thẩm định | `evaluation.read`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform`, `evaluation.opinion.record` | Global | IV.1 (rà soát), IV.3b |
+| Cơ quan thẩm định | `evaluation.read`, `evaluation.tasks.review`, `evaluation.appraise`, `period.manage`, `criteria.manage`, `report.export`, `system.users.read`, `evaluation.crosscheck.request`, `evaluation.calibration.manage`, `evaluation.control.perform`, `evaluation.opinion.record` | Global | IV.1 (rà soát), IV.3b |
 | Cấp trực tiếp sử dụng | `evaluation.read`, `evaluation.director.review`, `report.export`, `evaluation.improvement.manage` | Global | IV.3c; Mẫu 17 |
 | Cấp ủy viên | `evaluation.read`, `meeting.read`, `report.export` | Global | IV.4; Mẫu 18 |
 | Cơ quan chuyên môn | `evaluation.crosscheck.respond`, `evaluation.crosscheck.confirm` | Department (phòng, đơn vị chuyên môn của ATTECH) | Mẫu 03, 18 |

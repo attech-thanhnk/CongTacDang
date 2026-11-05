@@ -16,6 +16,10 @@ public sealed record WorkflowActionDefinition(string Code, WorkflowStep Step, Wo
 public static class WorkflowActions
 {
     public const string SubmitTasks = "SubmitTasks";
+    public const string ForwardTasks = "ForwardTasks";
+    public const string ReturnByUnit = "ReturnByUnit";
+    public const string ReviewTasks = "ReviewTasks";
+    public const string ReturnByReviewer = "ReturnByReviewer";
     public const string ApproveTasks = "ApproveTasks";
     public const string ReturnTasks = "ReturnTasks";
     public const string RevokeTaskApproval = "RevokeTaskApproval";
@@ -37,6 +41,10 @@ public static class WorkflowActions
     public static readonly IReadOnlyList<WorkflowActionDefinition> All = new[]
     {
         new WorkflowActionDefinition(SubmitTasks, WorkflowStep.B1_REGISTER, WorkflowAction.Complete, "Nộp danh mục sản phẩm"),
+        new WorkflowActionDefinition(ForwardTasks, WorkflowStep.B1_UNIT_SUBMIT, WorkflowAction.Complete, "Gửi danh mục"),
+        new WorkflowActionDefinition(ReturnByUnit, WorkflowStep.B1_UNIT_SUBMIT, WorkflowAction.Return, "Trả lại danh mục"),
+        new WorkflowActionDefinition(ReviewTasks, WorkflowStep.B1_HR_REVIEW, WorkflowAction.Complete, "Trình duyệt danh mục"),
+        new WorkflowActionDefinition(ReturnByReviewer, WorkflowStep.B1_HR_REVIEW, WorkflowAction.Return, "Trả lại danh mục"),
         new WorkflowActionDefinition(ApproveTasks, WorkflowStep.B1_APPROVE, WorkflowAction.Complete, "Duyệt danh mục"),
         new WorkflowActionDefinition(ReturnTasks, WorkflowStep.B1_APPROVE, WorkflowAction.Return, "Trả lại danh mục"),
         new WorkflowActionDefinition(RevokeTaskApproval, WorkflowStep.B1_APPROVE, WorkflowAction.RevokeTaskApproval, "Thu hồi duyệt danh mục"),
@@ -46,7 +54,7 @@ public static class WorkflowActions
         new WorkflowActionDefinition(RecordCollectiveProposal, WorkflowStep.B3A_COLLECTIVE, WorkflowAction.Complete, "Ghi nhận đề xuất của tập thể"),
         new WorkflowActionDefinition(Appraise, WorkflowStep.B3B_APPRAISAL, WorkflowAction.Complete, "Thẩm định"),
         new WorkflowActionDefinition(ReturnByAppraiser, WorkflowStep.B3B_APPRAISAL, WorkflowAction.Return, "Trả lại để chủ hồ sơ sửa"),
-        new WorkflowActionDefinition(DirectorReview, WorkflowStep.B3C_DIRECTOR, WorkflowAction.Complete, "Nhận xét, đề xuất"),
+        new WorkflowActionDefinition(DirectorReview, WorkflowStep.B3C_DIRECTOR, WorkflowAction.Complete, "Nhận xét"),
         new WorkflowActionDefinition(RecordDecision, WorkflowStep.B4_DECISION, WorkflowAction.Complete, "Ghi nhận quyết định"),
         new WorkflowActionDefinition(Publish, WorkflowStep.B5_PUBLISH, WorkflowAction.Complete, "Công bố kết quả"),
         new WorkflowActionDefinition(Reopen, WorkflowStep.B5_PUBLISH, WorkflowAction.Reopen, "Mở lại hồ sơ")

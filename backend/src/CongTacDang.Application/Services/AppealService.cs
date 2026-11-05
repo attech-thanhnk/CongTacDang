@@ -42,6 +42,7 @@ public sealed class AppealService : IAppealService
     /// <summary>Theo thứ tự luồng.</summary>
     private static readonly WorkflowStep[] ConcernableSteps =
     {
+        WorkflowStep.B1_UNIT_SUBMIT, WorkflowStep.B1_HR_REVIEW,
         WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE,
         WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR, WorkflowStep.B4_DECISION
     };
@@ -348,6 +349,8 @@ public sealed class AppealService : IAppealService
     /// <summary>Bước do cấp trên thực hiện: Id null, tên là cơ quan cấp trên.</summary>
     private static (Guid? Id, string? Name) ActorOf(EvaluationRecord record, WorkflowStep step) => step switch
     {
+        WorkflowStep.B1_UNIT_SUBMIT => (record.TasksForwardedById, record.TasksForwardedByName),
+        WorkflowStep.B1_HR_REVIEW => (record.TasksReviewedById, record.TasksReviewedByName),
         WorkflowStep.B1_APPROVE => (record.TasksApprovedById, record.TasksApprovedByName),
         WorkflowStep.B2_CELL_CONFIRM => (record.CellConfirmedById, record.CellConfirmedByName),
         WorkflowStep.B3A_COLLECTIVE => (record.CollectiveRecordedById, record.CollectiveRecordedByName),

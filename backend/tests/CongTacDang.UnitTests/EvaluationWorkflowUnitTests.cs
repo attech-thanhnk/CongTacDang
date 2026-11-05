@@ -9,10 +9,29 @@ public sealed class EvaluationWorkflowUnitTests
 {
     private static readonly WorkflowStep[] Optional =
     {
-        WorkflowStep.B1_REGISTER, WorkflowStep.B1_APPROVE, WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR
+        WorkflowStep.B1_REGISTER, WorkflowStep.B1_UNIT_SUBMIT, WorkflowStep.B1_HR_REVIEW, WorkflowStep.B1_APPROVE,
+        WorkflowStep.B2_CELL_CONFIRM, WorkflowStep.B3A_COLLECTIVE, WorkflowStep.B3B_APPRAISAL, WorkflowStep.B3C_DIRECTOR
     };
 
-    /// <summary>Mọi tổ hợp bật/tắt của 6 bước tùy chọn (64 cấu hình); bước bắt buộc luôn bật.</summary>
+    /// <summary>Thứ tự luồng và trạng thái chờ viết tay, độc lập với WorkflowSteps.</summary>
+    private static readonly (WorkflowStep Step, RecordStatus Waiting)[] Flow =
+    {
+        (WorkflowStep.B1_REGISTER, RecordStatus.AwaitingRegistration),
+        (WorkflowStep.B1_UNIT_SUBMIT, RecordStatus.AwaitingUnitSubmit),
+        (WorkflowStep.B1_HR_REVIEW, RecordStatus.AwaitingTaskReview),
+        (WorkflowStep.B1_APPROVE, RecordStatus.AwaitingTaskApproval),
+        (WorkflowStep.B2_SELF_SCORE, RecordStatus.AwaitingSelfScore),
+        (WorkflowStep.B2_CELL_CONFIRM, RecordStatus.AwaitingCellConfirm),
+        (WorkflowStep.B3A_COLLECTIVE, RecordStatus.AwaitingCollective),
+        (WorkflowStep.B3B_APPRAISAL, RecordStatus.AwaitingAppraisal),
+        (WorkflowStep.B3C_DIRECTOR, RecordStatus.AwaitingDirectorReview),
+        (WorkflowStep.B4_DECISION, RecordStatus.AwaitingDecision),
+        (WorkflowStep.B5_PUBLISH, RecordStatus.AwaitingPublish)
+    };
+
+    private static int Pos(WorkflowStep step) => Array.FindIndex(Flow, f => f.Step == step);
+
+    /// <summary>Mọi tổ hợp bật/tắt của 8 bước tùy chọn (256 cấu hình); bước bắt buộc luôn bật.</summary>
     public static IEnumerable<IReadOnlySet<WorkflowStep>> AllConfigurations()
     {
         for (var mask = 0; mask < 1 << Optional.Length; mask++)
@@ -40,8 +59,8 @@ public sealed class EvaluationWorkflowUnitTests
 
         foreach (var enabled in AllConfigurations())
         {
-            // Thứ tự các bước bật (chỉ số tăng dần) — oracle độc lập với code: dò mảng 1..9.
-            var order = Enumerable.Range(1, 9).Select(i => (WorkflowStep)i).Where(enabled.Contains).ToList();
+            // Thứ tự các bước bật theo bảng Flow viết tay.
+            var order = Flow.Select(f => f.Step).Where(enabled.Contains).ToList();
             foreach (var status in Enum.GetValues<RecordStatus>())
             {
                 foreach (var command in commands)
@@ -62,24 +81,24 @@ public sealed class EvaluationWorkflowUnitTests
             }
         }
 
-        Assert.Equal(64 * 10 * 27, checkedCases);
+        Assert.Equal(256 * 12 * 33, checkedCases);
     }
 
     /// <summary>Luật thiết kế viết lại theo số thứ tự để đối chiếu.</summary>
     private static RecordStatus? Oracle(RecordStatus status, List<WorkflowStep> order, WorkflowCommand command)
     {
-        static RecordStatus Waiting(WorkflowStep s) => (RecordStatus)(int)s; // B1_REGISTER=1 → 1 … B5_PUBLISH=9 → 9
+        static RecordStatus Waiting(WorkflowStep s) => Flow[Pos(s)].Waiting;
         switch (command.Action)
         {
             case WorkflowAction.Complete:
                 if (!order.Contains(command.Step) || status != Waiting(command.Step))
                     return null;
-                var next = order.FirstOrDefault(s => (int)s > (int)command.Step);
+                var next = order.FirstOrDefault(s => Pos(s) > Pos(command.Step));
                 return next == default ? RecordStatus.Published : Waiting(next);
             case WorkflowAction.Return:
                 WorkflowStep? target = command.Step switch
                 {
-                    WorkflowStep.B1_APPROVE => WorkflowStep.B1_REGISTER,
+                    WorkflowStep.B1_UNIT_SUBMIT or WorkflowStep.B1_HR_REVIEW or WorkflowStep.B1_APPROVE => WorkflowStep.B1_REGISTER,
                     WorkflowStep.B2_CELL_CONFIRM or WorkflowStep.B3B_APPRAISAL => WorkflowStep.B2_SELF_SCORE,
                     _ => null
                 };
@@ -88,7 +107,7 @@ public sealed class EvaluationWorkflowUnitTests
                 return Waiting(target.Value);
             case WorkflowAction.Reopen:
                 var t = command.ReopenTarget!.Value;
-                if (status != RecordStatus.Published || !order.Contains(t) || (int)t < (int)WorkflowStep.B2_SELF_SCORE)
+                if (status != RecordStatus.Published || !order.Contains(t) || Pos(t) < Pos(WorkflowStep.B2_SELF_SCORE))
                     return null;
                 return Waiting(t);
             default:
@@ -115,6 +134,8 @@ public sealed class EvaluationWorkflowUnitTests
     public void StateMachine_WithoutApproval_GoesFromRegistrationToSelfScore_AndRejectsApprove()
     {
         var profile = Profile(PeriodSettings.Default(), PeriodSettings.ProfileBase);
+        profile.Step(WorkflowStep.B1_UNIT_SUBMIT).Mode = StepMode.Off;
+        profile.Step(WorkflowStep.B1_HR_REVIEW).Mode = StepMode.Off;
         profile.Step(WorkflowStep.B1_APPROVE).Mode = StepMode.Off;
         var enabled = profile.ActiveSteps();
         Assert.Equal(RecordStatus.AwaitingRegistration, RecordStateMachine.Initial(enabled));

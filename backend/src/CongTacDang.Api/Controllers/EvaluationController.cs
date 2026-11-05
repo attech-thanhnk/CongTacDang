@@ -112,6 +112,26 @@ public class EvaluationController : ControllerBase
     public Task<IActionResult> SubmitTasks(Guid id, [FromBody] SubmitTasksRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.SubmitTasksAsync(id, dto, ct), "Đã nộp danh mục sản phẩm.");
 
+    /// <summary>B1_UNIT_SUBMIT — Trưởng đơn vị gửi danh mục.</summary>
+    [HttpPost("records/{id:guid}/tasks/forward")]
+    public Task<IActionResult> ForwardTasks(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ForwardTasksAsync(id, dto, ct), "Đã gửi danh mục sản phẩm.");
+
+    /// <summary>B1_UNIT_SUBMIT — trả lại danh mục (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/tasks/forward/return")]
+    public Task<IActionResult> ReturnByUnit(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReturnByUnitAsync(id, dto, ct), "Đã trả lại danh mục sản phẩm.");
+
+    /// <summary>B1_HR_REVIEW — rà soát, trình duyệt danh mục.</summary>
+    [HttpPost("records/{id:guid}/tasks/review")]
+    public Task<IActionResult> ReviewTasks(Guid id, [FromBody] CommentRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReviewTasksAsync(id, dto, ct), "Đã trình duyệt danh mục sản phẩm.");
+
+    /// <summary>B1_HR_REVIEW — trả lại danh mục (bắt buộc lý do).</summary>
+    [HttpPost("records/{id:guid}/tasks/review/return")]
+    public Task<IActionResult> ReturnByReviewer(Guid id, [FromBody] ReturnRecordRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.ReturnByReviewerAsync(id, dto, ct), "Đã trả lại danh mục sản phẩm.");
+
     /// <summary>B1_APPROVE — duyệt danh mục (tùy chọn điều chỉnh tỷ lệ A-B-C-D của hồ sơ trong biên độ của bộ tiêu chí).</summary>
     [HttpPost("records/{id:guid}/tasks/approve")]
     public Task<IActionResult> ApproveTasks(Guid id, [FromBody] ApproveTasksRequestDto dto, CancellationToken ct) =>

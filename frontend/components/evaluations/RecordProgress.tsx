@@ -121,12 +121,13 @@ export function RecordProgress({ progress, onSelect }: Props) {
               className={`${styles.step} ${done ? styles.done : isCurrent ? styles.now : ""}`}
               aria-current={isCurrent ? "step" : undefined}
             >
+              {/* Bước đang làm đã ghi người chờ, hạn dưới tên: không lặp lại ở chú thích rê chuột. */}
               {(done || isCurrent) && onSelect ? (
-                <button type="button" className={styles.stepBtn} title={label} aria-label={label} onClick={() => onSelect(item)}>
+                <button type="button" className={styles.stepBtn} title={isCurrent ? undefined : label} aria-label={label} onClick={() => onSelect(item)}>
                   {content}
                 </button>
               ) : (
-                <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={label} aria-label={label}>
+                <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={isCurrent ? undefined : label} aria-label={label}>
                   {content}
                 </div>
               )}

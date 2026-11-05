@@ -69,6 +69,7 @@ public sealed class PeriodService : IPeriodService
     private readonly IPermissionResolver _permissions;
     private readonly ICriteriaSetRepository _criteriaSets;
     private readonly IHolidayRepository _holidays;
+    private readonly IPositionRepository? _positions;
 
     public PeriodService(
         IEvaluationWorkflowRepository repo,
@@ -77,8 +78,10 @@ public sealed class PeriodService : IPeriodService
         ICurrentUserService currentUser,
         IPermissionResolver permissions,
         ICriteriaSetRepository criteriaSets,
-        IHolidayRepository holidays)
+        IHolidayRepository holidays,
+        IPositionRepository? positions = null)
     {
+        _positions = positions;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -402,7 +405,11 @@ public sealed class PeriodService : IPeriodService
     private async Task RecalculateInitialStatusAsync(EvaluationPeriod period, CancellationToken ct)
     {
         var settings = ReadSettings(period);
-        var initialStates = new[] { RecordStatus.AwaitingRegistration, RecordStatus.AwaitingTaskApproval, RecordStatus.AwaitingSelfScore };
+        var initialStates = new[]
+        {
+            RecordStatus.AwaitingRegistration, RecordStatus.AwaitingUnitSubmit, RecordStatus.AwaitingTaskReview,
+            RecordStatus.AwaitingTaskApproval, RecordStatus.AwaitingSelfScore
+        };
         foreach (var record in await _repo.ListRecordsForUpdateAsync(period.Id, ct))
         {
             var profile = EvaluationMapping.ProfileOf(settings, record);
@@ -477,6 +484,7 @@ public sealed class PeriodService : IPeriodService
         var roleNames = await _repo.GetRoleNamesByPermissionAsync(codes, ct);
         // Bước chỉ có đúng một người làm được: người đó vắng, hoặc chính họ được đánh giá, là hồ sơ kẹt.
         var singles = new Dictionary<(string Step, string Scope, Guid UserId), int>();
+        OrgPaths? paths = null;
 
         foreach (var (record, profile, step, _, permission) in pending)
         {
@@ -485,6 +493,14 @@ public sealed class PeriodService : IPeriodService
             if (permission == PermissionCodes.EvaluationSelf)
             {
                 covered = effective.TryGetValue(record.MemberId, out var own) && AuthorizationGuard.Evaluate(own, permission, target);
+            }
+            else if (step == WorkflowStep.B1_UNIT_SUBMIT && profile.Mode(step) == StepMode.Internal
+                && StepPerformerRule.OwnerIsNearest(
+                    candidateIds.Append(record.MemberId).Distinct().Select(u => effective[u]), permission,
+                    target with { RequireAllUnits = false }, paths ??= _positions != null ? await _positions.GetOrgPathsAsync(ct) : null))
+            {
+                // Chủ hồ sơ là Trưởng đơn vị: bước tự bỏ qua khi hồ sơ tới.
+                covered = true;
             }
             else
             {

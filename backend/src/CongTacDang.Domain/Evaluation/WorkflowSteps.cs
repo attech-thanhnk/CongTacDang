@@ -32,7 +32,13 @@ public enum WorkflowStep
     B4_DECISION = 8,
 
     /// <summary>Công bố, khóa hồ sơ (Mẫu 16); luôn bật.</summary>
-    B5_PUBLISH = 9
+    B5_PUBLISH = 9,
+
+    /// <summary>Trưởng đơn vị gửi danh mục về cơ quan rà soát; bỏ qua khi chủ hồ sơ là Trưởng đơn vị.</summary>
+    B1_UNIT_SUBMIT = 10,
+
+    /// <summary>Cơ quan tổ chức cán bộ rà soát hợp lệ, lấy ý kiến, trình duyệt.</summary>
+    B1_HR_REVIEW = 11
 }
 
 /// <summary>Hành động ghi vào lịch sử hồ sơ.</summary>
@@ -92,6 +98,8 @@ public static class WorkflowSteps
     public static readonly IReadOnlyList<WorkflowStep> Ordered = new[]
     {
         WorkflowStep.B1_REGISTER,
+        WorkflowStep.B1_UNIT_SUBMIT,
+        WorkflowStep.B1_HR_REVIEW,
         WorkflowStep.B1_APPROVE,
         WorkflowStep.B2_SELF_SCORE,
         WorkflowStep.B2_CELL_CONFIRM,
@@ -109,6 +117,13 @@ public static class WorkflowSteps
         WorkflowStep.B2_SELF_SCORE,
         WorkflowStep.B4_DECISION,
         WorkflowStep.B5_PUBLISH
+    };
+
+    /// <summary>Bước thêm sau: cấu hình kỳ cũ không có khóa của bước thì coi là không áp dụng.</summary>
+    public static readonly IReadOnlySet<WorkflowStep> OffWhenMissing = new HashSet<WorkflowStep>
+    {
+        WorkflowStep.B1_UNIT_SUBMIT,
+        WorkflowStep.B1_HR_REVIEW
     };
 
     /// <summary>Bước của chủ hồ sơ và bước công bố.</summary>
@@ -137,6 +152,8 @@ public static class WorkflowSteps
     /// <summary>Bước được trả lại → bước của chủ hồ sơ mà hồ sơ quay về.</summary>
     public static readonly IReadOnlyDictionary<WorkflowStep, WorkflowStep> ReturnTargets = new Dictionary<WorkflowStep, WorkflowStep>
     {
+        [WorkflowStep.B1_UNIT_SUBMIT] = WorkflowStep.B1_REGISTER,
+        [WorkflowStep.B1_HR_REVIEW] = WorkflowStep.B1_REGISTER,
         [WorkflowStep.B1_APPROVE] = WorkflowStep.B1_REGISTER,
         [WorkflowStep.B2_CELL_CONFIRM] = WorkflowStep.B2_SELF_SCORE,
         [WorkflowStep.B3B_APPRAISAL] = WorkflowStep.B2_SELF_SCORE
@@ -164,6 +181,8 @@ public static class WorkflowSteps
     public static RecordStatus StatusOf(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER => RecordStatus.AwaitingRegistration,
+        WorkflowStep.B1_UNIT_SUBMIT => RecordStatus.AwaitingUnitSubmit,
+        WorkflowStep.B1_HR_REVIEW => RecordStatus.AwaitingTaskReview,
         WorkflowStep.B1_APPROVE => RecordStatus.AwaitingTaskApproval,
         WorkflowStep.B2_SELF_SCORE => RecordStatus.AwaitingSelfScore,
         WorkflowStep.B2_CELL_CONFIRM => RecordStatus.AwaitingCellConfirm,
@@ -179,6 +198,8 @@ public static class WorkflowSteps
     public static WorkflowStep? StepOf(RecordStatus status) => status switch
     {
         RecordStatus.AwaitingRegistration => WorkflowStep.B1_REGISTER,
+        RecordStatus.AwaitingUnitSubmit => WorkflowStep.B1_UNIT_SUBMIT,
+        RecordStatus.AwaitingTaskReview => WorkflowStep.B1_HR_REVIEW,
         RecordStatus.AwaitingTaskApproval => WorkflowStep.B1_APPROVE,
         RecordStatus.AwaitingSelfScore => WorkflowStep.B2_SELF_SCORE,
         RecordStatus.AwaitingCellConfirm => WorkflowStep.B2_CELL_CONFIRM,
@@ -192,9 +213,16 @@ public static class WorkflowSteps
 
     public static int IndexOf(WorkflowStep step) => Ordered.ToList().IndexOf(step);
 
+    /// <summary>Thứ tự trạng thái theo luồng (Đã công bố cuối cùng); dùng thay cho so số của enum.</summary>
+    public static int OrderOf(RecordStatus status) => StepOf(status) is { } step ? IndexOf(step) : Ordered.Count;
+
+    public static bool IsBefore(RecordStatus status, RecordStatus other) => OrderOf(status) < OrderOf(other);
+
     public static string DisplayName(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER => "Đăng ký sản phẩm, nhiệm vụ",
+        WorkflowStep.B1_UNIT_SUBMIT => "Trưởng đơn vị gửi danh mục",
+        WorkflowStep.B1_HR_REVIEW => "Rà soát, trình duyệt danh mục",
         WorkflowStep.B1_APPROVE => "Duyệt danh mục sản phẩm",
         WorkflowStep.B2_SELF_SCORE => "Tự chấm điểm, đề xuất mức",
         WorkflowStep.B2_CELL_CONFIRM => "Chi bộ xác nhận phiếu tự chấm",
@@ -209,6 +237,8 @@ public static class WorkflowSteps
     public static string StatusDisplayName(RecordStatus status) => status switch
     {
         RecordStatus.AwaitingRegistration => "Chờ đăng ký sản phẩm",
+        RecordStatus.AwaitingUnitSubmit => "Chờ Trưởng đơn vị gửi",
+        RecordStatus.AwaitingTaskReview => "Chờ rà soát, trình duyệt",
         RecordStatus.AwaitingTaskApproval => "Chờ duyệt danh mục",
         RecordStatus.AwaitingSelfScore => "Chờ tự chấm",
         RecordStatus.AwaitingCellConfirm => "Chờ Chi bộ xác nhận",

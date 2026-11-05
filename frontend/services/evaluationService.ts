@@ -6,6 +6,8 @@ import type { DeadlineRule } from "./deadlineRules";
 
 export type WorkflowStepCode =
   | "B1_REGISTER"
+  | "B1_UNIT_SUBMIT"
+  | "B1_HR_REVIEW"
   | "B1_APPROVE"
   | "B2_SELF_SCORE"
   | "B2_CELL_CONFIRM"
@@ -18,6 +20,10 @@ export type WorkflowStepCode =
 /** Mã hành động trả về từ `GET records/{id}/actions`. */
 export type WorkflowActionCode =
   | "SubmitTasks"
+  | "ForwardTasks"
+  | "ReturnByUnit"
+  | "ReviewTasks"
+  | "ReturnByReviewer"
   | "ApproveTasks"
   | "ReturnTasks"
   | "RevokeTaskApproval"
@@ -297,6 +303,12 @@ export interface EvaluationRecordDto {
   notRatedByName?: string | null;
   progress: RecordStepProgressDto[];
 
+  tasksForwardedByName?: string | null;
+  tasksForwardedAt?: string | null;
+  tasksForwardComment?: string | null;
+  tasksReviewedByName?: string | null;
+  tasksReviewedAt?: string | null;
+  tasksReviewComment?: string | null;
   tasksApprovedByName?: string | null;
   tasksApprovedAt?: string | null;
   tasksApprovalComment?: string | null;
@@ -1046,6 +1058,8 @@ export function gradeLabel(value?: string | null): string {
 
 export const STEP_NAMES: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "Đăng ký sản phẩm, nhiệm vụ",
+  B1_UNIT_SUBMIT: "Trưởng đơn vị gửi danh mục",
+  B1_HR_REVIEW: "Rà soát, trình duyệt danh mục",
   B1_APPROVE: "Duyệt danh mục sản phẩm",
   B2_SELF_SCORE: "Tự chấm điểm, đề xuất mức",
   B2_CELL_CONFIRM: "Chi bộ xác nhận phiếu tự chấm",
@@ -1076,6 +1090,8 @@ export const GRADED_STEPS: WorkflowStepCode[] = ["B3A_COLLECTIVE", "B3B_APPRAISA
 /** Quyền thực hiện mặc định của bước nội bộ (giống máy chủ) — dùng khi chuyển chế độ về "Nội bộ" trên giao diện. */
 export const DEFAULT_STEP_PERMISSIONS: Record<WorkflowStepCode, string> = {
   B1_REGISTER: "evaluation.self",
+  B1_UNIT_SUBMIT: "evaluation.tasks.forward",
+  B1_HR_REVIEW: "evaluation.tasks.review",
   B1_APPROVE: "evaluation.tasks.approve",
   B2_SELF_SCORE: "evaluation.self",
   B2_CELL_CONFIRM: "evaluation.cell.confirm",
@@ -1094,6 +1110,8 @@ export const STEP_MODE_LABELS: Record<StepMode, string> = {
 
 export const STEP_ORDER: WorkflowStepCode[] = [
   "B1_REGISTER",
+  "B1_UNIT_SUBMIT",
+  "B1_HR_REVIEW",
   "B1_APPROVE",
   "B2_SELF_SCORE",
   "B2_CELL_CONFIRM",
@@ -1145,6 +1163,10 @@ function post<T>(endpoint: string, body: unknown): Promise<T> {
 
 const ACTION_PATH: Record<WorkflowActionCode, string> = {
   SubmitTasks: "tasks/submit",
+  ForwardTasks: "tasks/forward",
+  ReturnByUnit: "tasks/forward/return",
+  ReviewTasks: "tasks/review",
+  ReturnByReviewer: "tasks/review/return",
   ApproveTasks: "tasks/approve",
   ReturnTasks: "tasks/return",
   RevokeTaskApproval: "tasks/approve/revoke",
