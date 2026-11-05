@@ -8,35 +8,40 @@ test.describe('Trang Hướng dẫn', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('cán bộ thường mở từ nút ? ở thanh trên: có mục lục, bảng và đúng tên mới', async ({ mo }) => {
+  test('cán bộ thường mở từ nút ? ở thanh trên: có chương theo vai trò, bảng và ảnh', async ({ mo }) => {
     const page = await mo('trung.nb');
     await page.goto('/');
     await page.locator('header').getByRole('link', { name: 'Hướng dẫn' }).click();
     await expect(page).toHaveURL(/\/help$/);
     await expect(page.getByRole('heading', { name: 'Hướng dẫn sử dụng', level: 1 })).toBeVisible();
-    await expect(page.getByText('Nút Hướng dẫn (dấu ?) ở góc trên bên phải hiển thị cùng nội dung này.')).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Mục lục hướng dẫn' }).getByRole('link', { name: /Xác nhận số liệu và duyệt kết quả/ })).toBeVisible();
+    const muc = page.getByRole('navigation', { name: 'Mục lục hướng dẫn' });
+    await expect(muc.getByRole('link', { name: /^Hướng dẫn cho người được đánh giá/ })).toBeVisible();
+    await expect(muc.getByRole('link', { name: /^Hướng dẫn cho Văn phòng Đảng ủy/ })).toBeVisible();
     await expect(page.locator('article table').first()).toBeVisible();
-    // Tên cũ không còn trong hướng dẫn.
-    await expect(page.locator('article').getByText('Rà soát', { exact: true })).toHaveCount(0);
+    const anh = page.locator('article img').first();
+    await expect(anh).toHaveAttribute('src', /^\/huong-dan\/anh\/.+\.png$/);
+    const tai = await page.request.get((await anh.getAttribute('src'))!);
+    expect(tai.status()).toBe(200);
   });
 
-  test('bấm mục lục cuộn tới đúng mục và neo # trên địa chỉ hoạt động', async ({ mo }) => {
+  test('bấm mục lục cuộn tới đúng chương và neo # trên địa chỉ hoạt động', async ({ mo }) => {
     const page = await mo('loan.ctp');
     await page.goto('/help');
-    await page.getByRole('navigation', { name: 'Mục lục hướng dẫn' }).getByRole('link', { name: /^10. Báo cáo/ }).click();
-    await expect.poll(() => decodeURIComponent(page.url())).toContain('#10-báo-cáo');
-    await expect(page.locator('article h2[id="10-báo-cáo"]')).toBeInViewport();
+    await page.getByRole('navigation', { name: 'Mục lục hướng dẫn' }).getByRole('link', { name: /^Hướng dẫn cho Phòng TCCB-LĐ/ }).click();
+    await expect.poll(() => decodeURIComponent(page.url())).toContain('#hướng-dẫn-cho-phòng-tccb-lđ');
+    await expect(page.locator('article h2[id="hướng-dẫn-cho-phòng-tccb-lđ"]')).toBeInViewport();
 
-    await page.goto('/help#12-vì-sao-nút-bị-khóa');
-    await expect(page.locator('article h2[id="12-vì-sao-nút-bị-khóa"]')).toBeInViewport();
+    await page.goto('/help#hướng-dẫn-cho-văn-phòng-đảng-ủy');
+    await expect(page.locator('article h2[id="hướng-dẫn-cho-văn-phòng-đảng-ủy"]')).toBeInViewport();
   });
 
-  test('liên kết sang tài liệu khác không dẫn tới trang chết', async ({ mo }) => {
+  test('liên kết giữa các hướng dẫn thành liên kết trong trang, không dẫn tới trang chết', async ({ mo }) => {
     const page = await mo('trung.nb');
     await page.goto('/help');
     await expect(page.locator('article a[href$=".md"]')).toHaveCount(0);
     await expect(page.locator('article a[href]:not([href^="#"]):not([href^="http"])')).toHaveCount(0);
+    const neo = await page.locator('article a[href^="#"]').evaluateAll((ds) => ds.map((d) => decodeURIComponent(d.getAttribute('href') ?? '')));
+    expect(neo).toContain('#hướng-dẫn-cho-người-được-đánh-giá');
   });
 
   test('trên điện thoại không cuộn ngang, mục lục thu gọn mở được', async ({ mo }) => {
@@ -46,9 +51,9 @@ test.describe('Trang Hướng dẫn', () => {
     const [rong, vung] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
     expect(rong).toBeLessThanOrEqual(vung + 1);
     const muc = page.getByRole('navigation', { name: 'Mục lục hướng dẫn' });
-    await expect(muc.getByRole('link', { name: /Báo cáo/ }).first()).toBeHidden();
+    await expect(muc.getByRole('link', { name: /^Hướng dẫn cho Quản trị/ })).toBeHidden();
     await muc.getByText('Mục lục', { exact: true }).click();
-    await expect(muc.getByRole('link', { name: /Báo cáo/ }).first()).toBeVisible();
+    await expect(muc.getByRole('link', { name: /^Hướng dẫn cho Quản trị/ })).toBeVisible();
   });
 
   test('ô tìm kiếm lọc mục lục theo tiêu đề và nội dung; Esc và nút × xóa', async ({ mo }) => {
@@ -60,7 +65,7 @@ test.describe('Trang Hướng dẫn', () => {
     const tong = await muc.getByRole('link').count();
     await o.fill('chuông');
     await expect(muc.getByRole('status')).toContainText(/[0-9]+ kết quả/);
-    await expect(muc.getByRole('link', { name: /Nhắc việc [(]chuông[)]/ })).toBeVisible();
+    await expect(muc.getByRole('link', { name: /Gửi kiến nghị/ })).toBeVisible();
     expect(await muc.getByRole('link').count()).toBeLessThan(tong);
     await o.press('Escape');
     await expect(o).toHaveValue('');

@@ -3,8 +3,8 @@
 .claude
 .vs
 docs
-# Trừ hướng dẫn sử dụng: trang /help của frontend chép file này lúc build.
-!docs/huong-dan-su-dung.md
+# Trừ hướng dẫn theo vai trò: trang /help của frontend gộp thư mục này lúc build.
+!docs/dung-thu
 **/node_modules
 **/.next
 **/bin

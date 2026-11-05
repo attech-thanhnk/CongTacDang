@@ -1,6 +1,6 @@
 # Lệnh chạy thử trên máy dev
 
-Chạy từ thư mục gốc repo (`D:\repos\CongTacDang`). Các bước làm trên giao diện: [Quy trình thao tác chuẩn](quy-trinh-thao-tac-chuan.md).
+Chạy từ thư mục gốc repo (`D:\repos\CongTacDang`). Các bước làm trên giao diện: [Hướng dẫn theo vai trò](dung-thu/README.md).
 
 ## Đăng nhập
 

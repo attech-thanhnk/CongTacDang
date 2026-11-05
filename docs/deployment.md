@@ -10,7 +10,7 @@ Tài liệu này là **tham chiếu chi tiết**: biến cấu hình, chính sá
 | Nâng cấp lên phiên bản mới, hoặc quay lại bản cũ | [Nâng cấp phiên bản](nang-cap-phien-ban.md) |
 | Thay máy đang chạy bản cũ (chỉ chuyển dữ liệu gốc) | [Chuyển dữ liệu gốc từ máy cũ](chuyen-du-lieu-goc.md) |
 | Đưa vào sử dụng: khai báo đơn vị, tài khoản, vai trò, mở kỳ | [Hướng dẫn bàn giao](huong-dan-ban-giao.md) |
-| Cách dùng từng màn hình | [Hướng dẫn sử dụng](huong-dan-su-dung.md) |
+| Cách dùng từng màn hình | [Hướng dẫn theo vai trò](dung-thu/README.md) |
 | Migration CSDL | [database-migrations.md](database-migrations.md) |
 
 ## Yêu cầu

@@ -34,7 +34,8 @@ docker/         Dockerfile.backend, Dockerfile.frontend, docker-compose.yml, bac
 docs/README.md    Mục lục tài liệu theo việc cần làm (bắt đầu từ đây)
 docs/thiet-ke/     Thiết kế phân quyền động và luồng đánh giá (căn cứ kỹ thuật); thuat-ngu.md: tên gọi thống nhất
                    (giao diện, vai trò, quyền, biểu mẫu)
-docs/remediation/  Danh sách lỗi (FINDINGS.md), quy tắc (RULES.md), task và báo cáo
+docs/remediation/  Danh sách lỗi (FINDINGS.md), quy tắc (RULES.md)
+docs/dung-thu/     Hướng dẫn theo vai trò; trang /help gộp từ các tệp này (frontend/scripts/chep-huong-dan.mjs)
 ```
 
 ## Lệnh thường dùng

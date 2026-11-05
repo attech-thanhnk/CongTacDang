@@ -81,3 +81,12 @@
     padding: 1.5rem 2rem;
   }
 }
+
+.image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.5rem 0 1rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 4px;
+}

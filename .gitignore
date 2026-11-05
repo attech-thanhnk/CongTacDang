@@ -79,6 +79,7 @@ frontend/.next-dev/
 
 # Kết quả kiểm thử giao diện (báo cáo, ảnh, vết, nhật ký tiến trình)
 frontend/content/
+frontend/public/huong-dan/
 frontend/e2e-ket-qua/
 
 # Công cụ thử nghiệm cục bộ

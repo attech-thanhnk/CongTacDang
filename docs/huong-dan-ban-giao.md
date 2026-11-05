@@ -4,7 +4,7 @@ Tài liệu dành cho **quản trị hệ thống** và **người quản lý k�
 
 Tài liệu liên quan:
 
-- [Hướng dẫn sử dụng](huong-dan-su-dung.md): cách làm từng màn hình cho mọi nhóm người dùng.
+- [Hướng dẫn theo vai trò](dung-thu/README.md): cách làm từng màn hình cho mọi nhóm người dùng.
 - [Triển khai](deployment.md): cài đặt máy chủ, cấu hình, sao lưu (dành cho bộ phận CNTT).
 - [Nhập dữ liệu từ Excel](nhap-du-lieu.md): nhập đơn vị, tổ chức Đảng, cán bộ, phân công vai trò hàng loạt.
 - [Thuật ngữ thống nhất](thiet-ke/thuat-ngu.md): tên gọi chuẩn của biểu mẫu, bước, vai trò, quyền.
@@ -225,11 +225,11 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Cần đính chính hồ sơ đã công bố | Bấm "Mở lại hồ sơ", chọn bước quay về, nhập lý do | Văn phòng Đảng ủy |
 | Kỳ đã khóa dữ liệu mà cần sửa bước trước Thẩm định | "Mở lại kỳ" (menu ⋯ trang kỳ) hoặc chỉ mở riêng một hồ sơ: trả lại hoặc mở lại hồ sơ và chọn "Mở riêng hồ sơ đến" (tối đa 60 ngày); hết hạn thì "Gia hạn mở riêng hồ sơ" | Người quản lý kỳ; người có quyền trả lại hoặc mở lại hồ sơ |
 | Bước quá hạn bị chặn ("Chặn hoàn thành bước khi đã quá thời hạn" đang bật) | Thẻ "Diện quyết định", đặt lại thời hạn của bước, "Lưu" (sửa được sau khi mở kỳ). Ô chặn chỉ đổi được khi kỳ còn Dự thảo | Người quản lý kỳ |
-| Nút "Ghi nhận quyết định" bị khóa vì Mẫu 20 hoặc Mẫu 19 | Xem bảng [mục 12.1 của hướng dẫn sử dụng](huong-dan-su-dung.md#121-nút-có-nhưng-không-bấm-được-dải-vàng-có-biểu-tượng-khóa); lập, chốt, xác nhận hoặc mở lại phiếu theo lý do ghi | Cơ quan thẩm định, Văn phòng Đảng ủy |
+| Nút "Ghi nhận quyết định" bị khóa vì Mẫu 20 hoặc Mẫu 19 | Đọc lý do trên dải vàng cạnh nút; lập, chốt, xác nhận hoặc mở lại phiếu theo lý do ghi | Cơ quan thẩm định, Văn phòng Đảng ủy |
 | Người lập Mẫu 20 hoặc Mẫu 19 là người duy nhất có quyền xác nhận hoặc chốt | Phân công quyền xác nhận hoặc chốt cho người thứ hai (phạm vi bao trùm các hồ sơ trong biên bản hoặc phiếu). Tạm thời có thể đổi cổng sang "Chỉ ghi nhận" nếu kỳ còn Dự thảo | Quản trị hệ thống; người quản lý kỳ |
 | Phiếu hoặc biên bản của người đã nghỉ còn dở | Biên bản "Đang soạn": người khác có quyền lập mở và sửa tiếp (người chốt vẫn phải khác người đã lập ban đầu); không cần thì "Hủy biên bản". Phiếu kiểm tra: "Hủy phiếu" rồi lập phiếu mới | Cơ quan thẩm định |
 | Phiếu xác nhận số liệu chờ mãi, cơ quan chuyên môn không phản hồi | Người yêu cầu mở phiếu, menu ⋯, "Hủy yêu cầu", nhập lý do: nút "Thẩm định" mở lại | Cơ quan thẩm định |
-| Phiếu kiểm tra hoặc biên bản bị "Hết hiệu lực" sau khi hồ sơ đổi | Mở lại, kiểm lại, xác nhận hoặc chốt lại (hướng dẫn sử dụng, [mục 5.5](huong-dan-su-dung.md#55-hết-hiệu-lực-nghĩa-là-gì-và-làm-gì-tiếp)) | Người lập và người xác nhận |
+| Phiếu kiểm tra hoặc biên bản bị "Hết hiệu lực" sau khi hồ sơ đổi | Mở lại, kiểm lại, xác nhận hoặc chốt lại | Người lập và người xác nhận |
 | Tài khoản người làm bước bị vô hiệu hóa hoặc bị khóa | "Tài khoản", mở chi tiết, "Mở lại tài khoản" hoặc "Mở khóa đăng nhập" | Quản trị hệ thống |
 | Cần xem ai làm gì, lúc nào | Trang hồ sơ, khối "Lịch sử"; hoặc "Nhật ký hệ thống" | Người có quyền xem |
 
@@ -247,7 +247,7 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Báo "Bạn không có quyền … trên đối tượng này (ngoài phạm vi được gán)" hoặc "Bạn không có quyền … để thực hiện thao tác này" (403) | Người dùng thiếu quyền, hoặc có quyền nhưng ở phạm vi khác đơn vị của hồ sơ | Quản trị mở chi tiết "Tài khoản", thẻ "Người này làm được gì", đối chiếu; phân công vai trò đúng phạm vi |
 | Báo "Bạn không được thực hiện "…" trên hồ sơ của chính mình (xung đột lợi ích)" | Người dùng đang làm bước xét duyệt trên hồ sơ của mình | Không xử lý được bằng quyền; người khác làm bước đó |
 | Báo "Bạn chưa được cấp quyền "…". Hãy liên hệ quản trị hệ thống" (màn hình "Không có quyền truy cập") | Trang yêu cầu quyền người dùng chưa có | Phân công vai trò có quyền đó |
-| Không thấy mục menu cần dùng | Menu hiện theo quyền ([hướng dẫn sử dụng, mục 1.1](huong-dan-su-dung.md#11-menu)) | Kiểm tra "Người này làm được gì". Vừa phân công mà menu chưa đổi: tải lại trang hoặc đăng xuất rồi đăng nhập lại |
+| Không thấy mục menu cần dùng | Menu hiện theo quyền | Kiểm tra "Người này làm được gì". Vừa phân công mà menu chưa đổi: tải lại trang hoặc đăng xuất rồi đăng nhập lại |
 | Cán bộ không thấy hồ sơ của mình | Chưa được thêm vào kỳ, hoặc đang chọn nhầm kỳ ở ô chọn kỳ trên thanh trên | Thẻ "Người được đánh giá" của kỳ, "Thêm người"; hoặc chọn đúng kỳ |
 | Tải PDF báo "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF…" (lỗi 503) | Máy chủ chưa có LibreOffice | Người dùng tải bản Word hoặc Excel; CNTT cài LibreOffice theo mục "LibreOffice (xuất PDF)" của [Triển khai](deployment.md) |
 | Biểu mẫu thiếu hoặc sai họ tên, ngày sinh, chức vụ, tên Đảng bộ | Dữ liệu nguồn thiếu | Ngày sinh, chức vụ: sửa ở chi tiết "Tài khoản". Tên Đảng bộ, công ty, địa danh: sửa ở "Thông tin đơn vị" |

@@ -513,7 +513,7 @@ Truy cập từ ngoài mạng LAN (Internet): ngoài phạm vi tài liệu này,
 
 ## 12. Đưa vào sử dụng
 
-Máy đã chạy. Việc tiếp theo là khai báo dữ liệu gốc: thông tin đơn vị, loại đơn vị, cây đơn vị chính quyền và tổ chức Đảng, chức vụ, tài khoản, vai trò, kỳ đánh giá. Làm theo danh sách 14 bước trong mục 3 của [Hướng dẫn bàn giao](huong-dan-ban-giao.md). Hướng dẫn thao tác từng màn hình: [Hướng dẫn sử dụng](huong-dan-su-dung.md); nhập hàng loạt từ Excel: [Nhập dữ liệu](nhap-du-lieu.md).
+Máy đã chạy. Việc tiếp theo là khai báo dữ liệu gốc: thông tin đơn vị, loại đơn vị, cây đơn vị chính quyền và tổ chức Đảng, chức vụ, tài khoản, vai trò, kỳ đánh giá. Làm theo danh sách 14 bước trong mục 3 của [Hướng dẫn bàn giao](huong-dan-ban-giao.md). Hướng dẫn thao tác từng màn hình: [Hướng dẫn theo vai trò](dung-thu/README.md); nhập hàng loạt từ Excel: [Nhập dữ liệu](nhap-du-lieu.md).
 
 ---
 

@@ -1,13 +1,12 @@
-# Quy tắc chung cho agent khắc phục
+# Quy tắc chung khi sửa mã
 
-Áp dụng cho **mọi** task trong `docs/remediation/tasks/`. Nếu task file mâu thuẫn với file này, task file thắng.
+Áp dụng cho mọi thay đổi mã trong repo.
 
 ## 1. Quy trình
-1. Đọc `CLAUDE.md`, file này, task file được giao, và các mục tương ứng trong `FINDINGS.md`.
-2. Làm việc trên **branch riêng** ghi trong task file (worktree riêng nếu chạy song song). Không làm trên `main`.
+1. Đọc `CLAUDE.md`, file này, và các mục tương ứng trong `FINDINGS.md`.
+2. Làm việc trên **branch riêng** (worktree riêng nếu chạy song song). Không làm trên `main`.
 3. Commit nhỏ theo từng mã lỗi, message dạng `fix(T-01): chặn path traversal khi lưu file`. Không push, không force, không rewrite lịch sử.
 4. Chạy **cổng kiểm tra** (mục 4) trước khi kết thúc.
-5. Ghi báo cáo vào `docs/remediation/reports/<tên task>.md` theo `reports/_TEMPLATE.md`, commit báo cáo là commit cuối.
 
 ## 2. Phạm vi
 - **Chỉ xử lý các mã lỗi được giao.** Thấy vấn đề khác → ghi vào mục "Phát hiện thêm" trong báo cáo, không tự sửa.

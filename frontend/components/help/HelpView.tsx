@@ -18,7 +18,13 @@ function textOf(node: React.ReactNode): string {
 type HeadingProps = { node?: { position?: { start: { line: number } } }; children?: React.ReactNode };
 
 /** Hướng dẫn sử dụng trong ứng dụng: mục lục bên cạnh và nội dung từ tài liệu hướng dẫn. */
-export function HelpView({ markdown }: { markdown: string }) {
+export function HelpView({
+  markdown,
+  imageSizes = {},
+}: {
+  markdown: string;
+  imageSizes?: Record<string, [number, number]>;
+}) {
   const toc = useMemo(() => buildToc(markdown), [markdown]);
   const searchText = useMemo(() => buildSearchText(markdown, toc), [markdown, toc]);
   const [query, setQuery] = useState("");
@@ -65,6 +71,17 @@ export function HelpView({ markdown }: { markdown: string }) {
           <table className="table table-sm table-bordered align-middle">{children}</table>
         </div>
       ),
+      img: ({ src, alt }: { src?: string; alt?: string }) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt ?? ""}
+          width={src ? imageSizes[src]?.[0] : undefined}
+          height={src ? imageSizes[src]?.[1] : undefined}
+          loading="lazy"
+          className={styles.image}
+        />
+      ),
       a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
         if (href?.startsWith("#")) return <a href={href}>{children}</a>;
         if (href && /^https?:\/\//.test(href)) return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
@@ -72,7 +89,7 @@ export function HelpView({ markdown }: { markdown: string }) {
         return <span>{children}</span>;
       },
     };
-  }, [idByLine]);
+  }, [idByLine, imageSizes]);
 
   return (
     <div className="page-wrapper">
