@@ -64,7 +64,7 @@ Người không đánh giá trong kỳ (nghỉ dài ngày, mới bổ nhiệm d�
 
 **Xong thì thấy:** dòng có nhãn **Chưa xếp loại** kèm lý do. Hồ sơ bỏ qua các bước, chờ Văn phòng Đảng ủy công bố; người đó không phải làm gì. Đánh dấu nhầm: **⋯** → **Bỏ đánh dấu Chưa xếp loại** (khi chưa công bố).
 
-Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩm định: nút **Không đánh giá (Chưa xếp loại)**.
+Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Biểu mẫu** ở đầu trang → **Không đánh giá (Chưa xếp loại)**.
 
 ## Phần B. Rà soát danh mục sản phẩm
 

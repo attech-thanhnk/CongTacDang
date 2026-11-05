@@ -298,6 +298,15 @@
   color: var(--ink-2);
 }
 
+/* Người đang chờ và hạn của bước hiện tại: một dòng dưới thanh bước */
+.stepsWait {
+  margin: -6px 0 0;
+  padding: 0 20px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
 /* Tiến trình gọn cho màn hẹp: bước hiện tại + dải tiến độ */
 .stepsCompact {
   display: none;
@@ -363,7 +372,8 @@
 }
 
 @media (max-width: 767.98px) {
-  .steps {
+  .steps,
+  .stepsWait {
     display: none;
   }
   .stepsCompact {
@@ -518,6 +528,9 @@ button.stepBtn:focus-visible {
   margin-left: auto;
   flex: none;
   align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Thanh "Xem bản in" trên danh sách biểu mẫu */
