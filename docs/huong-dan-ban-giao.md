@@ -166,7 +166,7 @@ Làm theo đúng thứ tự: bước sau dùng dữ liệu của bước trướ
 
 - [ ] Hai ô "Diện quyết định mặc định": chọn diện cho người thuộc diện Đảng ủy cơ sở quyết định và diện cấp trên quyết định.
 - [ ] Kỳ mới có sẵn bốn diện (thời hạn đã điền theo kế hoạch của Phòng Tổ chức cán bộ - Lao động; sửa được): "Diện Đảng ủy cơ sở", "Diện BTV Đảng ủy Tổng công ty", "Bí thư/Phó bí thư Chi bộ là nhân viên", "Phó Giám đốc". Với mỗi diện: chế độ từng bước ("Nội bộ", "Cấp trên thực hiện", "Không áp dụng"), quyền thực hiện, thời hạn.
-- [ ] Khối "Kiểm tra trước quyết định": chọn chế độ cho từng diện.
+- [ ] Khối "Cổng trước quyết định": chọn chế độ cho từng diện.
   - "Xác nhận số liệu": "Tùy chọn" hoặc "Tắt".
   - "Họp thống nhất" và "Kiểm tra trước quyết định": "Bắt buộc", "Chỉ ghi nhận" hoặc "Tắt".
   - Chọn "Bắt buộc" chỉ khi đã có đủ người lập và người xác nhận ([mục 2.1](#21-để-luồng-không-bị-kẹt)). Chưa sẵn sàng thì để "Chỉ ghi nhận": hồ sơ không bị chặn nhưng vẫn hiện nhắc.
