@@ -276,7 +276,7 @@ public sealed class SampleDataSeedTests
         Assert.True(appeals.GetProperty("underReview").GetBoolean());
         Assert.Contains(appeals.GetProperty("appeals").EnumerateArray(), a => a.GetProperty("status").GetString() == "Submitted");
 
-        // Văn phòng Đảng ủy (xử lý kiến nghị) thấy nhóm "Kiến nghị chờ xử lý"; Giám đốc (lập kế hoạch) thấy nhóm kế hoạch cần lập/duyệt.
+        // Văn phòng Đảng ủy (xử lý kiến nghị) thấy nhóm "Kiến nghị chờ xử lý"; Giám đốc (duyệt kế hoạch) thấy kế hoạch đang lập chờ duyệt.
         var officeQueue = await DataAsync(await officer.GetAsync("/api/evaluations/work-queue"));
         Assert.Contains(officeQueue.GetProperty("groups").EnumerateArray(), g => g.GetProperty("step").GetString() == "APPEALS");
         using var director = await LoginAndChangePasswordAsync(host, "giamdoc");

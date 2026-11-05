@@ -215,8 +215,9 @@ Duyệt danh mục (`B1_APPROVE`) của diện `co-so`, `bi-thu-nhan-vien` dùng
   mở lại). Mỗi hồ sơ chỉ báo kiến nghị mới nhất. Tin hết khi chủ hồ sơ mở khối kiến nghị trên trang hồ sơ
   (`POST /api/evaluations/records/{id}/appeals/seen`, chỉ chủ hồ sơ, ghi `EvaluationAppeal.OwnerSeenAt`); tin mới hơn mốc này lại hiện.
 - **Kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17)** (`ImprovementPlan`, một kế hoạch/hồ sơ, `Draft → Approved → Acknowledged → Closed`):
-  bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người có `evaluation.improvement.manage` (không
-  trên hồ sơ của mình) lập, sửa khi đang lập, duyệt, ghi kết quả từng mốc; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
+  bắt buộc khi mức chính thức thuộc `improvementPlanRequiredGrades` của bộ tiêu chí; người quản lý trực tiếp có `evaluation.improvement.manage` (không
+  trên hồ sơ của mình) lập, sửa khi đang lập, ghi kết quả từng mốc; thủ trưởng đơn vị có `evaluation.improvement.approve` duyệt (khác người
+  lập); không còn ai ngoài chủ hồ sơ có quyền lập thì người có quyền duyệt gần nhất lập thay và người duyệt khác duyệt; chủ hồ sơ xác nhận cam kết; mốc 90 ngày ghi kết quả → đóng.
   Xuất Word/PDF Mẫu 17 từ file mẫu dựng theo biểu mẫu gốc.
 - **Việc cần xử lý / chuông nhắc việc**: nhóm "Kiến nghị chờ xử lý", "Kế hoạch 30-60-90 ngày" (giao người gần nhất như các bước —
   `IStepPerformers`, khi chờ duyệt bỏ người lập; chỉ hồ sơ của kỳ đang

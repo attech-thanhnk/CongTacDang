@@ -462,7 +462,6 @@ public sealed class PostPublishIntegrationTests
         Assert.DoesNotContain(await QueueRecordsAsync(w.UpperManagerC, "IMPROVEMENT_PLANS"), id => id == recordId);
         var selfApprove = await w.ManagerC.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
         Assert.Equal(HttpStatusCode.Forbidden, selfApprove.StatusCode);
-        Assert.Contains("người lập", await MessageAsync(selfApprove));
 
         plan = await Data(await w.Manager2C.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() }));
         Assert.Equal("Approved", plan.GetProperty("status").GetString());
@@ -518,6 +517,74 @@ public sealed class PostPublishIntegrationTests
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await w.DeptViewerC.GetAsync($"/api/improvement-plans/{planId}/mau-17")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await w.OwnerAC.GetAsync($"/api/improvement-plans/{planId}/mau-17?format=xls")).StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task P3b_ImprovementPlan_NoOtherPreparer_ApproverPreparesAndAnotherApproves()
+    {
+        var w = await WorldAsync();
+        // Trưởng phòng là Lãnh đạo đơn vị duy nhất của Phòng 1 và xếp mức phải lập kế hoạch.
+        var head = await _factory.CreateUserAsync(w.Dept1, w.Cell1, ApprovalAuthority.CoSo, $"KQ Trưởng phòng {Guid.NewGuid().ToString("N")[..6]}");
+        await _factory.AssignAsync(head.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        var headRole = await _factory.AssignAsync(head.Id, await _factory.GetRoleIdAsync("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
+        var otherDirector = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(otherDirector.Id, await _factory.GetRoleIdAsync("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Global, null);
+        var otherDirectorC = await _factory.LoginAsAsync(otherDirector.Username, otherDirector.Password, distinctClientIp: true);
+        var periodId = await World.OpenPeriodAsync(w.PeriodManagerC, head.Id);
+        var recordId = (await World.RecordsAsync(w.PeriodManagerC, periodId))[head.Id];
+        await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == recordId);
+            record.Status = RecordStatus.Published;
+            record.FinalGrade = EvaluationGrade.HoanThanh;
+            record.FinalScore = 70;
+            record.PublishedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        });
+
+        // Tạm gỡ mọi bản gán có quyền lập kế hoạch của người khác → chỉ còn chủ hồ sơ có quyền lập.
+        var suspended = new List<Guid>();
+        await _factory.WithDbAsync(async db =>
+        {
+            var assignments = await db.Set<UserRoleAssignment>()
+                .Where(a => a.Id != headRole && a.Role!.Permissions.Any(p => p.Code == PermissionCodes.EvaluationImprovementManage))
+                .ToListAsync();
+            foreach (var a in assignments)
+                a.IsDeleted = true;
+            await db.SaveChangesAsync();
+            suspended.AddRange(assignments.Select(a => a.Id));
+        });
+        _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
+        try
+        {
+            // Thủ trưởng đơn vị (chỉ có quyền duyệt) lập thay, được giao việc lập.
+            Assert.True((await Data(w.Manager2C, $"/api/evaluations/records/{recordId}/improvement-plan")).GetProperty("canManage").GetBoolean());
+            Assert.Contains(await QueueRecordsAsync(w.Manager2C, "IMPROVEMENT_PLANS"), id => id == recordId);
+            Assert.DoesNotContain(await QueueRecordsAsync(otherDirectorC, "IMPROVEMENT_PLANS"), id => id == recordId);
+            var plan = await Data(await w.Manager2C.PostAsJsonAsync($"/api/evaluations/records/{recordId}/improvement-plan", new { supporterName = "Người hỗ trợ" }));
+            var planId = plan.GetProperty("id").GetGuid();
+
+            // Người lập không tự duyệt; người duyệt khác được giao việc duyệt.
+            var view = await Data(w.Manager2C, $"/api/evaluations/records/{recordId}/improvement-plan");
+            Assert.False(view.GetProperty("canApprove").GetBoolean());
+            var selfApprove = await w.Manager2C.PostAsJsonAsync($"/api/improvement-plans/{planId}/approve", new { version = plan.GetProperty("version").GetUInt32() });
+            Assert.Equal(HttpStatusCode.Forbidden, selfApprove.StatusCode);
+            Assert.Contains("người lập", await MessageAsync(selfApprove));
+            Assert.DoesNotContain(await QueueRecordsAsync(w.Manager2C, "IMPROVEMENT_PLANS"), id => id == recordId);
+            Assert.Contains(await QueueRecordsAsync(otherDirectorC, "IMPROVEMENT_PLANS"), id => id == recordId);
+            Assert.True((await Data(otherDirectorC, $"/api/evaluations/records/{recordId}/improvement-plan")).GetProperty("canApprove").GetBoolean());
+        }
+        finally
+        {
+            await _factory.WithDbAsync(async db =>
+            {
+                var assignments = await db.Set<UserRoleAssignment>().IgnoreQueryFilters().Where(a => suspended.Contains(a.Id)).ToListAsync();
+                foreach (var a in assignments)
+                    a.IsDeleted = false;
+                await db.SaveChangesAsync();
+            });
+            _factory.Services.GetRequiredService<PermissionCache>().InvalidateAll();
+        }
     }
 
     #endregion
@@ -757,6 +824,8 @@ public sealed class PostPublishIntegrationTests
             await factory.AssignAsync(conflicted.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.appeal.resolve", "evaluation.reopen")).Id, RoleScopeType.Global, null);
             await factory.AssignAsync(manager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(manager2.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept1);
+            // Người duyệt kế hoạch: thủ trưởng đơn vị (Cấp trực tiếp sử dụng).
+            await factory.AssignAsync(manager2.Id, await Role("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Department, w.Dept1);
             await factory.AssignAsync(outsideManager.Id, await Role("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept2);
             await factory.AssignAsync(upperManager.Id, (await factory.CreateRoleAsync("evaluation.read", "evaluation.improvement.manage")).Id, RoleScopeType.Global, null);
             // Chủ hồ sơ B cũng có quyền lập kế hoạch toàn công ty — để kiểm tra không tự lập kế hoạch cho mình.

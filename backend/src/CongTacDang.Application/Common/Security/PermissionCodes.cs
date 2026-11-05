@@ -108,6 +108,9 @@ public static class PermissionCodes
     /// <summary>Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17).</summary>
     public const string EvaluationImprovementManage = "evaluation.improvement.manage";
 
+    /// <summary>Duyệt kế hoạch 30-60-90 ngày (thủ trưởng đơn vị); không duyệt kế hoạch do mình lập.</summary>
+    public const string EvaluationImprovementApprove = "evaluation.improvement.approve";
+
     #endregion
 
     #region Đối soát, hiệu chuẩn, kiểm soát
@@ -192,7 +195,8 @@ public static class PermissionCodes
         new(EvaluationResultsView, "Xem kết quả đánh giá đã công bố", "evaluation", "Xem danh sách kết quả đã công bố (họ tên, chức danh, đơn vị, mức xếp loại chính thức; điểm nếu bộ tiêu chí cho phép) trong phạm vi được gán — không xem chi tiết hồ sơ, minh chứng, ý kiến.", true),
         new(EvaluationAppealSubmit, "Gửi kiến nghị về kết quả", "evaluation", "Gửi kiến nghị xem xét lại kết quả đã công bố, kèm tệp minh chứng — chỉ trên hồ sơ của mình (phạm vi gán được bỏ qua).", true),
         new(EvaluationAppealResolve, "Xử lý kiến nghị về kết quả", "evaluation", "Xem xét, trả lời (bắt buộc nêu căn cứ) kiến nghị sau công bố trong phạm vi được gán; không xử lý kiến nghị của mình hoặc kiến nghị liên quan tới bước mình đã thực hiện.", true),
-        new(EvaluationImprovementManage, "Lập kế hoạch khắc phục 30-60-90 ngày", "evaluation", "Lập, duyệt và ghi kết quả từng mốc của kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) cho cán bộ trong phạm vi được gán; không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationImprovementManage, "Lập kế hoạch khắc phục 30-60-90 ngày", "evaluation", "Người quản lý trực tiếp lập, sửa khi đang lập và ghi kết quả từng mốc của kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) cho cán bộ trong phạm vi được gán; không áp dụng trên hồ sơ của mình.", true),
+        new(EvaluationImprovementApprove, "Duyệt kế hoạch khắc phục 30-60-90 ngày", "evaluation", "Thủ trưởng đơn vị duyệt kế hoạch hỗ trợ, khắc phục 30-60-90 ngày (Mẫu 17) của cán bộ trong phạm vi được gán; không duyệt kế hoạch do mình lập, không áp dụng trên hồ sơ của mình. Đơn vị không còn người lập nào khác chủ hồ sơ thì người có quyền này lập thay.", true),
         new(EvaluationCrosscheckRequest, "Yêu cầu đối soát chuyên ngành (Mẫu 03)", "evaluation", "Yêu cầu cơ quan chuyên môn đối soát dữ liệu tự khai của cán bộ trong phạm vi được gán, nhập các dòng cần đối soát, hủy yêu cầu (nêu lý do); không áp dụng trên hồ sơ của mình.", true),
         new(EvaluationCrosscheckRespond, "Lập phiếu đối soát chuyên ngành", "evaluation", "Cơ quan chuyên môn điền kết quả đối soát với dữ liệu gốc, đề xuất tăng/giảm điểm kèm căn cứ; phạm vi gán là đơn vị đối soát. Không cần quyền xem hồ sơ đánh giá.", true),
         new(EvaluationCrosscheckConfirm, "Xác nhận phiếu đối soát chuyên ngành", "evaluation", "Lãnh đạo cơ quan chuyên môn xác nhận hoặc trả lại phiếu đối soát; phạm vi gán là đơn vị đối soát; khác người lập phiếu.", true),

@@ -85,8 +85,8 @@ public static class DataSeeder
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức; lập kế hoạch 30-60-90 ngày (Mẫu 17).",
-            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementManage }),
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức; duyệt kế hoạch 30-60-90 ngày (Mẫu 17) do người quản lý trực tiếp lập.",
+            new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementApprove }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên", "Cấp ủy viên Đảng ủy: xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
         new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy", "Quyết định, công bố: ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị; xác nhận phiếu đối soát do cơ quan ngoài hệ thống (người yêu cầu nhập thay).",

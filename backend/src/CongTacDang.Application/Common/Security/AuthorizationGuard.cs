@@ -30,6 +30,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationReopen,
         PermissionCodes.EvaluationAppealResolve,
         PermissionCodes.EvaluationImprovementManage,
+        PermissionCodes.EvaluationImprovementApprove,
         PermissionCodes.EvaluationCrosscheckRequest
     };
 

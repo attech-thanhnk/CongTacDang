@@ -67,7 +67,7 @@ Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Vi�
 
 1. **Việc cần xử lý** → nhóm **Kế hoạch 30-60-90 ngày** → dòng ghi "Kế hoạch đang lập, chưa duyệt" → bấm **Duyệt kế hoạch**.
 2. Đọc kế hoạch trong khối **Kế hoạch 30-60-90 ngày (Mẫu 17)**.
-3. Đồng ý thì bấm **Duyệt kế hoạch**. Cần sửa thì bấm **Sửa kế hoạch**, sửa rồi **Lưu kế hoạch**.
+3. Đồng ý thì bấm **Duyệt kế hoạch**. Cần sửa thì báo người lập.
 
 ![Duyệt kế hoạch](anh/cap-tren-11-duyet-ke-hoach.png)
 

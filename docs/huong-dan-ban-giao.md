@@ -66,7 +66,7 @@ Mức độ bắt buộc của từng cổng đặt theo **diện quyết địn
 | Mở lại hồ sơ đã công bố | Văn phòng Đảng ủy | Mở lại hồ sơ đã khóa | Mở hồ sơ, nút "Mở lại hồ sơ" (nhập lý do) |
 | Gửi kiến nghị về kết quả | Chính cán bộ | Gửi kiến nghị về kết quả | Hồ sơ đã công bố, khối "Kiến nghị" |
 | Xử lý kiến nghị | Văn phòng Đảng ủy | Xử lý kiến nghị về kết quả | "Việc cần xử lý", nhóm "Kiến nghị chờ xử lý" |
-| Lập, duyệt kế hoạch 30-60-90 ngày | Lãnh đạo đơn vị, Cấp trực tiếp sử dụng | Lập kế hoạch khắc phục 30-60-90 ngày | Hồ sơ đã công bố, khối "Kế hoạch 30-60-90 ngày (Mẫu 17)" |
+| Lập, duyệt kế hoạch 30-60-90 ngày | Lãnh đạo đơn vị lập, Cấp trực tiếp sử dụng duyệt | Lập kế hoạch khắc phục 30-60-90 ngày; Duyệt kế hoạch khắc phục 30-60-90 ngày | Hồ sơ đã công bố, khối "Kế hoạch 30-60-90 ngày (Mẫu 17)" |
 | Xuất báo cáo | Cơ quan thẩm định, Cấp trực tiếp sử dụng, Cấp ủy viên, Văn phòng Đảng ủy | Xuất báo cáo tổng hợp | Menu "Báo cáo" |
 | Quản trị tài khoản, vai trò, danh mục, thông tin đơn vị, biểu mẫu Word | Quản trị hệ thống | các quyền "Quản trị hệ thống" và "Quản lý danh mục" | Menu "Hệ thống" và "Thiết lập" |
 
@@ -86,7 +86,7 @@ Một **phân công** gồm: người, vai trò, phạm vi (Toàn công ty / Đ�
 | Phó Giám đốc phụ trách | Xem hồ sơ; ghi ý kiến trước phê duyệt | Ghi ý kiến về danh mục và về đề xuất mức; không duyệt, không quyết định | Phó Giám đốc phụ trách phòng, đơn vị; phạm vi Đơn vị chính quyền là đơn vị phụ trách | Không bắt buộc |
 | Chi bộ | Xem hồ sơ; Chi bộ xác nhận phiếu tự chấm; lập hồ sơ tập thể | Xác nhận phiếu tự chấm, lập Mẫu 07 | Bí thư, Phó Bí thư Chi bộ; phạm vi Tổ chức Đảng là Chi bộ | 2 người mỗi Chi bộ |
 | Cơ quan thẩm định | Xem hồ sơ; thẩm định; quản lý kỳ; quản lý bộ tiêu chí; xuất báo cáo; xem tài khoản; yêu cầu đối soát; lập biên bản họp thống nhất; lập phiếu kiểm tra; ghi ý kiến trước phê duyệt | Mở kỳ, thẩm định, yêu cầu Mẫu 03, lập Mẫu 20 và Mẫu 19 | Cán bộ Phòng Tổ chức cán bộ - Lao động; chỉ gán được **Toàn công ty** (vì có quyền quản lý kỳ) | 2 người |
-| Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; lập kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, lập kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
+| Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; duyệt kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, duyệt kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
 | Cấp ủy viên | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
 | Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản họp thống nhất; xác nhận phiếu kiểm tra; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
 | Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành; xác nhận phiếu đối soát chuyên ngành | Lập và xác nhận phiếu Mẫu 03 gửi tới đơn vị mình | Cán bộ các phòng, đơn vị chuyên môn của ATTECH được yêu cầu đối soát (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán); phạm vi Đơn vị chính quyền là **đơn vị đối soát** của từng phòng, đơn vị | 2 người mỗi đơn vị đối soát (người lập khác người xác nhận) |

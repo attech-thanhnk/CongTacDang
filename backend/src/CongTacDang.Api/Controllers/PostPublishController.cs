@@ -125,7 +125,7 @@ public class PostPublishController : ControllerBase
 
     /// <summary>Lập kế hoạch cho hồ sơ đã công bố.</summary>
     [HttpPost("evaluations/records/{recordId:guid}/improvement-plan")]
-    [RequirePermission(PermissionCodes.EvaluationImprovementManage)]
+    [RequireAnyPermission(PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationImprovementApprove)]
     public async Task<IActionResult> CreatePlan(Guid recordId, [FromBody] SaveImprovementPlanRequestDto dto, CancellationToken ct)
     {
         var plan = await _plans.CreateAsync(recordId, dto, ct);
@@ -134,7 +134,7 @@ public class PostPublishController : ControllerBase
 
     /// <summary>Sửa kế hoạch đang lập.</summary>
     [HttpPut("improvement-plans/{id:guid}")]
-    [RequirePermission(PermissionCodes.EvaluationImprovementManage)]
+    [RequireAnyPermission(PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationImprovementApprove)]
     public async Task<IActionResult> UpdatePlan(Guid id, [FromBody] SaveImprovementPlanRequestDto dto, CancellationToken ct)
     {
         var plan = await _plans.UpdateAsync(id, dto, ct);
@@ -143,7 +143,7 @@ public class PostPublishController : ControllerBase
 
     /// <summary>Thủ trưởng đơn vị duyệt kế hoạch.</summary>
     [HttpPost("improvement-plans/{id:guid}/approve")]
-    [RequirePermission(PermissionCodes.EvaluationImprovementManage)]
+    [RequirePermission(PermissionCodes.EvaluationImprovementApprove)]
     public async Task<IActionResult> ApprovePlan(Guid id, [FromBody] VersionedRequestDto dto, CancellationToken ct)
     {
         var plan = await _plans.ApproveAsync(id, dto, ct);
@@ -161,7 +161,7 @@ public class PostPublishController : ControllerBase
 
     /// <summary>Ghi kết quả một mốc (mốc 90 ngày đóng kế hoạch).</summary>
     [HttpPost("improvement-plans/{id:guid}/milestone-result")]
-    [RequirePermission(PermissionCodes.EvaluationImprovementManage)]
+    [RequireAnyPermission(PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationImprovementApprove)]
     public async Task<IActionResult> RecordMilestoneResult(Guid id, [FromBody] MilestoneResultRequestDto dto, CancellationToken ct)
     {
         var plan = await _plans.RecordResultAsync(id, dto, ct);

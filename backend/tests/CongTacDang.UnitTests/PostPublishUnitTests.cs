@@ -33,7 +33,8 @@ public sealed class PostPublishUnitTests
         foreach (var code in new[]
                  {
                      PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit,
-                     PermissionCodes.EvaluationAppealResolve, PermissionCodes.EvaluationImprovementManage
+                     PermissionCodes.EvaluationAppealResolve, PermissionCodes.EvaluationImprovementManage,
+                     PermissionCodes.EvaluationImprovementApprove
                  })
         {
             var definition = PermissionCodes.Find(code);
@@ -60,7 +61,7 @@ public sealed class PostPublishUnitTests
     public void AppealResolve_AndImprovementManage_AreConflictOfInterest_OnOwnRecord()
     {
         var userId = Guid.NewGuid();
-        foreach (var code in new[] { PermissionCodes.EvaluationAppealResolve, PermissionCodes.EvaluationImprovementManage })
+        foreach (var code in new[] { PermissionCodes.EvaluationAppealResolve, PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationImprovementApprove })
         {
             Assert.Contains(code, AuthorizationGuard.ConflictOfInterestCodes);
             var permissions = Perms(userId, (code, ScopeType.Department, DeptA));

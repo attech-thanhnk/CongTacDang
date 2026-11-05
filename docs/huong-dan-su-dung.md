@@ -555,7 +555,7 @@ Bắt buộc với cán bộ có mức xếp loại theo quy định của bộ 
 
 - **Người lập** (lãnh đạo trực tiếp; thấy ở *Việc cần xử lý*, nhóm "Kế hoạch 30-60-90 ngày"):
   1. Bấm **Lập kế hoạch**: chọn **Người trực tiếp hỗ trợ, giám sát**, **Chức vụ**, **Ngày bắt đầu**; nhập từng mốc 30 / 60 / 90 ngày (hạn chế cần khắc phục, mục tiêu/sản phẩm, biện pháp & đào tạo hỗ trợ, phối hợp/giám sát). Bấm **Lưu kế hoạch**.
-  2. **Sửa kế hoạch** khi cần. Người lập không tự duyệt kế hoạch của mình: một người khác có quyền lập kế hoạch bấm **Duyệt kế hoạch**.
+  2. **Sửa kế hoạch** khi cần. Thủ trưởng đơn vị (Giám đốc, Chủ tịch) bấm **Duyệt kế hoạch**; người lập không tự duyệt. Đơn vị không còn lãnh đạo nào khác cán bộ thì thủ trưởng đơn vị lập thay, người duyệt khác duyệt.
   3. Đến hạn từng mốc: **Ghi kết quả**. Mốc 90 ngày: **Ghi kết quả & đóng kế hoạch**.
 - **Cán bộ**: sau khi kế hoạch được duyệt, nhập ý kiến (tùy chọn) và bấm **Xác nhận cam kết khắc phục**.
 - Tải kế hoạch: nút **Tải Word** trong khối, bản PDF ở menu ⋯.

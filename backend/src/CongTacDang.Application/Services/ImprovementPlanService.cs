@@ -44,7 +44,8 @@ public interface IImprovementPlanDocument
 
 /// <summary>
 /// Bắt buộc khi mức chính thức thuộc <c>ImprovementPlanRequiredGrades</c> của bộ tiêu chí; hồ sơ công bố khác vẫn lập được.
-/// Lập/sửa/duyệt/ghi kết quả: <c>evaluation.improvement.manage</c>, không trên hồ sơ của mình; xác nhận: chủ hồ sơ.
+/// Lập/sửa/ghi kết quả: <c>evaluation.improvement.manage</c> (người quản lý trực tiếp); duyệt: <c>evaluation.improvement.approve</c>
+/// (thủ trưởng đơn vị), khác người lập; xác nhận: chủ hồ sơ. Không trên hồ sơ của mình.
 /// </summary>
 public sealed class ImprovementPlanService : IImprovementPlanService
 {
@@ -60,9 +61,12 @@ public sealed class ImprovementPlanService : IImprovementPlanService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IStepPerformers? _stepPerformers;
 
-    public ImprovementPlanService(IPostPublishRepository repo, IUnitOfWork unitOfWork, IAuthorizationGuard guard, ICurrentUserService currentUser)
+    public ImprovementPlanService(IPostPublishRepository repo, IUnitOfWork unitOfWork, IAuthorizationGuard guard, ICurrentUserService currentUser,
+        IStepPerformers? stepPerformers = null)
     {
+        _stepPerformers = stepPerformers;
         _repo = repo;
         _unitOfWork = unitOfWork;
         _guard = guard;
@@ -115,7 +119,8 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         var record = await RequireRecordAsync(recordId, ct);
         EnsureCanView(record);
         var plan = await _repo.FindPlanByRecordAsync(recordId, ct);
-        var canManage = CanManage(record);
+        var canManage = await CanPrepareAsync(record, ct);
+        var canApprove = _guard.Can(PermissionCodes.EvaluationImprovementApprove, AccessTarget.ForRecord(record));
         return new RecordImprovementPlanDto
         {
             RecordId = record.Id,
@@ -128,7 +133,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             CanManage = canManage && record.Status == RecordStatus.Published,
             CanAcknowledge = plan?.Status == ImprovementPlanStatus.Approved
                 && _guard.Can(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)),
-            CanApprove = canManage && record.Status == RecordStatus.Published
+            CanApprove = canApprove && record.Status == RecordStatus.Published
                 && plan?.Status == ImprovementPlanStatus.Draft && !IsPreparer(plan, _currentUser.UserId)
         };
     }
@@ -138,7 +143,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
     {
         ArgumentNullException.ThrowIfNull(request);
         var record = await RequireRecordAsync(recordId, ct);
-        _guard.Ensure(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record));
+        await EnsureCanPrepareAsync(record, ct);
         if (record.Status != RecordStatus.Published)
             throw new ConflictException("Chỉ lập kế hoạch 30-60-90 ngày cho hồ sơ đã công bố kết quả.");
         if (await _repo.FindPlanByRecordAsync(recordId, ct) != null)
@@ -177,14 +182,14 @@ public sealed class ImprovementPlanService : IImprovementPlanService
 
     /// <inheritdoc />
     public Task<ImprovementPlanDto> ApproveAsync(Guid planId, VersionedRequestDto request, CancellationToken ct = default) =>
-        ChangeAsync(planId, request, ManageRule, async (plan, now) =>
+        ChangeAsync(planId, request, ApproveRule, async (plan, now) =>
         {
             if (plan.Status != ImprovementPlanStatus.Draft)
                 throw new ConflictException("Kế hoạch đã được duyệt trước đó.");
             // Người lập không tự duyệt: cần người thứ hai kiểm soát nội dung kế hoạch.
             if (IsPreparer(plan, _currentUser.UserId))
                 throw new ForbiddenException("Bạn là người lập kế hoạch này nên không tự duyệt được. Kế hoạch cần do người khác có quyền "
-                    + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationImprovementManage)}\" duyệt.");
+                    + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationImprovementApprove)}\" duyệt.");
             var missing = ImprovementPlanContent.Parse(plan.Content).MissingForApproval();
             if (missing.Count > 0)
                 throw new ValidationException("Kế hoạch chưa đủ nội dung theo Mẫu 17 để duyệt: " + string.Join(" ", missing));
@@ -197,7 +202,11 @@ public sealed class ImprovementPlanService : IImprovementPlanService
 
     /// <inheritdoc />
     public Task<ImprovementPlanDto> AcknowledgeAsync(Guid planId, AcknowledgePlanRequestDto request, CancellationToken ct = default) =>
-        ChangeAsync(planId, request, record => _guard.Ensure(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record)), (plan, now) =>
+        ChangeAsync(planId, request, (record, _) =>
+        {
+            _guard.Ensure(PermissionCodes.EvaluationSelf, AccessTarget.ForRecord(record));
+            return Task.CompletedTask;
+        }, (plan, now) =>
         {
             if (plan.Status != ImprovementPlanStatus.Approved)
             {
@@ -273,16 +282,35 @@ public sealed class ImprovementPlanService : IImprovementPlanService
     public static bool IsPreparer(ImprovementPlan plan, Guid? userId) =>
         userId.HasValue && plan.PreparedById == userId;
 
-    private void ManageRule(EvaluationRecord record) =>
-        _guard.Ensure(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record));
+    private Task ManageRule(EvaluationRecord record, CancellationToken ct) => EnsureCanPrepareAsync(record, ct);
 
-    private bool CanManage(EvaluationRecord record) =>
-        _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record));
+    private Task ApproveRule(EvaluationRecord record, CancellationToken _)
+    {
+        _guard.Ensure(PermissionCodes.EvaluationImprovementApprove, AccessTarget.ForRecord(record));
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Người lập: quyền lập kế hoạch; không còn ai ngoài chủ hồ sơ có quyền này thì người có quyền duyệt lập thay.</summary>
+    private async Task<bool> CanPrepareAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        var target = AccessTarget.ForRecord(record);
+        if (_guard.Can(PermissionCodes.EvaluationImprovementManage, target))
+            return true;
+        return _stepPerformers != null
+            && _guard.Can(PermissionCodes.EvaluationImprovementApprove, target)
+            && (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementManage, target, ct)).Count == 0;
+    }
+
+    private async Task EnsureCanPrepareAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        if (!await CanPrepareAsync(record, ct))
+            _guard.Ensure(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record));
+    }
 
     private async Task<ImprovementPlanDto> ChangeAsync(
         Guid planId,
         VersionedRequestDto request,
-        Action<EvaluationRecord> ensure,
+        Func<EvaluationRecord, CancellationToken, Task> ensure,
         Func<ImprovementPlan, DateTime, Task> apply,
         CancellationToken ct)
     {
@@ -292,7 +320,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
 
         var plan = await _repo.FindPlanAsync(planId, ct)
             ?? throw new NotFoundException("Không tìm thấy kế hoạch 30-60-90 ngày.");
-        ensure(plan.Record);
+        await ensure(plan.Record, ct);
         if (plan.Version != request.Version.Value)
             throw new ConflictException("Kế hoạch đã được người khác cập nhật sau khi bạn mở. Hãy tải lại để xem dữ liệu mới nhất.");
 
@@ -328,11 +356,13 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         await _repo.FindRecordAsync(recordId, ct)
         ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
 
-    /// <summary>Chủ hồ sơ, người lập kế hoạch hoặc người xem hồ sơ trong phạm vi.</summary>
+    /// <summary>Chủ hồ sơ, người lập, người duyệt kế hoạch hoặc người xem hồ sơ trong phạm vi.</summary>
     private void EnsureCanView(EvaluationRecord record)
     {
         var target = AccessTarget.ForRecord(record);
-        if (_guard.Can(PermissionCodes.EvaluationRead, target) || CanManage(record))
+        if (_guard.Can(PermissionCodes.EvaluationRead, target)
+            || _guard.Can(PermissionCodes.EvaluationImprovementManage, target)
+            || _guard.Can(PermissionCodes.EvaluationImprovementApprove, target))
             return;
         throw new ForbiddenException(
             $"Bạn không có quyền \"{PermissionCodes.DisplayName(PermissionCodes.EvaluationRead)}\" hoặc "

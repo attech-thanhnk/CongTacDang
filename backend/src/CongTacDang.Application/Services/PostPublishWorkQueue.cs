@@ -103,7 +103,7 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                     + "hãy gán vai trò có quyền này cho người phù hợp")));
         }
 
-        if (_guard.HasAny(PermissionCodes.EvaluationImprovementManage))
+        if (_guard.HasAny(PermissionCodes.EvaluationImprovementManage) || _guard.HasAny(PermissionCodes.EvaluationImprovementApprove))
         {
             // Chỉ kỳ đang mở/khóa dữ liệu và kỳ vừa đóng trong số ngày cảnh báo, không quét mọi kỳ cũ.
             var now = DateTime.UtcNow;
@@ -115,7 +115,6 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
                 .Where(x => ImprovementPlanService.IsRequired(x.Record))
                 // Kế hoạch do chính mình lập đang chờ người khác duyệt, không phải việc của mình.
                 .Where(x => x.Plan == null || !ImprovementPlanService.IsPreparer(x.Plan, userId))
-                .Where(x => _guard.Can(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(x.Record)))
                 .ToList();
             var assigned = new List<(EvaluationRecord Record, ImprovementPlan? Plan)>();
             foreach (var x in needing)
@@ -156,15 +155,30 @@ public sealed class PostPublishWorkQueue : IPostPublishWorkQueue
         : (nameof(AppealStatus.Rejected), "Không chấp nhận");
 
     /// <summary>
-    /// Giao cho người gần hồ sơ nhất như các bước của luồng; kế hoạch đang lập thì bỏ người lập, không còn ai gần hơn
-    /// thì mọi người khác có quyền đều được giao.
+    /// Giao cho người gần hồ sơ nhất như các bước của luồng. Chưa có kế hoạch: người lập (người quản lý trực tiếp); không còn ai
+    /// ngoài chủ hồ sơ có quyền lập thì người duyệt gần nhất lập thay. Đang lập: người duyệt, bỏ người lập; không còn ai gần hơn
+    /// thì mọi người khác có quyền duyệt đều được giao.
     /// </summary>
     private async Task<bool> IsPlanAssigneeAsync(EvaluationRecord record, ImprovementPlan? plan, Guid userId, CancellationToken ct)
     {
+        var target = AccessTarget.ForRecord(record);
+        if (plan == null)
+        {
+            if (_guard.Can(PermissionCodes.EvaluationImprovementManage, target))
+                return _stepPerformers == null
+                    || (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementManage, target, ct)).Contains(userId);
+            if (_stepPerformers == null || !_guard.Can(PermissionCodes.EvaluationImprovementApprove, target)
+                || (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementManage, target, ct)).Count > 0)
+                return false;
+            return (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementApprove, target, ct)).Contains(userId);
+        }
+
+        if (plan.Status != ImprovementPlanStatus.Draft || !_guard.Can(PermissionCodes.EvaluationImprovementApprove, target))
+            return false;
         if (_stepPerformers == null)
             return true;
-        var nearest = (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementManage, AccessTarget.ForRecord(record), ct))
-            .Where(id => plan == null || !ImprovementPlanService.IsPreparer(plan, id))
+        var nearest = (await _stepPerformers.ListAsync(PermissionCodes.EvaluationImprovementApprove, target, ct))
+            .Where(id => !ImprovementPlanService.IsPreparer(plan, id))
             .ToList();
         return nearest.Count == 0 || nearest.Contains(userId);
     }
