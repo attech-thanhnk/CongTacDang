@@ -209,6 +209,7 @@ public class EvaluationRecordDto
     public double? CalibratedScore { get; set; }
     /// <summary>Mức sau hiệu chuẩn; rỗng = chưa hiệu chuẩn.</summary>
     public string CalibratedGrade { get; set; } = string.Empty;
+    /// <summary>Biên bản đã chốt điều chỉnh kết quả của hồ sơ; hồ sơ trong biên bản mà giữ nguyên kết quả thì null (xem danh sách biên bản).</summary>
     public Guid? CalibrationSessionId { get; set; }
     public DateTime? CalibratedAt { get; set; }
     /// <summary>Điểm thẩm định, thay bằng điểm sau hiệu chuẩn nếu có: mặc định cho B3c, B4.</summary>

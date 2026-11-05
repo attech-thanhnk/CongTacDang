@@ -101,7 +101,7 @@ public sealed class TaskChangeRulesTests
         var tasks = Tasks(30, 20, 20);
         var weights = new Dictionary<Guid, double> { [tasks[0].Id] = 40, [tasks[1].Id] = 30 };
         var error = TaskChangeRules.Validate(TaskChangeType.Carryover, tasks[2].Id, new TaskChangeProposal(), weights, tasks, Criteria);
-        Assert.Contains("Số lượng nhiệm vụ", error);
+        Assert.Contains("Số sản phẩm", error);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class TaskChangeRulesTests
         var weights = tasks.ToDictionary(t => t.Id, _ => 9.0);
         var error = TaskChangeRules.Validate(TaskChangeType.Urgent, null,
             new TaskChangeProposal { TaskName = "x", TargetOutput = "y", AxisCode = "T1", Weight = 7 }, weights, tasks, Criteria);
-        Assert.Contains("Số lượng nhiệm vụ", error);
+        Assert.Contains("Số sản phẩm", error);
     }
 
     [Fact]

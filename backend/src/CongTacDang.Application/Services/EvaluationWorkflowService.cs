@@ -390,7 +390,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                     .Select(t => $"\"{t.TaskName}\"")
                     .ToList();
                 if (missing.Count > 0)
-                    throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho nhiệm vụ: {string.Join(", ", missing)}.");
+                    throw new ValidationException($"Chưa nhập đủ tỷ lệ A-B-C-D cho sản phẩm: {string.Join(", ", missing)}.");
             }
 
             foreach (var task in tasks)
@@ -477,7 +477,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             .Select(t => $"\"{t.TaskName}\"")
             .ToList();
         if (missing.Count > 0)
-            throw new ValidationException($"Nhiệm vụ đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: {string.Join(", ", missing)}.");
+            throw new ValidationException($"Sản phẩm đánh dấu vượt chuẩn phải có minh chứng. Hãy đính kèm minh chứng cho: {string.Join(", ", missing)}.");
     }
 
     /// <summary>

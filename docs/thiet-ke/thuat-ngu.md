@@ -56,7 +56,7 @@ Hồ sơ đánh giá đang ở trạng thái "Chờ …" của bước kế ti�
 
 Chế độ của một bước trong một diện quyết định: **Nội bộ** (làm trong hệ thống), **Cấp trên thực hiện** (cấp trên làm ngoài hệ thống, hệ thống chỉ ghi nhận kết quả), **Không áp dụng** (`Internal`, `External`, `Off`).
 
-Hành động trên hồ sơ: Duyệt danh mục, Trả lại, Nộp phiếu tự chấm, Chi bộ xác nhận, Ghi nhận đề xuất của tập thể, Thẩm định, Nhận xét/đề xuất, Ghi nhận quyết định, Công bố kết quả, Mở lại hồ sơ, Ghi nhận kết quả của cấp trên.
+Hành động trên hồ sơ: Duyệt danh mục, Trả lại, Nộp phiếu tự chấm, Chi bộ xác nhận, Ghi nhận đề xuất của tập thể, Thẩm định, Nhận xét, Ghi nhận quyết định, Công bố kết quả, Mở lại hồ sơ, Ghi nhận kết quả của cấp trên.
 
 Trạng thái kỳ đánh giá: **Dự thảo** (cấu hình) → **Đang mở** → **Khóa dữ liệu** (sau điểm chốt dữ liệu; chỉ các bước từ thẩm định trở đi) → **Đã đóng** (`Draft`, `Open`, `Locked`, `Closed`).
 

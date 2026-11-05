@@ -110,6 +110,35 @@ public static class CalibrationRules
         return problems;
     }
 
+    /// <summary>Lý do chưa chốt được, viết gọn theo tên ô trên giao diện; null = đủ nội dung.</summary>
+    public static string? ConclusionHint(CalibrationSession session)
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(session.GroupName)) missing.Add("Nhóm chức danh");
+        if (session.HeldAt is null) missing.Add("Ngày họp");
+        if (string.IsNullOrWhiteSpace(session.ChairName)) missing.Add("Chủ trì");
+        if (string.IsNullOrWhiteSpace(session.SecretaryName)) missing.Add("Thư ký");
+        if (session.Attendees.Count == 0) missing.Add("Thành phần tham dự");
+
+        var parts = new List<string>();
+        if (missing.Count > 0)
+            parts.Add($"Cần nhập {string.Join(", ", missing)}.");
+        if (session.Records.Count == 0)
+            parts.Add("Cần thêm hồ sơ.");
+        else if (session.Records.Count == 1 && string.IsNullOrWhiteSpace(session.ExtraConclusion))
+            parts.Add("Chỉ có một hồ sơ: ghi lý do ở Kết luận bổ sung.");
+        foreach (var c in session.Cases.OrderBy(c => c.Order))
+        {
+            var need = new List<string>();
+            if (string.IsNullOrWhiteSpace(c.Clarification)) need.Add("nội dung làm rõ");
+            if (IsChanged(c) && string.IsNullOrWhiteSpace(c.Basis)) need.Add("căn cứ");
+            if (IsChanged(c) && string.IsNullOrWhiteSpace(c.ResponsibleName)) need.Add("người chịu trách nhiệm");
+            if (need.Count > 0)
+                parts.Add($"Trường hợp {c.Order}: cần nhập {string.Join(", ", need)}.");
+        }
+        return parts.Count == 0 ? null : string.Join(" ", parts);
+    }
+
     /// <summary>
     /// Phiếu/biên bản đã chốt hết hiệu lực khi hồ sơ có thay đổi bước, điểm hoặc mức sau lúc chốt;
     /// việc áp dụng của chính biên bản và việc ghi nhận quyết định của hồ sơ không tính.

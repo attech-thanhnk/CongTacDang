@@ -313,6 +313,16 @@ public class ControlCrosscheckCalibrationFormsTests
     }
 
     [Fact]
+    public void Mau20_PercentPrintedAsGiven_NotMultipliedAgain()
+    {
+        var text = BodyText(Render(Mau20Data.TemplateFileName, Mau20Data.From(Calibration())));
+
+        Assert.DoesNotContain("5000", text);
+        Assert.DoesNotContain("10000", text);
+        Assert.Equal("50,0", Mau20SummaryRow.From(Calibration().Summary[0], true).Percent);
+    }
+
+    [Fact]
     public void Mau20_NotConcluded_OnlyOriginalNumbersAndDraftBanner()
     {
         var session = Calibration();
