@@ -78,11 +78,11 @@ public sealed class DashboardService : IDashboardService
         var others = scoped.Where(r => r.MemberId != userId).ToList();
         if (mine != null || others.Count > 0 || _guard.HasAny(PermissionCodes.PeriodManage))
         {
-            var profiles = others.Count > 0
-                ? others.Select(r => EvaluationMapping.ProfileOf(settings, r)).GroupBy(p => p.Code).Select(g => g.First()).ToList()
-                : mine != null && !_guard.HasAny(PermissionCodes.PeriodManage)
-                    ? new List<WorkflowProfile> { EvaluationMapping.ProfileOf(settings, mine) }
-                    : settings.Profiles;
+            // Gộp cả diện của hồ sơ của tôi để hạn các bước của chính mình không bị thiếu.
+            var shown = mine != null ? others.Append(mine) : others;
+            var profiles = others.Count == 0 && (mine == null || _guard.HasAny(PermissionCodes.PeriodManage))
+                ? settings.Profiles
+                : shown.Select(r => EvaluationMapping.ProfileOf(settings, r)).GroupBy(p => p.Code).Select(g => g.First()).ToList();
             result.Timeline = BuildTimeline(period, profiles, today);
         }
 
@@ -182,9 +182,8 @@ public sealed class DashboardService : IDashboardService
             .ToList();
         foreach (var p in earlier)
         {
-            var record = (await _repo.ListRecordsByStatusAsync(new[] { p.Id }, new[] { RecordStatus.Published }, ct))
-                .FirstOrDefault(r => r.MemberId == userId);
-            if (record != null)
+            var record = await _repo.FindRecordIncludingDeletedAsync(p.Id, userId, ct);
+            if (record is { IsDeleted: false, Status: RecordStatus.Published })
                 return new MyLastResultDto
                 {
                     RecordId = record.Id,

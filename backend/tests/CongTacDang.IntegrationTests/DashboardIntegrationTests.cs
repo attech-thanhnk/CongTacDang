@@ -160,6 +160,176 @@ public sealed class DashboardIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, (await adminC.GetAsync("/api/users?flag=khong-co")).StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Overview_TimelineIncludesOwnProfile_LastResultFromEarlierPeriod()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var sfx = Guid.NewGuid().ToString("N")[..6];
+        var dept = await CreateDepartmentAsync(sfx);
+        var evaluatee = await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA");
+        var manager = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(manager.Id, await _factory.GetRoleIdAsync("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
+        var leader = await _factory.CreateUserAsync(dept, null, ApprovalAuthority.CoSo, $"D Lãnh đạo {sfx}");
+        await _factory.AssignAsync(leader.Id, (await _factory.CreateRoleAsync(PermissionCodes.EvaluationRead)).Id, RoleScopeType.Department, dept);
+        var member = await _factory.CreateUserAsync(dept, null, ApprovalAuthority.CoSo, $"D Cán bộ {sfx}");
+        foreach (var u in new[] { leader, member })
+            await _factory.AssignAsync(u.Id, evaluatee, RoleScopeType.Global, null);
+
+        using var managerC = await _factory.LoginAsAsync(manager.Username, manager.Password, distinctClientIp: true);
+        using var leaderC = await _factory.LoginAsAsync(leader.Username, leader.Password, distinctClientIp: true);
+
+        // Hai năm liền nhau để kỳ trước nằm trong số kỳ gần nhất được xét.
+        int earlierYear, laterYear;
+        do (earlierYear, laterYear) = (TestPeriodSlots.NextYear(), TestPeriodSlots.NextYear());
+        while (laterYear != earlierYear + 1);
+
+        var earlierId = await CreatePeriodAsync(managerC, earlierYear, $"Kỳ trước {sfx}");
+        await Data(await managerC.PostAsJsonAsync($"/api/evaluations/periods/{earlierId}/participants", new { memberIds = new[] { leader.Id } }));
+        await _factory.WithDbAsync(async db =>
+        {
+            var r = await db.EvaluationRecords.SingleAsync(x => x.PeriodId == earlierId && x.MemberId == leader.Id);
+            r.Status = RecordStatus.Published;
+            r.FinalGrade = EvaluationGrade.HoanThanhTot;
+            r.FinalScore = 85;
+            await db.SaveChangesAsync();
+        });
+
+        var periodId = await CreatePeriodAsync(managerC, laterYear, $"Kỳ này {sfx}");
+        await PeriodGates.DisableAsync(managerC, periodId);
+        await Data(await managerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { leader.Id, member.Id } }));
+        var period = await Data(managerC, $"/api/evaluations/periods/{periodId}");
+        await Data(await managerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
+            new { version = period.GetProperty("version").GetUInt32(), force = true, reason = "Kiểm thử tổng quan" }));
+
+        // Hồ sơ của tôi và hồ sơ trong phạm vi thuộc hai diện khác hạn tự chấm.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        await _factory.WithDbAsync(async db =>
+        {
+            var p = await db.EvaluationPeriods.SingleAsync(x => x.Id == periodId);
+            var settings = p.GetSettings();
+            Assert.True(settings.Profiles.Count >= 2);
+            foreach (var profile in settings.Profiles)
+                foreach (var setting in profile.Steps.Values)
+                {
+                    setting.Rule = null;
+                    setting.Deadline = null;
+                }
+            settings.Profiles[0].Step(WorkflowStep.B2_SELF_SCORE).Deadline = today.AddDays(5);
+            settings.Profiles[1].Step(WorkflowStep.B2_SELF_SCORE).Deadline = today.AddDays(9);
+            p.Settings = settings.ToJson();
+            foreach (var r in await db.EvaluationRecords.Where(r => r.PeriodId == periodId).ToListAsync())
+            {
+                r.WorkflowProfileCode = r.MemberId == leader.Id ? settings.Profiles[1].Code : settings.Profiles[0].Code;
+                r.Status = RecordStatus.AwaitingSelfScore;
+            }
+            await db.SaveChangesAsync();
+        });
+
+        var view = await Data(leaderC, $"/api/dashboard/overview?periodId={periodId}");
+        var selfScore = view.GetProperty("timeline").GetProperty("steps").EnumerateArray()
+            .Single(s => s.GetProperty("step").GetString() == "B2_SELF_SCORE");
+        Assert.Equal(today.AddDays(5).ToString("yyyy-MM-dd"), selfScore.GetProperty("deadlineFrom").GetString());
+        Assert.Equal(today.AddDays(9).ToString("yyyy-MM-dd"), selfScore.GetProperty("deadlineTo").GetString());
+
+        var last = view.GetProperty("lastResult");
+        Assert.Equal($"Kỳ trước {sfx}", last.GetProperty("periodName").GetString());
+        Assert.Equal("HoanThanhTot", last.GetProperty("grade").GetString());
+        Assert.Equal(85, last.GetProperty("score").GetDouble());
+
+        // Người chưa có kết quả kỳ trước thì không có mục này.
+        using var memberC = await _factory.LoginAsAsync(member.Username, member.Password, distinctClientIp: true);
+        Assert.Equal(JsonValueKind.Null, (await Data(memberC, $"/api/dashboard/overview?periodId={periodId}")).GetProperty("lastResult").ValueKind);
+    }
+
+    [SkippableFact]
+    public async Task AdminSummary_PeriodManagerWithoutUserRead_GetsNoAccountItems()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var manager = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(manager.Id, (await _factory.CreateRoleAsync(PermissionCodes.PeriodManage)).Id, RoleScopeType.Global, null);
+
+        using var managerC = await _factory.LoginAsAsync(manager.Username, manager.Password, distinctClientIp: true);
+        var summary = await Data(managerC, "/api/dashboard/admin");
+        Assert.Equal(JsonValueKind.Null, summary.GetProperty("usage").ValueKind);
+        Assert.All(summary.GetProperty("items").EnumerateArray(), i => Assert.Equal("missingPerformers", i.GetProperty("code").GetString()));
+    }
+
+    [SkippableFact]
+    public async Task AccountFlags_FilterMatchingAccounts()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var sfx = Guid.NewGuid().ToString("N")[..6];
+        var dept = await CreateDepartmentAsync(sfx);
+        Guid parentCell = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var parent = new PartyCell { Code = $"D-P-{sfx}", Name = $"Đảng bộ bộ phận {sfx}" };
+            parent.Path = OrgTree.BuildPath(null, parent.Id);
+            var child = new PartyCell { Code = $"D-C-{sfx}", Name = $"Chi bộ con {sfx}", ParentId = parent.Id };
+            child.Path = OrgTree.BuildPath(parent.Path, child.Id);
+            db.AddRange(parent, child);
+            await db.SaveChangesAsync();
+            parentCell = parent.Id;
+        });
+
+        var admin = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(admin.Id, await _factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
+        var fresh = await _factory.CreateUserAsync(dept, null);
+        var inCellWithChildren = await _factory.CreateUserAsync(dept, parentCell);
+        var expiring = await _factory.CreateUserAsync(dept, parentCell);
+        var inactive = await _factory.CreateUserAsync(dept, null);
+        var assignment = await _factory.AssignAsync(expiring.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        await _factory.WithDbAsync(async db =>
+        {
+            var a = await db.Set<UserRoleAssignment>().SingleAsync(x => x.Id == assignment);
+            a.ValidTo = DateTime.UtcNow.AddDays(10);
+            foreach (var m in await db.PartyMemberProfiles.Where(x => x.Id == expiring.Id || x.Id == inactive.Id).ToListAsync())
+            {
+                if (m.Id == expiring.Id)
+                    m.LastLoginAt = DateTime.UtcNow.AddDays(-1);
+                else
+                    m.IsActive = false;
+            }
+            await db.SaveChangesAsync();
+        });
+
+        using var adminC = await _factory.LoginAsAsync(admin.Username, admin.Password, distinctClientIp: true);
+        async Task<HashSet<Guid>> Ids(string flag) =>
+            (await Data(adminC, $"/api/users?flag={flag}&departmentId={dept}&pageSize=200")).GetProperty("items").EnumerateArray()
+                .Select(u => u.GetProperty("id").GetGuid()).ToHashSet();
+
+        Assert.Equal(new HashSet<Guid> { fresh.Id, inCellWithChildren.Id }, await Ids("neverLoggedIn"));
+        Assert.Equal(new HashSet<Guid> { expiring.Id }, await Ids("recentLogin"));
+        Assert.Equal(new HashSet<Guid> { expiring.Id }, await Ids("roleExpiring"));
+        Assert.Equal(new HashSet<Guid> { fresh.Id }, await Ids("noPartyCell"));
+        Assert.Equal(new HashSet<Guid> { inCellWithChildren.Id, expiring.Id }, await Ids("cellWithChildren"));
+        Assert.Equal(new HashSet<Guid> { fresh.Id, inCellWithChildren.Id, expiring.Id }, await Ids("noPosition"));
+    }
+
+    private async Task<Guid> CreateDepartmentAsync(string sfx)
+    {
+        var id = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var d = new AdministrativeDepartment { Code = $"D-{sfx}", Name = $"Phòng {sfx}" };
+            d.Path = OrgTree.BuildPath(null, d.Id);
+            db.Add(d);
+            await db.SaveChangesAsync();
+            id = d.Id;
+        });
+        return id;
+    }
+
+    private static async Task<Guid> CreatePeriodAsync(HttpClient client, int year, string name)
+    {
+        var created = await Data(await client.PostAsJsonAsync("/api/evaluations/periods", new
+        {
+            year, quarter = TestPeriodSlots.Quarter, criteriaSetId = await TestCriteriaSets.LatestPublishedAsync(client),
+            name, startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
+        }));
+        return created.GetProperty("id").GetGuid();
+    }
+
     private static async Task<JsonElement> Data(HttpClient client, string url) => await Data(await client.GetAsync(url));
 
     private static async Task<JsonElement> Data(HttpResponseMessage response)

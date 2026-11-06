@@ -144,5 +144,6 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 ## Phần F. Theo dõi, khóa và đóng kỳ
 
 - **Tiến độ:** trang kỳ → thẻ **Tiến độ**; tích **Chỉ quá hạn / sắp đến hạn** để thấy ai đang chậm.
+- **Tổng quan:** khối **Tiến độ trong phạm vi** đếm hồ sơ toàn công ty theo bước, theo tổ chức Đảng, và liệt kê hồ sơ **Chậm hạn** kèm người phải làm. Khối **Quản trị cần xử lý** báo **Bước chưa có người thực hiện** của kỳ đang mở; bấm vào để mở thẳng thẻ **Người thực hiện các bước** của kỳ.
 - **Khóa dữ liệu:** khi mọi hồ sơ đã có biên bản họp thống nhất và phiếu kiểm tra: trang kỳ → **⋯** → **Khóa dữ liệu** → **Khóa dữ liệu**. Từ lúc này cán bộ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Còn thiếu thì **⋯** → **Mở lại kỳ**, làm xong rồi khóa lại.
 - **Đóng kỳ:** khi mọi hồ sơ đã công bố: **⋯** → **Đóng kỳ** → **Đóng kỳ**.

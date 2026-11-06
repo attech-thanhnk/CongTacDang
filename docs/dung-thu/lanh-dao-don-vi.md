@@ -15,6 +15,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 - Việc được giao cho người ở cấp gần hồ sơ nhất và hiện ở **Việc cần xử lý** của người đó. Khi người đó vắng, cấp trên vẫn mở hồ sơ và làm được.
 - Không ai làm bước xét duyệt trên hồ sơ của chính mình.
 - Muốn xem mọi hồ sơ trong đơn vị (không chỉ hồ sơ chờ bạn): menu **Hồ sơ đánh giá**, lọc theo Phòng, Chi bộ, trạng thái.
+- Trang **Tổng quan** có khối **Tiến độ trong phạm vi**: số hồ sơ của đơn vị theo bước, số quá hạn và sắp đến hạn, danh sách **Chậm hạn** kèm người phải làm. Bấm một con số để mở danh sách hồ sơ đã lọc.
 
 ## 1. Mở việc
 

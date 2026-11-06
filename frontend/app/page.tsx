@@ -20,7 +20,7 @@ const RECENT_LOGS = 5;
 
 /** Tổng quan theo quyền; việc chờ tôi lấy ở mọi kỳ đang mở, phần còn lại theo kỳ đang chọn. */
 export default function DashboardPage() {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasPermissionIn } = useAuth();
   const { periods, periodId, loading: periodsLoading } = usePeriod();
   const [queue, setQueue] = useState<WorkQueueDto | null>(null);
   const [queueLoading, setQueueLoading] = useState(true);
@@ -34,8 +34,8 @@ export default function DashboardPage() {
   const canSelf = hasPermission("evaluation.self");
   // Cùng điều kiện với mục menu "Việc cần xử lý": có thao tác nghiệp vụ đánh giá nào đó.
   const hasTasks = permissions.some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
-  const isAdmin = permissions.some((code) => code.startsWith("system."));
-  const canAdminSummary = isAdmin && (hasPermission("system.users.read") || hasPermission("period.manage"));
+  // Người quản lý kỳ toàn công ty cũng cần thấy bước chưa có người thực hiện, dù không có quyền system.*.
+  const canAdminSummary = hasPermission("system.users.read") || hasPermissionIn("period.manage", "Global");
   const canAudit = hasPermission("system.audit.read");
 
   // Khối Quản trị không phụ thuộc kỳ đang chọn.

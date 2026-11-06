@@ -9,6 +9,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 ## Cần biết trước
 
 - Không ai làm bước trên hồ sơ của chính mình. Người lập biên bản, phiếu không tự chốt, tự xác nhận.
+- Trang **Tổng quan** cho biết số hồ sơ đang ở từng bước và hồ sơ nào chậm hạn, ai phải làm.
 - Người đã ghi một bước (ví dụ ghi quyết định) không xử lý kiến nghị về chính bước đó; kiến nghị ấy hiện ở **Việc cần xử lý** của người khác trong Văn phòng.
 - Thứ tự trước khi ghi quyết định: Phòng TCCB-LĐ lập biên bản họp thống nhất → bạn chốt → Phòng TCCB-LĐ lập phiếu kiểm tra → bạn xác nhận → ghi quyết định. Thiếu một việc thì nút **Ghi nhận quyết định** bị khóa, dải vàng trên hồ sơ ghi lý do.
 

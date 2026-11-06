@@ -36,6 +36,8 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 - Menu **Việc cần xử lý** bên trái mở danh sách đầy đủ, chia nhóm theo việc, kèm hạn. Quá hạn hiện màu đỏ.
 - Chuông ở góc trên bên phải: số đỏ là số việc đang chờ bạn.
 - Ô **Kỳ** ở thanh trên chọn kỳ đánh giá đang xem.
+- Thẻ **Hồ sơ của tôi** có thanh các bước (đã qua bao nhiêu bước) và kết quả kỳ trước của bạn; bấm vào kết quả để mở hồ sơ kỳ đó.
+- Khối **Lịch kỳ** ghi hạn từng bước; bước đang diễn ra được tô nổi.
 
 ![Việc cần xử lý](anh/can-bo-04-viec-can-xu-ly.png)
 
