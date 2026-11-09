@@ -86,7 +86,8 @@ export function PeriodProgressSection({ participants }: Props) {
   const rows = useMemo(() => {
     const list = base.filter((p) =>
       (!status || p.status === status) && (urgent === "" || (urgent === "overdue" ? isOverdue(p) : isDueSoon(p))));
-    return [...list].sort((a, b) => urgency(a) - urgency(b) || a.fullName.localeCompare(b.fullName, "vi"));
+    // Cùng mức khẩn giữ thứ tự chức danh do máy chủ trả về.
+    return [...list].sort((a, b) => urgency(a) - urgency(b));
   }, [base, status, urgent]);
   const paging = usePagination(rows, { storageKey: "period.progress", resetKeys: [department, cell, status, urgent] });
 

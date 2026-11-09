@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -169,7 +170,8 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         var taken = rows.Where(r => !stale.Contains((r.CheckId, r.RecordId))).Select(r => r.RecordId).ToHashSet();
 
         var result = new List<ControlCheckCandidateDto>();
-        foreach (var r in records.OrderBy(r => r.Member?.FullName, StringComparer.CurrentCulture))
+        var seniority = await _records.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        foreach (var r in PositionRules.OrderBySeniority(records, seniority, x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
         {
             if (r.MemberId == me || taken.Contains(r.Id) || !scope.Matches(null, r.DepartmentId, r.PartyCellId))
                 continue;

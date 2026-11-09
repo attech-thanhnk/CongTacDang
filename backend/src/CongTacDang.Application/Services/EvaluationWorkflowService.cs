@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -1196,6 +1197,11 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             queue.Groups.AddRange(opinions);
             queue.Total += opinions.Sum(g => g.Count);
         }
+        // Trong mỗi nhóm việc: theo kỳ, rồi từ chức danh cao xuống.
+        var held = await _repo.GetHeldPositionsAsync(queue.Groups.SelectMany(g => g.Items).Select(i => i.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        foreach (var group in queue.Groups)
+            group.Items = PositionRules.OrderBySeniority(group.Items, held, i => i.MemberId, i => i.DepartmentName, i => i.FullName)
+                .OrderBy(i => i.PeriodName).ToList();
         return queue;
     }
 

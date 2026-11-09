@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -29,12 +30,14 @@ public sealed class PublishedResultService : IPublishedResultService
     private readonly IPostPublishRepository _repo;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IPositionRepository _positions;
 
-    public PublishedResultService(IPostPublishRepository repo, IAuthorizationGuard guard, ICurrentUserService currentUser)
+    public PublishedResultService(IPostPublishRepository repo, IAuthorizationGuard guard, ICurrentUserService currentUser, IPositionRepository positions)
     {
         _repo = repo;
         _guard = guard;
         _currentUser = currentUser;
+        _positions = positions;
     }
 
     /// <inheritdoc />
@@ -94,9 +97,8 @@ public sealed class PublishedResultService : IPublishedResultService
         var publishScores = records.Select(r => r.Period).DistinctBy(p => p.Id).ToDictionary(p => p.Id, PublishScores);
         var currentUserId = _currentUser.UserId;
 
-        result.Items = records
-            .OrderBy(r => r.Department?.Name ?? string.Empty)
-            .ThenBy(r => r.Member?.FullName ?? string.Empty)
+        var held = await _positions.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        result.Items = PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
             .Select(r => new PublishedResultItemDto
             {
                 RecordId = _guard.Can(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(r)) ? r.Id : null,

@@ -44,6 +44,18 @@ public static class PositionRules
     /// <summary>Lãnh đạo cấp Công ty (hạng tới Kiểm soát viên) xếp thành nhóm đầu.</summary>
     public const int CompanyLeadershipMaxRank = 150;
 
+    /// <summary>Danh sách cán bộ từ chức danh cao xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.</summary>
+    public static List<T> OrderBySeniority<T>(IEnumerable<T> items, IReadOnlyDictionary<Guid, List<HeldPosition>> held,
+        Func<T, Guid> memberId, Func<T, string?> departmentName, Func<T, string?> fullName)
+        => items
+            .Select(item => (Item: item, Rank: SeniorityRank(held.GetValueOrDefault(memberId(item)))))
+            .OrderBy(x => x.Rank <= CompanyLeadershipMaxRank ? 0 : 1)
+            .ThenBy(x => x.Rank <= CompanyLeadershipMaxRank ? string.Empty : departmentName(x.Item) ?? string.Empty, StringComparer.CurrentCulture)
+            .ThenBy(x => x.Rank)
+            .ThenBy(x => fullName(x.Item) ?? string.Empty, StringComparer.CurrentCulture)
+            .Select(x => x.Item)
+            .ToList();
+
     /// <summary><c>CapTren</c> nếu có chức vụ đang hiệu lực mặc định <c>CapTren</c> (giữ nhiều chức danh), ngược lại <c>CoSo</c>.</summary>
     public static ApprovalAuthority DeriveApprovalAuthority(IEnumerable<HeldPosition> activePositions)
         => activePositions.Any(p => p.DefaultApprovalAuthority == ApprovalAuthority.CapTren)

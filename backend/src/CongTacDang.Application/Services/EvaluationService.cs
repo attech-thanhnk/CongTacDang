@@ -83,7 +83,7 @@ public class EvaluationService : IEvaluationService
         var records = (await _repo.ListRecordsAsync(periodId, ct))
             .Where(record => scope.Matches(record.MemberId, record.DepartmentId, record.PartyCellId))
             .ToList();
-        return await MapManyAsync(records, ct);
+        return await MapManyAsync(await BySeniorityAsync(records, ct), ct);
     }
 
     /// <inheritdoc />
@@ -95,7 +95,13 @@ public class EvaluationService : IEvaluationService
             .Where(record => branchId is null || branchId == Guid.Empty || record.PartyCellId == branchId)
             .Where(record => scope.Matches(record.MemberId, record.DepartmentId, record.PartyCellId))
             .ToList();
-        return await MapManyAsync(records, ct);
+        return await MapManyAsync(await BySeniorityAsync(records, ct), ct);
+    }
+
+    private async Task<List<EvaluationRecord>> BySeniorityAsync(List<EvaluationRecord> records, CancellationToken ct)
+    {
+        var held = await _positions.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        return PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName);
     }
 
     /// <inheritdoc />

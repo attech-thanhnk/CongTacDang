@@ -752,13 +752,8 @@ public sealed class PeriodService : IPeriodService
         var today = EvaluationMapping.Today(DateTime.UtcNow);
         // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
         var held = await _repo.GetHeldPositionsAsync(records.Select(r => r.MemberId).ToList(), DateTime.UtcNow, ct);
-        return records
-            .Select(r => (Record: r, Rank: PositionRules.SeniorityRank(held.GetValueOrDefault(r.MemberId))))
-            .OrderBy(x => x.Rank <= PositionRules.CompanyLeadershipMaxRank ? 0 : 1)
-            .ThenBy(x => x.Rank <= PositionRules.CompanyLeadershipMaxRank ? string.Empty : x.Record.Department?.Name ?? string.Empty, StringComparer.CurrentCulture)
-            .ThenBy(x => x.Rank)
-            .ThenBy(x => x.Record.Member?.FullName ?? string.Empty, StringComparer.CurrentCulture)
-            .Select(x => WithNotRatedActions(ToParticipant(x.Record, settings, criteria, today), x.Record, period.Status))
+        return PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
+            .Select(r => WithNotRatedActions(ToParticipant(r, settings, criteria, today), r, period.Status))
             .ToList();
     }
 
@@ -778,12 +773,7 @@ public sealed class PeriodService : IPeriodService
         var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
         var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
         // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
-        members = members
-            .OrderBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)) <= PositionRules.CompanyLeadershipMaxRank ? 0 : 1)
-            .ThenBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)) <= PositionRules.CompanyLeadershipMaxRank ? string.Empty : m.DepartmentName ?? string.Empty, StringComparer.CurrentCulture)
-            .ThenBy(m => PositionRules.SeniorityRank(held.GetValueOrDefault(m.Id)))
-            .ThenBy(m => m.FullName, StringComparer.CurrentCulture)
-            .ToList();
+        members = PositionRules.OrderBySeniority(members, held, m => m.Id, m => m.DepartmentName, m => m.FullName);
         return members.Select(m => new ParticipantCandidateDto
         {
             MemberId = m.Id,

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Common.Exceptions;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Application.DTOs;
@@ -136,7 +137,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
         var profileCode = workflowProfileCode?.Trim();
 
         var result = new List<CalibrationCandidateDto>();
-        foreach (var r in records.OrderBy(r => r.Member?.FullName))
+        var seniority = await _records.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        foreach (var r in PositionRules.OrderBySeniority(records, seniority, x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
         {
             if (IsOwn(r) || taken.ContainsKey(r.Id)
                 || !_guard.Can(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForRecord(r).ForWrite()))

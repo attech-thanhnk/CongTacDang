@@ -59,4 +59,23 @@ public class PositionSeniorityTests
 
     [Fact]
     public void NoPositions_Last() => Assert.Equal(9999, PositionRules.SeniorityRank(null));
+
+    [Fact]
+    public void OrderBySeniority_LeadersFirst_ThenEachUnitHeadBeforeDeputy()
+    {
+        var people = new[] { ("pho-b", "B"), ("truong-b", "B"), ("khong-chuc-vu", "A"), ("pho-a", "A"), ("giam-doc", "Z") }
+            .Select(x => (Id: Guid.NewGuid(), Name: x.Item1, Dept: x.Item2)).ToList();
+        Guid Id(string name) => people.Single(p => p.Name == name).Id;
+        var held = new Dictionary<Guid, List<HeldPosition>>
+        {
+            [Id("pho-b")] = new() { Pos("Phó Trưởng phòng", "M26") },
+            [Id("truong-b")] = new() { Pos("Trưởng phòng", "M26", true) },
+            [Id("pho-a")] = new() { Pos("Phó Trưởng phòng", "M26") },
+            [Id("giam-doc")] = new() { Pos("Giám đốc", "M14", true) },
+        };
+
+        var ordered = PositionRules.OrderBySeniority(people, held, p => p.Id, p => p.Dept, p => p.Name).Select(p => p.Name);
+
+        Assert.Equal(new[] { "giam-doc", "pho-a", "khong-chuc-vu", "truong-b", "pho-b" }, ordered);
+    }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Organization;
 using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Data;
@@ -16,8 +17,13 @@ namespace CongTacDang.Infrastructure.Repositories;
 public sealed class UserAccountRepository : IUserAccountRepository
 {
     private readonly CongTacDangDbContext _db;
+    private readonly IPositionRepository _positions;
 
-    public UserAccountRepository(CongTacDangDbContext db) => _db = db;
+    public UserAccountRepository(CongTacDangDbContext db, IPositionRepository positions)
+    {
+        _db = db;
+        _positions = positions;
+    }
 
     /// <inheritdoc />
     public Task<PartyMemberProfile?> FindByUsernameAsync(string username, CancellationToken ct = default)
@@ -107,14 +113,21 @@ public sealed class UserAccountRepository : IUserAccountRepository
             query = ApplyFlag(query, criteria.Flag, DateTime.UtcNow);
 
         var total = await query.CountAsync(ct);
-        var items = await query
-            .Include(m => m.Department)
-            .Include(m => m.PartyCell)
-            .OrderBy(m => m.FullName)
-            .ThenBy(m => m.Username)
+        // Hạng chức danh tính ngoài CSDL nên sắp xếp trước rồi mới lấy đúng trang.
+        var rows = await query.Select(m => new { m.Id, m.FullName, Department = m.Department != null ? m.Department.Name : null }).ToListAsync(ct);
+        var held = await _positions.GetHeldPositionsAsync(rows.Select(r => r.Id).ToList(), DateTime.UtcNow, ct);
+        var pageIds = PositionRules.OrderBySeniority(rows, held, r => r.Id, r => r.Department, r => r.FullName)
             .Skip((criteria.Page - 1) * criteria.PageSize)
             .Take(criteria.PageSize)
-            .ToListAsync(ct);
+            .Select(r => r.Id)
+            .ToList();
+        var items = (await query
+            .Include(m => m.Department)
+            .Include(m => m.PartyCell)
+            .Where(m => pageIds.Contains(m.Id))
+            .ToListAsync(ct))
+            .OrderBy(m => pageIds.IndexOf(m.Id))
+            .ToList();
 
         return new PagedResult<PartyMemberProfile>
         {
