@@ -122,7 +122,7 @@ export default function DashboardPage() {
           <>
             {showMine && <MyRecordSection record={myRecord!} lastResult={overview?.lastResult} />}
             {hasTasks && <MyTasksSection queue={queue} loading={queueLoading} periodId={periodId} excludeRecordId={showMine ? myRecord!.id : undefined} />}
-            {!loading && overview && <PeriodTimeline timeline={overview.timeline} today={overview.today} />}
+            {!loading && overview && <PeriodTimeline timeline={overview.timeline} today={overview.today} myStep={showMine ? myRecord!.progress?.find((s) => s.state === "current")?.step : null} />}
             {scope && <ScopeProgressSection scope={scope} />}
           </>
         )}

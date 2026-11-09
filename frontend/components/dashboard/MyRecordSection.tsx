@@ -29,6 +29,9 @@ export function MyRecordSection({ record, lastResult }: { record: EvaluationReco
         ? { label: "Điểm tự chấm", value: record.totalSelfScore }
         : null;
 
+  const steps = (record.progress ?? []).filter((s) => s.enabled && s.state !== "skipped");
+  const doneCount = steps.filter((s) => s.state === "done").length;
+
   const facts: Fact[] = [];
   if (published) {
     if (hasGrade(record.finalGrade)) facts.push({ label: "Mức xếp loại", value: <GradeBadge grade={record.finalGrade} /> });
@@ -41,9 +44,9 @@ export function MyRecordSection({ record, lastResult }: { record: EvaluationReco
     if (latestScore) facts.push({ label: latestScore.label, value: <b className="num">{fmt(latestScore.value)}</b> });
   }
 
+  if (steps.length > 1 && !published) facts.push({ label: "Tiến độ", value: <span className="num">{doneCount}/{steps.length} bước</span> });
+
   const actionLabel = myTurn && current ? taskActionLabel({ step: current.step, mode: current.mode, status: record.status }) : "Mở hồ sơ";
-  const steps = (record.progress ?? []).filter((s) => s.enabled && s.state !== "skipped");
-  const doneCount = steps.filter((s) => s.state === "done").length;
 
   return (
     <section className={`${styles.block} ${styles.mine}`} aria-label="Hồ sơ của tôi">
@@ -68,22 +71,6 @@ export function MyRecordSection({ record, lastResult }: { record: EvaluationReco
               </div>
             ))}
           </dl>
-        )}
-        {steps.length > 1 && !published && (
-          <div className={styles.mineProgress}>
-            <ol className={styles.mineSteps} aria-label={`Đã qua ${doneCount}/${steps.length} bước`}>
-              {steps.map((s) => (
-                <li
-                  key={s.step}
-                  className={s.state === "done" ? styles.msDone : s.state === "current" ? styles.msCurrent : undefined}
-                  title={`${s.name}${s.state === "done" ? " · đã xong" : s.state === "current" ? " · đang ở bước này" : ""}`}
-                />
-              ))}
-            </ol>
-            <span className={`${styles.muted} num`}>
-              {doneCount}/{steps.length} bước
-            </span>
-          </div>
         )}
         {lastResult && (
           <Link href={`/evaluations/${lastResult.recordId}`} className={styles.mineLast}>

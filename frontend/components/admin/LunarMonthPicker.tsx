@@ -49,12 +49,14 @@ export function LunarMonthPicker({ from, to, initialYear, onPick }: Props) {
   const cells = useMemo(() => {
     const blanks = (new Date(Date.UTC(view.year, view.month - 1, 1)).getUTCDay() + 6) % 7;
     const days = new Date(Date.UTC(view.year, view.month, 0)).getUTCDate();
+    // Luôn đủ 6 tuần để khung lịch không đổi kích thước khi chuyển tháng.
     return [
       ...Array.from({ length: blanks }, () => null),
       ...Array.from({ length: days }, (_, i) => {
         const iso = isoOf(view.year, view.month, i + 1);
         return { iso, day: i + 1, lunar: toLunar(iso), column: (blanks + i) % 7 };
       }),
+      ...Array.from({ length: 42 - blanks - days }, () => null),
     ];
   }, [view]);
 
@@ -111,11 +113,6 @@ export function LunarMonthPicker({ from, to, initialYear, onPick }: Props) {
             </button>
           );
         })}
-      </div>
-
-      <div className={styles.legend}>
-        <span><i className={styles.swatch} aria-hidden="true" />Đã là ngày nghỉ</span>
-        <span>Số nhỏ là ngày/tháng âm lịch</span>
       </div>
     </div>
   );
