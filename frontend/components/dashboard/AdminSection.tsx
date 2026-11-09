@@ -10,16 +10,19 @@ import styles from "./dashboard.module.css";
 
 /** Quản trị: việc cần xử lý (chỉ mục khác 0), mức sử dụng, hoạt động gần đây. */
 export function AdminSection({ summary, logs }: { summary: AdminSummaryDto | null; logs: AuditLogDto[] | null }) {
-  if (!summary && !logs) return null;
   const items = summary?.items ?? [];
   const usage = summary?.usage;
+  // Người quản lý kỳ không có usage: chỉ hiện khi thật sự có việc.
+  const showSummary = !!summary && (!!usage || items.length > 0);
+  const hasLogs = !!logs && logs.length > 0;
+  if (!showSummary && !hasLogs) return null;
 
   return (
     <section className={styles.block} aria-label="Quản trị">
-      {summary && (
+      {showSummary && (
         <>
           <div className={styles.blockH}>
-            <h2>Quản trị cần xử lý</h2>
+            <h2>{usage ? "Quản trị cần xử lý" : "Kỳ đánh giá cần xử lý"}</h2>
             {usage && (
               <span className={`${styles.usage} num`}>
                 {usage.recentLogins}/{usage.activeAccounts} tài khoản đã đăng nhập trong {usage.days} ngày
@@ -45,8 +48,8 @@ export function AdminSection({ summary, logs }: { summary: AdminSummaryDto | nul
         </>
       )}
 
-      {logs && logs.length > 0 && (
-        <div className={summary ? styles.topRule : undefined}>
+      {logs && hasLogs && (
+        <div className={showSummary ? styles.topRule : undefined}>
           <div className={styles.groupH}>
             <h3>Hoạt động gần đây</h3>
             <Link href="/audit" className={styles.link}>

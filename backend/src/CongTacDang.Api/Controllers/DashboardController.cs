@@ -28,7 +28,7 @@ public class DashboardController : ControllerBase
 
     /// <summary>Việc quản trị cần xử lý.</summary>
     [HttpGet("admin")]
-    [RequireAnyPermission(PermissionCodes.SystemUsersRead, PermissionCodes.PeriodManage)]
+    [RequireAnyPermission(PermissionCodes.SystemUsersManage, PermissionCodes.PeriodManage)]
     public async Task<IActionResult> GetAdmin(CancellationToken ct) =>
         Ok(ApiResponse<AdminSummaryDto>.Ok(await _dashboard.GetAdminSummaryAsync(ct), "Lấy việc quản trị cần xử lý thành công."));
 }

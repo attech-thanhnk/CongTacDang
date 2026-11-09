@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Application.Common.Models;
+using CongTacDang.Application.Common.Security;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -160,7 +161,11 @@ public sealed class UserAccountRepository : IUserAccountRepository
             AccountFlags.NoPartyCell => active.Where(m => m.IsPartyMember && m.PartyCellId == null),
             AccountFlags.CellWithChildren => active.Where(m => m.PartyCellId != null
                 && _db.PartyCells.Any(c => c.ParentId == m.PartyCellId && c.IsActive)),
-            AccountFlags.NoPosition => active.Where(m => !_db.MemberPositions
+            // Tài khoản kỹ thuật không tham gia đánh giá nên không cần chức vụ.
+            AccountFlags.NoPosition => active.Where(m => _db.Set<UserRoleAssignment>()
+                    .Any(a => a.UserId == m.Id && !a.IsDeleted && a.ValidFrom <= now && (a.ValidTo == null || a.ValidTo > now)
+                        && a.Role!.Permissions.Any(p => p.Code == PermissionCodes.EvaluationSelf))
+                && !_db.MemberPositions
                 .Any(p => p.UserId == m.Id && !p.IsDeleted && p.ValidFrom <= now && (p.ValidTo == null || p.ValidTo > now))),
             _ => query
         };

@@ -82,11 +82,13 @@ Chế độ **Toàn công ty** chỉ liệt kê người được gán ở phạ
 
 ## 6. Việc cần xử lý ở Tổng quan
 
-Khối **Quản trị cần xử lý** ở trang **Tổng quan** chỉ liệt kê mục có số khác 0:
+Người có quyền **Quản lý tài khoản** thấy khối **Quản trị cần xử lý** ở trang **Tổng quan**. Khối chỉ liệt kê mục có số khác 0:
 
 - tài khoản đang bị khóa, tài khoản chưa đăng nhập lần nào;
 - vai trò hết hạn trong 30 ngày tới;
-- đảng viên chưa có tổ chức Đảng, người sinh hoạt tại tổ chức Đảng có tổ chức con, cán bộ chưa có chức vụ;
-- bước chưa có người thực hiện của kỳ đang mở (chỉ người quản lý kỳ toàn công ty thấy).
+- đảng viên chưa có tổ chức Đảng, người sinh hoạt tại tổ chức Đảng có tổ chức con, người tham gia đánh giá chưa có chức vụ;
+- bước chưa có người thực hiện của kỳ đang mở (nếu có thêm quyền quản lý kỳ toàn công ty).
+
+Người quản lý kỳ toàn công ty không có quyền Quản lý tài khoản chỉ thấy khối **Kỳ đánh giá cần xử lý**, khi kỳ đang mở còn bước chưa có người thực hiện.
 
 Bấm một mục để mở trang **Tài khoản** đã lọc sẵn (ô **Cần xử lý**) hoặc trang kỳ, với danh sách bước thiếu người đã mở sẵn ở thẻ **Tiến độ**. Dòng trên cùng ghi số tài khoản đã đăng nhập trong 7 ngày. Người có quyền xem nhật ký thấy thêm **Hoạt động gần đây** bên dưới.

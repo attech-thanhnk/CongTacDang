@@ -34,8 +34,8 @@ export default function DashboardPage() {
   const canSelf = hasPermission("evaluation.self");
   // Cùng điều kiện với mục menu "Việc cần xử lý": có thao tác nghiệp vụ đánh giá nào đó.
   const hasTasks = permissions.some((code) => code.startsWith("evaluation.") && code !== "evaluation.read");
-  // Người quản lý kỳ toàn công ty cũng cần thấy bước chưa có người thực hiện, dù không có quyền system.*.
-  const canAdminSummary = hasPermission("system.users.read") || hasPermissionIn("period.manage", "Global");
+  // Chỉ người xử lý được mới thấy: quản lý tài khoản, hoặc quản lý kỳ toàn công ty (bước chưa có người thực hiện).
+  const canAdminSummary = hasPermission("system.users.manage") || hasPermissionIn("period.manage", "Global");
   const canAudit = hasPermission("system.audit.read");
 
   // Khối Quản trị không phụ thuộc kỳ đang chọn.

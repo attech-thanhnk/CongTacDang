@@ -242,6 +242,23 @@ public sealed class DashboardIntegrationTests
     }
 
     [SkippableFact]
+    public async Task AdminSummary_ReadOnlyUserAccess_GetsNoAccountItems()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var appraiser = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemUsersRead, PermissionCodes.PeriodManage);
+        using (var client = await _factory.LoginAsAsync(appraiser.Username, appraiser.Password, distinctClientIp: true))
+        {
+            var summary = await Data(client, "/api/dashboard/admin");
+            Assert.Equal(JsonValueKind.Null, summary.GetProperty("usage").ValueKind);
+            Assert.All(summary.GetProperty("items").EnumerateArray(), i => Assert.Equal("missingPerformers", i.GetProperty("code").GetString()));
+        }
+
+        var viewer = await _factory.CreateUserWithPermissionsAsync(PermissionCodes.SystemUsersRead);
+        using var viewerC = await _factory.LoginAsAsync(viewer.Username, viewer.Password, distinctClientIp: true);
+        Assert.Equal(HttpStatusCode.Forbidden, (await viewerC.GetAsync("/api/dashboard/admin")).StatusCode);
+    }
+
+    [SkippableFact]
     public async Task AdminSummary_PeriodManagerWithoutUserRead_GetsNoAccountItems()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
@@ -279,10 +296,15 @@ public sealed class DashboardIntegrationTests
         var expiring = await _factory.CreateUserAsync(dept, parentCell);
         var inactive = await _factory.CreateUserAsync(dept, null);
         var assignment = await _factory.AssignAsync(expiring.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        await _factory.AssignAsync(fresh.Id, (await _factory.CreateRoleAsync(PermissionCodes.SystemUsersRead)).Id, RoleScopeType.Global, null);
+        var ended = await _factory.AssignAsync(inCellWithChildren.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
         await _factory.WithDbAsync(async db =>
         {
             var a = await db.Set<UserRoleAssignment>().SingleAsync(x => x.Id == assignment);
             a.ValidTo = DateTime.UtcNow.AddDays(10);
+            var past = await db.Set<UserRoleAssignment>().SingleAsync(x => x.Id == ended);
+            past.ValidFrom = DateTime.UtcNow.AddDays(-30);
+            past.ValidTo = DateTime.UtcNow.AddDays(-1);
             foreach (var m in await db.PartyMemberProfiles.Where(x => x.Id == expiring.Id || x.Id == inactive.Id).ToListAsync())
             {
                 if (m.Id == expiring.Id)
@@ -303,7 +325,8 @@ public sealed class DashboardIntegrationTests
         Assert.Equal(new HashSet<Guid> { expiring.Id }, await Ids("roleExpiring"));
         Assert.Equal(new HashSet<Guid> { fresh.Id }, await Ids("noPartyCell"));
         Assert.Equal(new HashSet<Guid> { inCellWithChildren.Id, expiring.Id }, await Ids("cellWithChildren"));
-        Assert.Equal(new HashSet<Guid> { fresh.Id, inCellWithChildren.Id, expiring.Id }, await Ids("noPosition"));
+        // Chỉ người đang có quyền tham gia đánh giá: bỏ tài khoản kỹ thuật (fresh) và người đã hết hạn vai trò.
+        Assert.Equal(new HashSet<Guid> { expiring.Id }, await Ids("noPosition"));
     }
 
     private async Task<Guid> CreateDepartmentAsync(string sfx)

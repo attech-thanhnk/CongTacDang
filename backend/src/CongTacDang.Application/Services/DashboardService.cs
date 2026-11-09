@@ -112,7 +112,8 @@ public sealed class DashboardService : IDashboardService
             Add(result, "missingPerformers", "Bước chưa có người thực hiện", missing, $"/periods/{open.Id}?tab=readiness");
         }
 
-        if (_guard.HasAny(PermissionCodes.SystemUsersRead))
+        // Chỉ người xử lý được tài khoản mới cần các mục này; danh sách tài khoản vẫn lọc theo quyền xem.
+        if (_guard.HasAny(PermissionCodes.SystemUsersManage) && _guard.HasAny(PermissionCodes.SystemUsersRead))
         {
             async Task<int> Count(string? flag, bool? isActive = null) =>
                 (await _accounts.SearchAsync(new AccountSearchQuery(1, 1, IsActive: isActive, Flag: flag), ct)).TotalCount;
