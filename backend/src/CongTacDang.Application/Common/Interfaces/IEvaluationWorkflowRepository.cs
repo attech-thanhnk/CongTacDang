@@ -87,6 +87,9 @@ public interface IEvaluationWorkflowRepository : IOrgSubtreeReader
     Task<List<MemberSnapshotSource>> GetMembersAsync(IReadOnlyCollection<Guid> memberIds, CancellationToken ct = default);
 
     /// <summary>Cán bộ đang hoạt động; Phòng/Chi bộ null = không lọc.</summary>
+    /// <summary>Như tìm cán bộ, nhưng chọn đơn vị thì lấy cả đơn vị con; gốc của cây chỉ lấy người gắn trực tiếp.</summary>
+    Task<List<MemberSnapshotSource>> SearchMembersInTreeAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
+
     Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
 
     /// <summary>Thứ tự đơn vị chính quyền theo cây (cha trước con, anh em theo số thứ tự), khóa là tên đơn vị.</summary>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { RowActions } from "@/components/common/RowActions";
 import { HeaderMenu } from "@/components/common/HeaderMenu";
@@ -15,7 +15,8 @@ import { useToast } from "@/contexts/ToastContext";
 import { ReasonDialog } from "@/components/evaluations/ReasonDialog";
 import { WorkflowProfilesEditor } from "@/components/evaluations/WorkflowProfilesEditor";
 import { ReadinessPanel } from "@/components/evaluations/ReadinessPanel";
-import { organizationService, BranchItem, DepartmentItem } from "@/services/organizationService";
+import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
+import { CatalogItem, treeLabel } from "@/services/catalogService";
 import { ApiError } from "@/services/apiClient";
 import {
   EvaluationPeriodDto,
@@ -51,8 +52,9 @@ export default function PeriodDetailPage() {
   const [period, setPeriod] = useState<EvaluationPeriodDto | null>(null);
   const [settings, setSettings] = useState<PeriodSettings | null>(null);
   const [participants, setParticipants] = useState<PeriodParticipantDto[]>([]);
-  const [departments, setDepartments] = useState<DepartmentItem[]>([]);
-  const [cells, setCells] = useState<BranchItem[]>([]);
+  const catalog = useCatalogOptions();
+  const departments = useMemo(() => catalog.departments.filter((d) => d.isActive), [catalog.departments]);
+  const cells = useMemo(() => catalog.partyCells.filter((c) => c.isActive), [catalog.partyCells]);
   const [permissionOptions, setPermissionOptions] = useState<StepPermissionOptionDto[]>([]);
   const [readiness, setReadiness] = useState<PeriodReadinessDto | null>(null);
   const [checking, setChecking] = useState(false);
@@ -108,8 +110,6 @@ export default function PeriodDetailPage() {
 
   useEffect(() => {
     load();
-    organizationService.getDepartments().then(setDepartments).catch(() => setDepartments([]));
-    organizationService.getBranches().then(setCells).catch(() => setCells([]));
   }, [load]);
 
   useEffect(() => {
@@ -579,8 +579,8 @@ interface ParticipantsProps {
   period: EvaluationPeriodDto;
   profiles: WorkflowProfile[];
   participants: PeriodParticipantDto[];
-  departments: DepartmentItem[];
-  cells: BranchItem[];
+  departments: CatalogItem[];
+  cells: CatalogItem[];
   busy: boolean;
   run: (work: () => Promise<unknown>, success: string) => Promise<void>;
 }
@@ -692,13 +692,13 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
             <div className="col-12 col-md-4"><label className="form-label" htmlFor="add-dept">Đơn vị</label>
               <select id="add-dept" className="form-select form-select-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                 <option value="">Tất cả</option>
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.parentId ? d.name : "Lãnh đạo Công ty"}</option>)}
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.parentId ? treeLabel(d) : "Lãnh đạo Công ty"}</option>)}
               </select>
             </div>
             <div className="col-6 col-md-4"><label className="form-label" htmlFor="add-cell">Chi bộ</label>
               <select id="add-cell" className="form-select form-select-sm" value={cellId} onChange={(e) => setCellId(e.target.value)}>
                 <option value="">Tất cả</option>
-                {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {cells.map((c) => <option key={c.id} value={c.id}>{treeLabel(c)}</option>)}
               </select>
             </div>
             <div className="col-6 col-md-4"><label className="form-label" htmlFor="add-q">Tên / tài khoản</label>
@@ -980,8 +980,8 @@ function ProfileDialog({ targets, profiles, busy, onCancel, onSave }: ProfileDia
 
 interface SnapshotProps {
   participant: PeriodParticipantDto;
-  departments: DepartmentItem[];
-  cells: BranchItem[];
+  departments: CatalogItem[];
+  cells: CatalogItem[];
   busy: boolean;
   onCancel: () => void;
   frames: WeightFrame[];
@@ -1009,13 +1009,13 @@ function SnapshotDialog({ participant, frames, departments, cells, busy, onCance
         <div className="col-6"><label className="form-label" htmlFor="snap-dept">Phòng</label>
           <select id="snap-dept" className="form-select" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">— Không —</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {departments.map((d) => <option key={d.id} value={d.id}>{treeLabel(d)}</option>)}
           </select>
         </div>
         <div className="col-6"><label className="form-label" htmlFor="snap-cell">Chi bộ</label>
           <select id="snap-cell" className="form-select" value={cellId} onChange={(e) => setCellId(e.target.value)}>
             <option value="">— Không —</option>
-            {cells.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {cells.map((c) => <option key={c.id} value={c.id}>{treeLabel(c)}</option>)}
           </select>
         </div>
         <div className="col-6"><label className="form-label" htmlFor="snap-frame">Khung tỷ trọng A-B-C-D</label>

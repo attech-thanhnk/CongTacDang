@@ -1,5 +1,7 @@
 "use client";
 
+import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
+import { keepBranches, treeLabel } from "@/services/catalogService";
 import { formatDate } from "@/lib/dateFormat";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -22,6 +24,7 @@ export default function ResultsPage() {
   const { hasPermission, loading: authLoading } = useAuth();
   const { periodId, loading: periodLoading } = usePeriod();
   const [departmentId, setDepartmentId] = useState("");
+  const { departments: departmentTree } = useCatalogOptions();
   const [grade, setGrade] = useState("");
   const [data, setData] = useState<PublishedResultsDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +121,7 @@ export default function ResultsPage() {
                 <div className="d-flex flex-wrap gap-2 ms-auto">
                   <select className="form-select form-select-sm w-auto" aria-label="Đơn vị" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
                     <option value="">Tất cả đơn vị</option>
-                    {(data?.departments ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {keepBranches(departmentTree, (d) => (data?.departments ?? []).some((x) => x.id === d.id)).map((d) => <option key={d.id} value={d.id}>{treeLabel(d)}</option>)}
                   </select>
                   <select className="form-select form-select-sm w-auto" aria-label="Mức xếp loại" value={grade} onChange={(e) => setGrade(e.target.value)}>
                     <option value="">Tất cả mức</option>

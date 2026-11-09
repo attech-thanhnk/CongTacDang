@@ -189,6 +189,31 @@ export function treeLabel(item: CatalogItem): string {
   return `${"   ".repeat(item.depth)}${item.depth > 0 ? "└ " : ""}${item.name}`;
 }
 
+/** Chỉ giữ nhánh có dữ liệu, đơn vị cha vẫn hiện để không mất hình cây. */
+export function keepBranches(items: CatalogItem[], hasData: (item: CatalogItem) => boolean): CatalogItem[] {
+  const keep = new Set<string>();
+  items.filter(hasData).forEach((item) => item.path.split("/").filter(Boolean).forEach((id) => keep.add(id)));
+  return items.filter((item) => keep.has(item.id));
+}
+
+/** Lựa chọn của ô lọc theo tên đơn vị: dạng cây; tên không còn trong danh mục xếp cuối. */
+export function nameFilterOptions(items: CatalogItem[], names: Iterable<string>): { value: string; label: string }[] {
+  const present = new Set(names);
+  const known = new Set(items.map((item) => item.name));
+  return [
+    ...keepBranches(items, (item) => present.has(item.name)).map((item) => ({ value: item.name, label: treeLabel(item) })),
+    ...Array.from(present).filter((name) => !known.has(name)).sort((a, b) => a.localeCompare(b, "vi")).map((name) => ({ value: name, label: name })),
+  ];
+}
+
+/** Tên của đơn vị đang chọn và mọi đơn vị con; chọn cha thì lấy cả con. */
+export function subtreeNames(items: CatalogItem[], name: string): Set<string> {
+  const root = items.find((item) => item.name === name);
+  if (!root) return new Set([name]);
+  const ids = subtreeIds(items, root.id);
+  return new Set(items.filter((item) => ids.has(item.id)).map((item) => item.name));
+}
+
 /** Id của nút và mọi con cháu (dựa trên `path`). */
 export function subtreeIds(items: CatalogItem[], rootId: string): Set<string> {
   return new Set(items.filter((item) => item.id === rootId || item.path.includes(`/${rootId}/`)).map((item) => item.id));

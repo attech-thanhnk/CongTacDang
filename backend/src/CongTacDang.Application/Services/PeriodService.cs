@@ -770,7 +770,7 @@ public sealed class PeriodService : IPeriodService
         EnsureManage();
         _ = await _repo.FindPeriodAsync(periodId, ct) ?? throw new NotFoundException("Không tìm thấy kỳ đánh giá.");
         var existing = await _repo.GetParticipantIdsAsync(periodId, ct);
-        var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
+        var members = await _repo.SearchMembersInTreeAsync(departmentId, partyCellId, query, ct);
         var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
         // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
         members = PositionRules.OrderBySeniority(members, held, await _repo.GetUnitOrderAsync(ct), m => m.Id, m => m.DepartmentName, m => m.FullName);
@@ -806,7 +806,7 @@ public sealed class PeriodService : IPeriodService
             if (dto.PartyCellId.HasValue && !await _repo.PartyCellExistsAsync(dto.PartyCellId.Value, ct))
                 throw new ValidationException("Chi bộ đã chọn không tồn tại.");
             // Thêm cả đơn vị chỉ lấy người thuộc diện đánh giá; người ngoài diện chọn tay nếu cần.
-            var unitMembers = await _repo.SearchMembersAsync(dto.DepartmentId, dto.PartyCellId, null, ct);
+            var unitMembers = await _repo.SearchMembersInTreeAsync(dto.DepartmentId, dto.PartyCellId, null, ct);
             var unitHeld = await _repo.GetHeldPositionsAsync(unitMembers.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
             foreach (var member in unitMembers.Where(m => PositionRules.IsEvaluable(unitHeld.GetValueOrDefault(m.Id))))
                 ids.Add(member.Id);

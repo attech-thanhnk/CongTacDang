@@ -103,10 +103,17 @@ public sealed class UserAccountRepository : IUserAccountRepository
                 || (m.PartyCardNumber != null && EF.Functions.ILike(m.PartyCardNumber, pattern, "\\")));
         }
 
-        if (criteria.DepartmentId.HasValue)
-            query = query.Where(m => m.DepartmentId == criteria.DepartmentId);
-        if (criteria.PartyCellId.HasValue)
-            query = query.Where(m => m.PartyCellId == criteria.PartyCellId);
+        // Chọn đơn vị cha thì lấy cả đơn vị con.
+        if (criteria.DepartmentId is { } departmentId)
+        {
+            var key = $"/{departmentId:D}/";
+            query = query.Where(m => m.Department != null && m.Department.Path.Contains(key));
+        }
+        if (criteria.PartyCellId is { } partyCellId)
+        {
+            var key = $"/{partyCellId:D}/";
+            query = query.Where(m => m.PartyCell != null && m.PartyCell.Path.Contains(key));
+        }
         if (criteria.IsActive.HasValue)
             query = query.Where(m => m.IsActive == criteria.IsActive.Value);
         if (criteria.Flag != null)

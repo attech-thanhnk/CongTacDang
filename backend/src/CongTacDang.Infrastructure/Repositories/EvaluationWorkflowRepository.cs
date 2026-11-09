@@ -181,6 +181,32 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
             members = members.Where(m => m.DepartmentId == departmentId);
         if (partyCellId.HasValue)
             members = members.Where(m => m.PartyCellId == partyCellId);
+        return ListMembersAsync(members, query, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<MemberSnapshotSource>> SearchMembersInTreeAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default)
+    {
+        var members = _db.PartyMemberProfiles.AsNoTracking().Where(m => m.IsActive);
+        if (departmentId is { } department)
+        {
+            var key = $"/{department:D}/";
+            members = await _db.AdministrativeDepartments.AnyAsync(d => d.Id == department && d.ParentId == null, ct)
+                ? members.Where(m => m.DepartmentId == department)
+                : members.Where(m => m.Department != null && m.Department.Path.Contains(key));
+        }
+        if (partyCellId is { } cell)
+        {
+            var key = $"/{cell:D}/";
+            members = await _db.PartyCells.AnyAsync(c => c.Id == cell && c.ParentId == null, ct)
+                ? members.Where(m => m.PartyCellId == cell)
+                : members.Where(m => m.PartyCell != null && m.PartyCell.Path.Contains(key));
+        }
+        return await ListMembersAsync(members, query, ct);
+    }
+
+    private Task<List<MemberSnapshotSource>> ListMembersAsync(IQueryable<PartyMemberProfile> members, string? query, CancellationToken ct)
+    {
         if (!string.IsNullOrWhiteSpace(query))
         {
             var pattern = $"%{query.Trim()}%";

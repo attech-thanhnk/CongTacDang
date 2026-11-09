@@ -356,6 +356,36 @@ public sealed class DashboardIntegrationTests
         Assert.Equal(HttpStatusCode.OK, (await globalC.DeleteAsync($"/api/holidays/{id}")).StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Users_FilterByParentDepartment_IncludesChildren()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var sfx = Guid.NewGuid().ToString("N")[..6];
+        var parent = await CreateDepartmentAsync(sfx);
+        var child = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var root = await db.AdministrativeDepartments.SingleAsync(d => d.Id == parent);
+            var d = new AdministrativeDepartment { Code = $"C-{sfx}", Name = $"Đài {sfx}", ParentId = parent };
+            d.Path = OrgTree.BuildPath(root.Path, d.Id);
+            db.Add(d);
+            await db.SaveChangesAsync();
+            child = d.Id;
+        });
+        var admin = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(admin.Id, await _factory.GetAdministratorRoleIdAsync(), RoleScopeType.Global, null);
+        var inParent = await _factory.CreateUserAsync(parent, null);
+        var inChild = await _factory.CreateUserAsync(child, null);
+
+        using var adminC = await _factory.LoginAsAsync(admin.Username, admin.Password, distinctClientIp: true);
+        async Task<HashSet<Guid>> Ids(Guid department) =>
+            (await Data(adminC, $"/api/users?departmentId={department}&pageSize=200")).GetProperty("items").EnumerateArray()
+                .Select(u => u.GetProperty("id").GetGuid()).ToHashSet();
+
+        Assert.Equal(new HashSet<Guid> { inParent.Id, inChild.Id }, await Ids(parent));
+        Assert.Equal(new HashSet<Guid> { inChild.Id }, await Ids(child));
+    }
+
     private async Task<Guid> CreateDepartmentAsync(string sfx)
     {
         var id = Guid.Empty;

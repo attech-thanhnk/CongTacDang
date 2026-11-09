@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
+import { nameFilterOptions, subtreeNames } from "@/services/catalogService";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pagination } from "@/components/common/Pagination";
@@ -104,25 +106,29 @@ export default function EvaluationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodId, periodsLoading, canRead]);
 
+  const { departments: departmentTree, partyCells: cellTree } = useCatalogOptions();
   const departments = useMemo(
-    () => Array.from(new Set(records.map((r) => r.departmentName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
-    [records]
+    () => nameFilterOptions(departmentTree, records.map((x) => x.departmentName).filter((v): v is string => !!v)),
+    [departmentTree, records]
   );
+  // Chi bộ mở sẵn từ đường dẫn vẫn phải có trong danh sách chọn.
   const partyCells = useMemo(
-    () => Array.from(new Set(records.map((r) => r.partyCellName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
-    [records]
+    () => nameFilterOptions(cellTree, [...records.map((x) => x.partyCellName).filter((v): v is string => !!v), ...(partyCell ? [partyCell] : [])]),
+    [cellTree, records, partyCell]
   );
+  const departmentNames = useMemo(() => (department ? subtreeNames(departmentTree, department) : null), [departmentTree, department]);
+  const cellNames = useMemo(() => (partyCell ? subtreeNames(cellTree, partyCell) : null), [cellTree, partyCell]);
 
   /** Lọc theo Phòng, Chi bộ, ô tìm (chưa lọc trạng thái) — dùng để đếm số lượng trên nút lọc trạng thái. */
   const baseFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return records.filter(
       (r) =>
-        (!department || r.departmentName === department) &&
-        (!partyCell || r.partyCellName === partyCell) &&
+        (!departmentNames || departmentNames.has(r.departmentName ?? "")) &&
+        (!cellNames || cellNames.has(r.partyCellName ?? "")) &&
         (!term || [r.fullName, r.departmentName, r.partyCellName, r.statusDisplayName].some((v) => v?.toLowerCase().includes(term)))
     );
-  }, [records, search, department, partyCell]);
+  }, [records, search, departmentNames, cellNames]);
 
   const statusChips = useMemo(() => {
     const map = new Map<string, { label: string; count: number }>();
@@ -229,12 +235,11 @@ export default function EvaluationsPage() {
               />
               <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={department} onChange={(e) => setDepartment(e.target.value)}>
                 <option value="">Tất cả đơn vị</option>
-                {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
               <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={partyCell} onChange={(e) => setPartyCell(e.target.value)}>
                 <option value="">Tất cả Chi bộ</option>
-                {partyCell && !partyCells.includes(partyCell) && <option value={partyCell}>{partyCell}</option>}
-                {partyCells.map((c) => <option key={c} value={c}>{c}</option>)}
+                {partyCells.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             {/* Chỉ một trạng thái thì nút lọc không có tác dụng. */}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
+import { nameFilterOptions, subtreeNames } from "@/services/catalogService";
 import React, { useMemo, useState } from "react";
 import { Pagination } from "@/components/common/Pagination";
 import { usePagination } from "@/components/common/usePagination";
@@ -53,19 +55,22 @@ export function PeriodProgressSection({ participants }: Props) {
   // Bấm nhãn đếm "Quá hạn" / "Sắp đến hạn" để lọc, bấm lại để bỏ lọc.
   const [urgent, setUrgent] = useState<"" | "overdue" | "soon">("");
 
+  const { departments: departmentTree, partyCells: cellTree } = useCatalogOptions();
   const departments = useMemo(
-    () => Array.from(new Set(participants.map((p) => p.departmentName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
-    [participants]
+    () => nameFilterOptions(departmentTree, participants.map((x) => x.departmentName).filter((v): v is string => !!v)),
+    [departmentTree, participants]
   );
   const cells = useMemo(
-    () => Array.from(new Set(participants.map((p) => p.partyCellName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
-    [participants]
+    () => nameFilterOptions(cellTree, participants.map((x) => x.partyCellName).filter((v): v is string => !!v)),
+    [cellTree, participants]
   );
+  const departmentNames = useMemo(() => (department ? subtreeNames(departmentTree, department) : null), [departmentTree, department]);
+  const cellNames = useMemo(() => (cell ? subtreeNames(cellTree, cell) : null), [cellTree, cell]);
 
   /** Lọc theo Phòng, Chi bộ (chưa lọc bước) — để đếm số hồ sơ từng bước. */
   const base = useMemo(
-    () => participants.filter((p) => (!department || p.departmentName === department) && (!cell || p.partyCellName === cell)),
-    [participants, department, cell]
+    () => participants.filter((p) => (!departmentNames || departmentNames.has(p.departmentName ?? "")) && (!cellNames || cellNames.has(p.partyCellName ?? ""))),
+    [participants, departmentNames, cellNames]
   );
 
   const steps = useMemo(() => {
@@ -96,11 +101,11 @@ export function PeriodProgressSection({ participants }: Props) {
       <div className={`card-body ${styles.toolbar}`}>
         <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={department} onChange={(e) => setDepartment(e.target.value)}>
           <option value="">Tất cả đơn vị</option>
-          {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+          {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
         </select>
         <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={cell} onChange={(e) => setCell(e.target.value)}>
           <option value="">Tất cả Chi bộ</option>
-          {cells.map((c) => <option key={c} value={c}>{c}</option>)}
+          {cells.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         {(overdueCount > 0 || dueSoonCount > 0 || urgent !== "") && (
           <span className={styles.toolbarEnd}>

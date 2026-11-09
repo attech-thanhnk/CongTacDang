@@ -1,5 +1,7 @@
 "use client";
 
+import { useCatalogOptions } from "@/components/admin/useCatalogOptions";
+import { nameFilterOptions, subtreeNames } from "@/services/catalogService";
 import React, { useEffect, useId, useMemo, useState } from "react";
 
 export interface PickerRow {
@@ -45,8 +47,12 @@ export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, 
   }, [isOpen]);
 
   const groups = useMemo(() => Array.from(new Set(rows.map((r) => r.group).filter((g): g is string => !!g))), [rows]);
-  const units = useMemo(() => Array.from(new Set(rows.map((r) => r.unit).filter((u): u is string => !!u))), [rows]);
-  const visible = useMemo(() => rows.filter((r) => (!group || r.group === group) && (!unitFilter || r.unit === unitFilter)), [rows, group, unitFilter]);
+  const { departments: unitTree } = useCatalogOptions();
+  const units = useMemo(() => nameFilterOptions(unitTree, rows.map((r) => r.unit).filter((u): u is string => !!u)), [unitTree, rows]);
+  const visible = useMemo(() => {
+    const names = unitFilter ? subtreeNames(unitTree, unitFilter) : null;
+    return rows.filter((r) => (!group || r.group === group) && (!names || names.has(r.unit ?? "")));
+  }, [rows, group, unitFilter, unitTree]);
 
   if (!isOpen) return null;
 
@@ -90,7 +96,7 @@ export function RecordPickerDialog({ isOpen, title, confirmText, rows, loading, 
             {units.length > 1 && (
               <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)}>
                 <option value="">Mọi đơn vị</option>
-                {units.map((u) => <option key={u} value={u}>{u}</option>)}
+                {units.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </select>
             )}
             {loading ? (

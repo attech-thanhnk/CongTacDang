@@ -946,6 +946,7 @@ public sealed class EvaluationWorkflowServiceTests
         public void RemoveRecord(EvaluationRecord record) => throw new NotSupportedException();
         public Task<List<Guid>> ListActiveUserIdsWithAnyPermissionAsync(IReadOnlyCollection<string> permissionCodes, DateTime now, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<MemberSnapshotSource>> GetMembersAsync(IReadOnlyCollection<Guid> memberIds, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<List<MemberSnapshotSource>> SearchMembersInTreeAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Dictionary<string, int>> GetUnitOrderAsync(CancellationToken ct = default) => Task.FromResult(new Dictionary<string, int>());
         public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default) => throw new NotSupportedException();
