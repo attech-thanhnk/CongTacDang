@@ -129,7 +129,7 @@ export function ScopeProgressSection({ scope }: { scope: ScopeProgressDto }) {
           {scope.groups.length > VISIBLE_CELLS && (
             <button type="button" className={styles.moreBtn} onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
               {showAll ? "Thu gọn" : `Hiện tất cả ${scope.groups.length} tổ chức`}
-              <i className={`bi ${showAll ? "bi-chevron-up" : "bi-chevron-down"} ms-1`} aria-hidden="true" />
+              <i className={`fa-solid ${showAll ? "fa-chevron-up" : "fa-chevron-down"} ms-1`} aria-hidden="true" />
             </button>
           )}
         </div>

@@ -85,7 +85,7 @@ export function EffectivePermissionsPanel({ data, loading, error, moduleNames }:
                         {permission.sources.map((source) => (
                           <div key={`${source.assignmentId}-${source.scopeId ?? "global"}`} className="text-nowrap">
                             <i
-                              className={`bi ${source.scopeType === "Global" ? "bi-globe2" : source.scopeType === "Department" ? "bi-building" : "bi-flag"} me-1 text-secondary`}
+                              className={`fa-solid ${source.scopeType === "Global" ? "fa-globe" : source.scopeType === "Department" ? "fa-building" : "fa-flag"} me-1 text-secondary`}
                             />
                             {source.scopeName}
                           </div>

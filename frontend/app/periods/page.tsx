@@ -44,10 +44,10 @@ export default function PeriodsPage() {
       <div className="page-body">
         <section className="card">
           {periods.length > 0 && <CardToolbar actions={<>
-            {canSeeCriteria && <Link href="/criteria" className="btn btn-outline-secondary"><i className="bi bi-list-check me-1" />Bộ tiêu chí</Link>}
+            {canSeeCriteria && <Link href="/criteria" className="btn btn-outline-secondary"><i className="fa-solid fa-list-check me-1" />Bộ tiêu chí</Link>}
             {canManage && (
               <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-                <i className="bi bi-plus-lg me-1" />Tạo kỳ
+                <i className="fa-solid fa-plus me-1" />Tạo kỳ
               </button>
             )}
           </>} />}
@@ -56,12 +56,12 @@ export default function PeriodsPage() {
               <div className="text-secondary p-3 loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
             ) : periods.length === 0 ? (
               <EmptyState
-                icon="bi-calendar-x"
+                icon="fa-calendar-xmark"
                 title="Chưa có kỳ đánh giá"
                 description={canManage ? "Tạo kỳ đánh giá, sau đó chọn bộ tiêu chí và diện quyết định." : undefined}
                 action={canManage ? (
                   <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-                    <i className="bi bi-plus-lg me-1" />Tạo kỳ đánh giá
+                    <i className="fa-solid fa-plus me-1" />Tạo kỳ đánh giá
                   </button>
                 ) : undefined}
               />

@@ -180,22 +180,22 @@ export default function CriteriaSetPage() {
             <>
               {!editable && (
                 <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={clone}>
-                  <i className="bi bi-copy me-1" />Nhân bản
+                  <i className="fa-solid fa-copy me-1" />Nhân bản
                 </button>
               )}
               {editable && (
                 <button type="button" className="btn btn-primary" disabled={busy || dirty} onClick={publish}
                   title={dirty ? "Lưu thay đổi trước khi xuất bản" : undefined}>
-                  <i className="bi bi-send me-1" />Xuất bản
+                  <i className="fa-solid fa-paper-plane me-1" />Xuất bản
                 </button>
               )}
               <HeaderMenu
                 itemLabel={set.name}
                 disabled={busy}
                 actions={[
-                  { key: "clone", label: "Nhân bản", icon: "bi-copy", hidden: !editable, onClick: clone },
+                  { key: "clone", label: "Nhân bản", icon: "fa-copy", hidden: !editable, onClick: clone },
                   {
-                    key: "archive", label: "Lưu trữ", icon: "bi-archive", danger: true, hidden: set.status !== "Published",
+                    key: "archive", label: "Lưu trữ", icon: "fa-box-archive", danger: true, hidden: set.status !== "Published",
                     onClick: () => confirm({ title: "Lưu trữ bộ tiêu chí", message: "Kỳ đã dùng bộ này không bị ảnh hưởng; bộ không chọn được cho kỳ mới.", confirmText: "Lưu trữ", isDanger: true, onConfirm: () => run(() => criteriaService.archive(set.id, set.version), "Đã lưu trữ bộ tiêu chí.") }),
                   },
                 ]}
@@ -261,7 +261,7 @@ export default function CriteriaSetPage() {
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Nhóm tiêu chí chung — tổng <span className={Math.abs(generalTotal - p.generalMaxScore) > 1e-6 ? "text-danger" : "text-success"}>{fmt(generalTotal)}</span> / {fmt(p.generalMaxScore)}</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}><i className="bi bi-plus-lg me-1" />Thêm nhóm</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ generalGroups: [...content.generalGroups, { code: String(content.generalGroups.length + 1), name: "", scoringMode: "Binary", items: [] }] })}><i className="fa-solid fa-plus me-1" />Thêm nhóm</button>
               </div>
               <div className="card-body">
                 {content.generalGroups.map((g, gi) => (
@@ -293,13 +293,13 @@ export default function CriteriaSetPage() {
                                   onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
                               <td><input type="number" min={0} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
-                              <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setGroup(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
+                              <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setGroup(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="fa-solid fa-xmark" /></button></td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table></div>
-                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="bi bi-plus-lg me-1" />Thêm tiêu chí con</button>
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setGroup(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="fa-solid fa-plus me-1" />Thêm tiêu chí con</button>
                   </div>
                 ))}
               </div>
@@ -365,13 +365,13 @@ export default function CriteriaSetPage() {
                                   onChange={(e) => setItem({ formText: e.target.value || null })} />
                               </td>
                               <td><input type="number" min={0} max={100} step={0.5} className="form-control form-control-sm" aria-label="Điểm tối đa" value={item.maxScore} onChange={(e) => setItem({ maxScore: num(e.target.value) })} /></td>
-                              <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setCollective(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="bi bi-x-lg" /></button></td>
+                              <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa tiêu chí" onClick={() => setCollective(gi, { items: g.items.filter((_, i) => i !== ii) })}><i className="fa-solid fa-xmark" /></button></td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table></div>
-                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setCollective(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="bi bi-plus-lg me-1" />Thêm tiêu chí con</button>
+                    <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setCollective(gi, { items: [...g.items, { code: `${g.code}.${g.items.length + 1}`, text: "", maxScore: 1 }] })}><i className="fa-solid fa-plus me-1" />Thêm tiêu chí con</button>
                   </div>
                 ))}
               </div>
@@ -382,7 +382,7 @@ export default function CriteriaSetPage() {
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Trục kết quả</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "" }] })}><i className="bi bi-plus-lg me-1" />Thêm trục</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ axes: [...content.axes, { code: `T${content.axes.length + 1}`, name: "", description: "" }] })}><i className="fa-solid fa-plus me-1" />Thêm trục</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-0">
@@ -395,7 +395,7 @@ export default function CriteriaSetPage() {
                           <td><input className="form-control form-control-sm" aria-label="Mã trục" value={a.code} onChange={(e) => setAxis({ code: e.target.value })} /></td>
                           <td><input className="form-control form-control-sm" aria-label="Tên trục" value={a.name} onChange={(e) => setAxis({ name: e.target.value })} /></td>
                           <td><textarea className="form-control form-control-sm" rows={1} aria-label="Nội dung áp dụng" value={a.description || ""} onChange={(e) => setAxis({ description: e.target.value })} /></td>
-                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="bi bi-x-lg" /></button></td>
+                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa trục" onClick={() => update({ axes: content.axes.filter((_, i) => i !== ai) })}><i className="fa-solid fa-xmark" /></button></td>
                         </tr>
                       );
                     })}
@@ -486,7 +486,7 @@ export default function CriteriaSetPage() {
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Khung tỷ trọng A-B-C-D (%, tổng 100)</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}><i className="bi bi-plus-lg me-1" />Thêm khung</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ weightFrames: [...content.weightFrames, { code: `K${content.weightFrames.length + 1}`, name: "", a: 0.25, b: 0.25, c: 0.25, d: 0.25 }] })}><i className="fa-solid fa-plus me-1" />Thêm khung</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-2">
@@ -504,7 +504,7 @@ export default function CriteriaSetPage() {
                               onChange={(e) => setFrame({ [k]: num(e.target.value) / 100 } as Partial<typeof f>)} aria-label={`Tỷ trọng ${k.toUpperCase()} khung ${f.code}`} /></td>
                           ))}
                           <td className={`small ${Math.abs(sum - 100) > 1e-4 ? "text-danger" : "text-success"}`}>{fmt(sum)}%</td>
-                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa khung" onClick={() => update({ weightFrames: content.weightFrames.filter((_, i) => i !== fi) })}><i className="bi bi-x-lg" /></button></td>
+                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa khung" onClick={() => update({ weightFrames: content.weightFrames.filter((_, i) => i !== fi) })}><i className="fa-solid fa-xmark" /></button></td>
                         </tr>
                       );
                     })}
@@ -526,7 +526,7 @@ export default function CriteriaSetPage() {
             <section className="card">
               <div className="card-header d-flex justify-content-between align-items-center gap-2">
                 <h2 className="mb-0">Thang quy đổi % A-B-C-D</h2>
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}><i className="bi bi-plus-lg me-1" />Thêm mức</button>
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => update({ conversionScale: [...content.conversionScale, { minPercent: 0, label: "", description: "" }] })}><i className="fa-solid fa-plus me-1" />Thêm mức</button>
               </div>
               <div className="card-body">
                 <div className="table-responsive"><table className="table table-sm mb-0">
@@ -539,7 +539,7 @@ export default function CriteriaSetPage() {
                           <td><input type="number" min={0} max={100} className="form-control form-control-sm" value={b.minPercent} onChange={(e) => setBand({ minPercent: num(e.target.value) })} /></td>
                           <td><input className="form-control form-control-sm" value={b.label} onChange={(e) => setBand({ label: e.target.value })} /></td>
                           <td><textarea className="form-control form-control-sm" rows={1} value={b.description || ""} onChange={(e) => setBand({ description: e.target.value })} /></td>
-                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa mức" onClick={() => update({ conversionScale: content.conversionScale.filter((_, i) => i !== bi) })}><i className="bi bi-x-lg" /></button></td>
+                          <td><button type="button" className="btn btn-link btn-sm text-danger p-0" aria-label="Xóa mức" onClick={() => update({ conversionScale: content.conversionScale.filter((_, i) => i !== bi) })}><i className="fa-solid fa-xmark" /></button></td>
                         </tr>
                       );
                     })}
@@ -673,7 +673,7 @@ export default function CriteriaSetPage() {
           <StickyActionBar>
             {dirty && <span className="hint">Có thay đổi chưa lưu</span>}
             <button type="button" className="btn btn-outline-secondary" disabled={busy || !dirty} onClick={save}>
-              {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}Lưu
+              {busy ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="fa-solid fa-check me-1" />}Lưu
             </button>
           </StickyActionBar>
         )}

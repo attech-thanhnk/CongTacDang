@@ -33,10 +33,10 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             ) : readiness.checkedRecords === 0 ? (
               <span className="text-secondary">Chưa có người được đánh giá.</span>
             ) : readiness.ready ? (
-              <span className="text-success"><i className="bi bi-check-circle-fill me-1" />Mọi bước đều có người thực hiện.</span>
+              <span className="text-success"><i className="fa-solid fa-circle-check me-1" />Mọi bước đều có người thực hiện.</span>
             ) : (
               <span>
-                <i className="bi bi-exclamation-triangle-fill text-warning me-1" />
+                <i className="fa-solid fa-triangle-exclamation text-warning me-1" />
                 <span className="num">{readiness.issues.length}</span> bước chưa có người thực hiện.{" "}
                 <Link
                   href={performersHref(
@@ -51,7 +51,7 @@ export function ReadinessPanel({ readiness, loading, onCheck }: Props) {
             )}
           </div>
           <button type="button" className="btn btn-outline-secondary btn-sm" disabled={loading} onClick={onCheck}>
-            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-arrow-clockwise me-1" />}
+            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="fa-solid fa-rotate-right me-1" />}
             Kiểm tra lại
           </button>
         </div>

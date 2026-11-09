@@ -127,7 +127,7 @@ export function FileDropZone({
       {hiddenInput}
       {file ? (
         <div className={`${styles.selected} ${disabled ? styles.disabled : ""}`}>
-          <i className={`bi ${file.name.toLowerCase().endsWith(".docx") ? "bi-file-earmark-word" : "bi-file-earmark-spreadsheet"} ${styles.fileIcon}`} aria-hidden="true" />
+          <i className={`fa-solid ${file.name.toLowerCase().endsWith(".docx") ? "fa-file-word" : "fa-file-excel"} ${styles.fileIcon}`} aria-hidden="true" />
           <div className={styles.fileInfo}>
             <div className={styles.fileName} title={file.name}>
               {file.name}
@@ -145,7 +145,7 @@ export function FileDropZone({
             aria-label="Bỏ chọn file"
             title="Bỏ chọn file"
           >
-            <i className="bi bi-x-lg" aria-hidden="true" />
+            <i className="fa-solid fa-xmark" aria-hidden="true" />
           </button>
         </div>
       ) : (
@@ -163,7 +163,7 @@ export function FileDropZone({
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
-          <i className={`bi ${dragging ? "bi-box-arrow-in-down" : "bi-cloud-arrow-up"} ${styles.zoneIcon}`} aria-hidden="true" />
+          <i className={`fa-solid ${dragging ? "fa-file-import" : "fa-cloud-arrow-up"} ${styles.zoneIcon}`} aria-hidden="true" />
           <div className={styles.zoneText}>
             {dragging ? (
               "Thả file vào đây"
@@ -184,7 +184,7 @@ export function FileDropZone({
       )}
       {error && (
         <div id={`${inputId}-error`} className={styles.error} role="alert">
-          <i className="bi bi-exclamation-circle me-1" aria-hidden="true" />
+          <i className="fa-solid fa-circle-exclamation me-1" aria-hidden="true" />
           {error}
         </div>
       )}

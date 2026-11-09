@@ -98,7 +98,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
           {canManage && (
             <button type="button" className="btn btn-sm btn-primary ms-auto text-nowrap"
               onClick={() => setForm({ date: `${year}-01-01`, endDate: "", name: "" })}>
-              <i className="bi bi-plus-lg me-1" />Thêm ngày nghỉ
+              <i className="fa-solid fa-plus me-1" />Thêm ngày nghỉ
             </button>
           )}
         </div>
@@ -127,8 +127,8 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={h.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ id: h.id, date: h.date, endDate: "", name: h.name }) }]}
-                          menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(h) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => setForm({ id: h.id, date: h.date, endDate: "", name: h.name }) }]}
+                          menu={[{ key: "delete", label: "Xóa", icon: "fa-trash", danger: true, onClick: () => handleDelete(h) }]}
                         />
                       </td>
                     )}

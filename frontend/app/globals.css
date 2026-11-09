@@ -199,6 +199,16 @@
 /* ============================================================
    BASE RESET & TYPOGRAPHY
    ============================================================ */
+/* Mọi biểu tượng cùng bề ngang để cột chữ bên cạnh thẳng hàng. */
+.fa-solid {
+  width: 1.25em;
+  text-align: center;
+}
+
+.fa-solid.d-block {
+  width: auto;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

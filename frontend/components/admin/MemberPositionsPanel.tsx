@@ -286,10 +286,10 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
                     <RowActions
                       itemLabel={i.displayName}
                       iconOnly
-                      primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", hidden: !active, onClick: () => openEdit(i) }]}
+                      primary={[{ key: "edit", label: "Sửa", icon: "fa-pen", hidden: !active, onClick: () => openEdit(i) }]}
                       menu={[
-                        { key: "end", label: "Kết thúc", icon: "bi-stop-circle", danger: true, hidden: !active, onClick: () => handleEnd(i) },
-                        { key: "delete", label: "Xóa (nhập nhầm)", icon: "bi-trash", danger: true, onClick: () => handleDelete(i) },
+                        { key: "end", label: "Kết thúc", icon: "fa-circle-stop", danger: true, hidden: !active, onClick: () => handleEnd(i) },
+                        { key: "delete", label: "Xóa (nhập nhầm)", icon: "fa-trash", danger: true, onClick: () => handleDelete(i) },
                       ]}
                     />
                   </td>
@@ -337,7 +337,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
               className="btn btn-sm btn-outline-secondary ms-auto"
               onClick={() => setOverrideForm({ value: authority.override ?? "", reason: authority.overrideReason ?? "" })}
             >
-              <i className="bi bi-pencil me-1" />
+              <i className="fa-solid fa-pen me-1" />
               Thay đổi
             </button>
           )}
@@ -358,7 +358,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           </div>
           {canManage && memberLayout && (
             <button type="button" className="btn btn-sm btn-outline-secondary ms-auto" onClick={() => setLayoutForm({ value: memberLayout.overrideId ?? "" })}>
-              <i className="bi bi-pencil me-1" />
+              <i className="fa-solid fa-pen me-1" />
               Thay đổi
             </button>
           )}
@@ -370,7 +370,7 @@ export function MemberPositionsPanel({ userId, canManage, departments, partyCell
           <h2 className="mb-0">Chức vụ đang giữ</h2>
           {canManage && (
             <button type="button" className="btn btn-sm btn-outline-secondary" onClick={openCreate}>
-              <i className="bi bi-plus-lg me-1" />
+              <i className="fa-solid fa-plus me-1" />
               Thêm chức vụ
             </button>
           )}

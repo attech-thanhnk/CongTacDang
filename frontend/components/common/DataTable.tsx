@@ -42,7 +42,7 @@ export function DataTable<T>({
   totalCountText,
   emptyTitle = "Chưa có dữ liệu",
   emptyDescription = "Không tìm thấy bản ghi nào phù hợp.",
-  emptyIcon = "bi-inbox",
+  emptyIcon = "fa-inbox",
   emptyAction,
   className = "",
   onRowClick,

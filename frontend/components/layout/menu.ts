@@ -29,8 +29,8 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
     {
       key: "main",
       items: [
-        { title: "Tổng quan", href: "/", icon: "bi-house" },
-        { title: "Việc cần xử lý", href: "/work-queue", icon: "bi-inbox", check: hasAnyEvaluationAction },
+        { title: "Tổng quan", href: "/", icon: "fa-house" },
+        { title: "Việc cần xử lý", href: "/work-queue", icon: "fa-inbox", check: hasAnyEvaluationAction },
       ],
     },
     {
@@ -40,14 +40,14 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
         {
           title: "Hồ sơ đánh giá",
           href: "/evaluations",
-          icon: "bi-file-earmark-text",
+          icon: "fa-file-lines",
           // Người chỉ tự đánh giá mở hồ sơ của mình từ Tổng quan; mục này dành cho người xem hồ sơ người khác.
           check: () => hasPermission("evaluation.read"),
         },
         {
           title: "Đánh giá tập thể",
           href: "/collective-evaluations",
-          icon: "bi-people",
+          icon: "fa-users",
           // Chỉ người lập hồ sơ tập thể, biên bản hoặc ghi nhận đề xuất tập thể.
           check: () =>
             hasPermission("collective.manage") ||
@@ -58,7 +58,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
         {
           title: "Xác nhận số liệu",
           href: "/crosschecks",
-          icon: "bi-patch-check",
+          icon: "fa-file-circle-check",
           // Người xem hồ sơ đánh giá cũng xem được danh sách phiếu (API cho phép).
           check: () =>
             hasPermission("evaluation.read") ||
@@ -69,7 +69,7 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
         {
           title: "Duyệt kết quả",
           href: "/quality-control",
-          icon: "bi-shield-check",
+          icon: "fa-clipboard-check",
           check: () =>
             hasPermission("evaluation.calibration.manage") ||
             hasPermission("evaluation.calibration.conclude") ||
@@ -82,11 +82,11 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       key: "results",
       title: "Kết quả",
       items: [
-        { title: "Kết quả đánh giá", href: "/results", icon: "bi-trophy", permission: "evaluation.results.view" },
+        { title: "Kết quả đánh giá", href: "/results", icon: "fa-award", permission: "evaluation.results.view" },
         {
           title: "Báo cáo",
           href: "/reports",
-          icon: "bi-bar-chart-line",
+          icon: "fa-chart-column",
           // Người chỉ có quyền xem hội nghị dùng trang này để xuất bảng phiếu kín (Mẫu 11).
           check: () => hasPermission("report.export") || hasPermission("meeting.read"),
         },
@@ -96,11 +96,11 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       key: "setup",
       title: "Thiết lập",
       items: [
-        { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
-        { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
-        { title: "Danh mục tổ chức", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+        { title: "Kỳ đánh giá", href: "/periods", icon: "fa-calendar-days", permission: "period.manage" },
+        { title: "Bộ tiêu chí", href: "/criteria", icon: "fa-list-check", permission: "criteria.manage" },
+        { title: "Danh mục tổ chức", href: "/catalog", icon: "fa-building", permission: "catalog.manage" },
         // Người quản lý danh mục đã có thẻ Ngày nghỉ trong Danh mục tổ chức.
-        { title: "Ngày nghỉ", href: "/holidays", icon: "bi-calendar-x", check: () => hasPermission("period.manage") && !hasPermission("catalog.manage") },
+        { title: "Ngày nghỉ", href: "/holidays", icon: "fa-calendar-xmark", check: () => hasPermission("period.manage") && !hasPermission("catalog.manage") },
       ],
     },
     {
@@ -108,13 +108,13 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
       title: "Hệ thống",
       collapsible: true,
       items: [
-        { title: "Tài khoản", href: "/admin/users", icon: "bi-people", permission: "system.users.read" },
-        { title: "Vai trò", href: "/admin/roles", icon: "bi-shield-lock", permission: "system.roles.manage" },
-        { title: "Người thực hiện", href: "/admin/performers", icon: "bi-person-check", permission: "system.assignments.manage" },
-        { title: "Nhập dữ liệu", href: "/admin/imports", icon: "bi-file-earmark-arrow-up", permission: "system.import" },
-        { title: "Nhật ký hệ thống", href: "/audit", icon: "bi-clock-history", permission: "system.audit.read" },
-        { title: "Thông tin đơn vị", href: "/admin/settings", icon: "bi-gear", permission: "system.settings.manage" },
-        { title: "Biểu mẫu Word", href: "/admin/templates", icon: "bi-file-earmark-word", permission: "system.templates.manage" },
+        { title: "Tài khoản", href: "/admin/users", icon: "fa-users", permission: "system.users.read" },
+        { title: "Vai trò", href: "/admin/roles", icon: "fa-user-shield", permission: "system.roles.manage" },
+        { title: "Người thực hiện", href: "/admin/performers", icon: "fa-user-check", permission: "system.assignments.manage" },
+        { title: "Nhập dữ liệu", href: "/admin/imports", icon: "fa-file-arrow-up", permission: "system.import" },
+        { title: "Nhật ký hệ thống", href: "/audit", icon: "fa-clock-rotate-left", permission: "system.audit.read" },
+        { title: "Thông tin đơn vị", href: "/admin/settings", icon: "fa-gear", permission: "system.settings.manage" },
+        { title: "Biểu mẫu Word", href: "/admin/templates", icon: "fa-file-word", permission: "system.templates.manage" },
       ],
     },
   ];
@@ -140,10 +140,10 @@ export interface MenuTrail {
 
 // Trang không có trên menu nhưng vẫn cần đường dẫn.
 const EXTRA_PAGES: MenuItem[] = [
-  { title: "Tài khoản", href: "/account", icon: "bi-person" },
-  { title: "Hướng dẫn", href: "/help", icon: "bi-question-circle" },
+  { title: "Tài khoản", href: "/account", icon: "fa-user" },
+  { title: "Hướng dẫn", href: "/help", icon: "fa-circle-question" },
   // Không có quyền xem hồ sơ người khác thì hồ sơ mở được là hồ sơ của mình.
-  { title: "Hồ sơ của tôi", href: "/evaluations", icon: "bi-file-earmark-text", backTo: ["/work-queue", "/"] },
+  { title: "Hồ sơ của tôi", href: "/evaluations", icon: "fa-file-lines", backTo: ["/work-queue", "/"] },
 ];
 
 /** Mục menu ứng với đường dẫn hiện tại — dùng cho đường dẫn trên thanh đầu trang. */

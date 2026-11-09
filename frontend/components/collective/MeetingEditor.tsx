@@ -269,7 +269,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
 
   const removeButton = (label: string, onClick: () => void) => (
     <button type="button" className={`btn btn-sm btn-outline-danger ${styles.iconBtn}`} aria-label={label} title={label} onClick={onClick}>
-      <i className="bi bi-x-lg" aria-hidden="true" />
+      <i className="fa-solid fa-xmark" aria-hidden="true" />
     </button>
   );
 
@@ -372,7 +372,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
                 {removeButton("Bỏ người dự", () => setAttendees(attendees.filter((_, i) => i !== index)))}
               </div>
             ))}
-            <Button type="button" size="sm" variant="outline-secondary" icon="bi-plus-lg" onClick={() => setAttendees([...attendees, { name: "", title: "" }])}>
+            <Button type="button" size="sm" variant="outline-secondary" icon="fa-plus" onClick={() => setAttendees([...attendees, { name: "", title: "" }])}>
               Thêm người dự
             </Button>
           </div>
@@ -410,7 +410,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
                 {removeButton("Bỏ thành viên Tổ kiểm phiếu", () => setCommittee(committee.filter((_, i) => i !== index)))}
               </div>
             ))}
-            <Button type="button" size="sm" variant="outline-secondary" icon="bi-plus-lg" onClick={() => setCommittee([...committee, { name: "", title: "" }])}>
+            <Button type="button" size="sm" variant="outline-secondary" icon="fa-plus" onClick={() => setCommittee([...committee, { name: "", title: "" }])}>
               Thêm thành viên
             </Button>
           </div>
@@ -468,7 +468,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         <Button
           type="submit"
           variant="primary"
-          icon="bi-check-lg"
+          icon="fa-check"
           loading={saving}
           loadingText="Đang lưu..."
           disabled={editing ? !dirty : false}

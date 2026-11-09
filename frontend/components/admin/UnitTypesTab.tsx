@@ -81,7 +81,7 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
             className="btn btn-sm btn-primary ms-auto"
             onClick={() => setForm({ name: "", side: "Administrative", sortOrder: "0", isActive: true })}
           >
-            <i className="bi bi-plus-lg me-1" />
+            <i className="fa-solid fa-plus me-1" />
             Thêm loại đơn vị
           </button>
         </div>
@@ -130,8 +130,8 @@ export function UnitTypesTab({ unitTypes, loading, canManage, onChanged }: UnitT
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={t.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive }) }]}
-                          menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(t) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => setForm({ id: t.id, name: t.name, side: t.side, sortOrder: String(t.sortOrder), isActive: t.isActive }) }]}
+                          menu={[{ key: "delete", label: "Xóa", icon: "fa-trash", danger: true, onClick: () => handleDelete(t) }]}
                         />
                       </td>
                     )}

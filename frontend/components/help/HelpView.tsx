@@ -116,7 +116,7 @@ export function HelpView({
               />
               {searching && (
                 <button type="button" className={styles.clear} aria-label="Xóa tìm kiếm" onClick={() => setQuery("")}>
-                  <i className="bi bi-x-lg" aria-hidden="true" />
+                  <i className="fa-solid fa-xmark" aria-hidden="true" />
                 </button>
               )}
               {searching && (

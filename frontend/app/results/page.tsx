@@ -72,7 +72,7 @@ export default function ResultsPage() {
         title="Kết quả đánh giá"
         actions={
           <button type="button" className="btn btn-outline-secondary" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-            <i className="bi bi-arrow-clockwise" />
+            <i className="fa-solid fa-rotate-right" />
           </button>
         }
       />
@@ -83,17 +83,17 @@ export default function ResultsPage() {
         ) : error ? (
           <section className="card">
             <EmptyState
-              icon="bi-exclamation-triangle"
+              icon="fa-triangle-exclamation"
               title="Tải danh sách kết quả không thành công"
               description={error}
-              action={<button type="button" className="btn btn-outline-secondary" onClick={() => load()}><i className="bi bi-arrow-clockwise me-1" />Làm mới</button>}
+              action={<button type="button" className="btn btn-outline-secondary" onClick={() => load()}><i className="fa-solid fa-rotate-right me-1" />Làm mới</button>}
             />
           </section>
         ) : items.length === 0 ? (
           <section className="card">
             {departmentId || grade ? (
               <EmptyState
-                icon="bi-funnel"
+                icon="fa-filter"
                 title="Không có kết quả phù hợp"
                 description="Thử chọn đơn vị hoặc mức xếp loại khác."
                 action={
@@ -103,7 +103,7 @@ export default function ResultsPage() {
                 }
               />
             ) : (
-              <EmptyState icon="bi-award" title="Chưa có kết quả công bố" />
+              <EmptyState icon="fa-award" title="Chưa có kết quả công bố" />
             )}
           </section>
         ) : (

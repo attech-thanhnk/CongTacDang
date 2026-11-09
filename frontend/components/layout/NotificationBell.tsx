@@ -7,14 +7,14 @@ import { usePathname } from "next/navigation";
 import { NotificationSummaryDto, postPublishService } from "@/services/postPublishService";
 
 const KIND_ICON: Record<string, { icon: string; color: string }> = {
-  overdue: { icon: "bi-exclamation-octagon", color: "var(--bad)" },
-  dueSoon: { icon: "bi-alarm", color: "var(--wait)" },
-  appealUnassigned: { icon: "bi-person-exclamation", color: "var(--bad)" },
-  appeal: { icon: "bi-chat-square-text", color: "var(--info)" },
-  improvementPlan: { icon: "bi-clipboard2-pulse", color: "var(--info)" },
-  acknowledge: { icon: "bi-pen", color: "var(--ok)" },
-  appealAnswered: { icon: "bi-chat-square-check", color: "var(--ok)" },
-  pending: { icon: "bi-inbox", color: "var(--ink-2)" },
+  overdue: { icon: "fa-circle-exclamation", color: "var(--bad)" },
+  dueSoon: { icon: "fa-clock", color: "var(--wait)" },
+  appealUnassigned: { icon: "fa-user-clock", color: "var(--bad)" },
+  appeal: { icon: "fa-comment-dots", color: "var(--info)" },
+  improvementPlan: { icon: "fa-clipboard-list", color: "var(--info)" },
+  acknowledge: { icon: "fa-signature", color: "var(--ok)" },
+  appealAnswered: { icon: "fa-comment", color: "var(--ok)" },
+  pending: { icon: "fa-inbox", color: "var(--ink-2)" },
 };
 
 /** Chuông nhắc việc: tính lại khi tải và khi chuyển trang, không đẩy thời gian thực. */
@@ -62,7 +62,7 @@ export function NotificationBell() {
         aria-expanded={open}
         title="Nhắc việc"
       >
-        <i className="bi bi-bell" />
+        <i className="fa-solid fa-bell" />
         {total > 0 && <span className="bell-count">{total > 99 ? "99+" : total}</span>}
       </button>
 
@@ -89,7 +89,7 @@ export function NotificationBell() {
                 return (
                   <li key={`${item.link}-${item.kind}-${index}`}>
                     <Link href={item.link || "/work-queue"} onClick={() => setOpen(false)} className="bell-item">
-                      <i className={`bi ${style.icon}`} style={{ color: style.color }} />
+                      <i className={`fa-solid ${style.icon}`} style={{ color: style.color }} />
                       <span className="bell-item-text">
                         <b className="text-truncate">{item.title}</b>
                         {item.detail && <small className="text-truncate">{item.detail}</small>}

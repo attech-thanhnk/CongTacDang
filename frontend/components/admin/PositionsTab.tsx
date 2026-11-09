@@ -206,7 +206,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
         </select>
         {canManage && (
           <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => setForm({ ...EMPTY_FORM })}>
-            <i className="bi bi-plus-lg me-1" />
+            <i className="fa-solid fa-plus me-1" />
             Thêm chức vụ
           </button>
         )}
@@ -268,7 +268,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                     </td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
-                        <RowActions itemLabel={p.name} primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => openEdit(p) }]} menu={[{ key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(p) }]} />
+                        <RowActions itemLabel={p.name} primary={[{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => openEdit(p) }]} menu={[{ key: "delete", label: "Xóa", icon: "fa-trash", danger: true, onClick: () => handleDelete(p) }]} />
                       </td>
                     )}
                   </tr>

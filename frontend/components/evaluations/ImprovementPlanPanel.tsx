@@ -134,8 +134,8 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
         {plan && (
           <RowActions
             itemLabel="Kế hoạch Mẫu 17"
-            primary={[{ key: "word", label: "Tải Word", icon: "bi-download", onClick: () => download("original") }]}
-            menu={[{ key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download("pdf") }]}
+            primary={[{ key: "word", label: "Tải Word", icon: "fa-download", onClick: () => download("original") }]}
+            menu={[{ key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => download("pdf") }]}
           />
         )}
       </div>
@@ -151,7 +151,7 @@ export function ImprovementPlanPanel({ record, onPendingChange }: { record: Eval
         {data?.canManage && !plan && !editing && (
           <div>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => { setDraft(toDraft()); setEditing(true); }}>
-              <i className="bi bi-plus-lg me-1" />Lập kế hoạch
+              <i className="fa-solid fa-plus me-1" />Lập kế hoạch
             </button>
           </div>
         )}

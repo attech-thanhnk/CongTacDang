@@ -25,14 +25,14 @@ export function checkAttachFile(file: File): string | null {
 /** Biểu tượng và màu theo loại tệp. */
 export function fileKind(name: string): { icon: string; tone: "pdf" | "word" | "excel" | "image" | "other" } {
   switch (extOf(name)) {
-    case ".pdf": return { icon: "bi-file-earmark-pdf", tone: "pdf" };
+    case ".pdf": return { icon: "fa-file-pdf", tone: "pdf" };
     case ".doc":
-    case ".docx": return { icon: "bi-file-earmark-word", tone: "word" };
+    case ".docx": return { icon: "fa-file-word", tone: "word" };
     case ".xls":
-    case ".xlsx": return { icon: "bi-file-earmark-excel", tone: "excel" };
+    case ".xlsx": return { icon: "fa-file-excel", tone: "excel" };
     case ".jpg":
     case ".jpeg":
-    case ".png": return { icon: "bi-file-earmark-image", tone: "image" };
-    default: return { icon: "bi-file-earmark", tone: "other" };
+    case ".png": return { icon: "fa-file-image", tone: "image" };
+    default: return { icon: "fa-file", tone: "other" };
   }
 }

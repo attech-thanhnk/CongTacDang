@@ -8,7 +8,7 @@ export default function NotFound() {
       <div className="page-body">
         <section className="card">
           <EmptyState
-            icon="bi-signpost-split"
+            icon="fa-signs-post"
             title="Không tìm thấy trang"
             action={<Link href="/" className="btn btn-primary">Về trang Tổng quan</Link>}
           />

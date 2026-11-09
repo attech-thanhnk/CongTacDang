@@ -47,13 +47,13 @@ const ENTITY_LABELS: Record<string, string> = {
 
 /** Nhãn và màu của loại thao tác. */
 const ACTION_META: Record<string, { label: string; icon: string; tone: string }> = {
-  Create: { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" },
-  Update: { label: "Cập nhật", icon: "bi-pencil", tone: "t-info" },
-  Delete: { label: "Đã xóa", icon: "bi-archive", tone: "t-bad" },
-  Import: { label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", tone: "t-wait" },
-  Approve: { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" },
-  AssignRoles: { label: "Phân công vai trò", icon: "bi-person-badge", tone: "t-wait" },
-  UpdatePermissions: { label: "Cập nhật quyền", icon: "bi-shield-check", tone: "t-wait" },
+  Create: { label: "Tạo mới", icon: "fa-plus", tone: "t-ok" },
+  Update: { label: "Cập nhật", icon: "fa-pen", tone: "t-info" },
+  Delete: { label: "Đã xóa", icon: "fa-box-archive", tone: "t-bad" },
+  Import: { label: "Nhập dữ liệu", icon: "fa-file-arrow-up", tone: "t-wait" },
+  Approve: { label: "Phê duyệt", icon: "fa-circle-check", tone: "t-ok" },
+  AssignRoles: { label: "Phân công vai trò", icon: "fa-user-tag", tone: "t-wait" },
+  UpdatePermissions: { label: "Cập nhật quyền", icon: "fa-user-shield", tone: "t-wait" },
 };
 
 /** Thao tác phiên đăng nhập chỉ nhận ra được qua đường dẫn gọi. */
@@ -68,7 +68,7 @@ const SESSION_HINTS: [string, string][] = [
 const NAME_KEYS = ["FullName", "Name", "Title", "DisplayName", "Username", "UserName", "OriginalFileName", "FileName", "Code"];
 
 export function actionMeta(action: string) {
-  return ACTION_META[action] ?? { label: action, icon: "bi-dot", tone: "t-info" };
+  return ACTION_META[action] ?? { label: action, icon: "fa-circle-info", tone: "t-info" };
 }
 
 export function entityLabel(entityType: string) {

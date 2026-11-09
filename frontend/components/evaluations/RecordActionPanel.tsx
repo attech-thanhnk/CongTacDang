@@ -72,11 +72,11 @@ export function RecordActionPanel({ record, actions, busy, onSubmit, onReason }:
       <>
         {withReason.map((action) => {
           const mild = action.action === "ExtendUnlock" || action.action === "MarkNotRated" || action.action === "UnmarkNotRated";
-          const icon = action.action === "ExtendUnlock" ? "bi-clock-history" : action.action === "MarkNotRated" ? "bi-slash-circle"
-            : action.action === "UnmarkNotRated" ? "bi-arrow-counterclockwise" : "bi-arrow-return-left";
+          const icon = action.action === "ExtendUnlock" ? "fa-clock-rotate-left" : action.action === "MarkNotRated" ? "fa-ban"
+            : action.action === "UnmarkNotRated" ? "fa-rotate-left" : "fa-reply";
           return (
             <button key={action.action} type="button" className={`btn ${mild ? "btn-outline-secondary" : "btn-outline-danger"}`} disabled={busy} onClick={() => onReason(action)}>
-              <i className={`bi ${icon} me-1`} aria-hidden="true" />
+              <i className={`fa-solid ${icon} me-1`} aria-hidden="true" />
               {action.label}
             </button>
           );
@@ -195,7 +195,7 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
       return (
         <FormFoot only>
           <button type="button" className="btn btn-outline-danger" disabled={busy} onClick={() => onSubmit(action, {})}>
-            <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />Thu hồi duyệt
+            <i className="fa-solid fa-rotate-left me-1" aria-hidden="true" />Thu hồi duyệt
           </button>
         </FormFoot>
       );
@@ -212,7 +212,7 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
     case "Publish":
       return (
         <FormFoot only extra={extra}>
-          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => onSubmit(action, {})}><i className="bi bi-megaphone me-1" aria-hidden="true" />Công bố</button>
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => onSubmit(action, {})}><i className="fa-solid fa-bullhorn me-1" aria-hidden="true" />Công bố</button>
         </FormFoot>
       );
     default:
@@ -853,7 +853,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
                   setMoreOpen(moreOpen.filter((_, idx) => idx !== i));
                 }}
               >
-                <i className="bi bi-x-lg me-1" />Xóa
+                <i className="fa-solid fa-xmark me-1" />Xóa
               </button>
             </div>
             <div className="row g-2">
@@ -900,7 +900,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
               <div className="col-12">
                 <button type="button" id={`t${i}-more`} className="btn btn-link btn-sm p-0" aria-expanded={!!moreOpen[i]} aria-controls={`t${i}-details`}
                   onClick={() => setMore(i, !moreOpen[i])}>
-                  <i className={`bi ${moreOpen[i] ? "bi-chevron-down" : "bi-chevron-right"} me-1`} aria-hidden="true" />Thêm chi tiết
+                  <i className={`fa-solid ${moreOpen[i] ? "fa-chevron-down" : "fa-chevron-right"} me-1`} aria-hidden="true" />Thêm chi tiết
                 </button>
               </div>
             </div>
@@ -929,7 +929,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
       <div className={`d-flex flex-wrap gap-2 justify-content-between align-items-center border-top py-2 ${styles.stickyFoot}`}>
         <div className="d-flex gap-2 align-items-center">
           <button type="button" className="btn btn-outline-secondary" onClick={() => { setTasks([...tasks, blank()]); setMoreOpen([...moreOpen, false]); }}>
-            <i className="bi bi-plus-lg me-1" />Thêm dòng
+            <i className="fa-solid fa-plus me-1" />Thêm dòng
           </button>
           <span className="small text-secondary">
             Tổng trọng số: <strong className={p && Math.abs(total - p.totalTaskWeight) > p.taskWeightTolerance ? "text-danger" : ""}>{total}</strong>
@@ -937,7 +937,7 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
           </span>
           {p && <span className="small text-secondary">· {p.minTasks}–{p.maxTasks} sản phẩm</span>}
         </div>
-        <button type="submit" className="btn btn-primary" disabled={busy}><i className="bi bi-send me-1" aria-hidden="true" />Nộp danh mục</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}><i className="fa-solid fa-paper-plane me-1" aria-hidden="true" />Nộp danh mục</button>
       </div>
     </form>
   );

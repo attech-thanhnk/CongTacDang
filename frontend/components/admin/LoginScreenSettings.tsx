@@ -184,7 +184,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
             </div>
             {imageUrl && size && size.width < MIN_GOOD_WIDTH && (
               <div className={styles.warn}>
-                <i className="bi bi-exclamation-triangle me-1" />
+                <i className="fa-solid fa-triangle-exclamation me-1" />
                 Ảnh rộng dưới {MIN_GOOD_WIDTH} px. Nên dùng ảnh rộng từ 1920 px.
               </div>
             )}
@@ -200,12 +200,12 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
                     disabled={busy}
                     onClick={() => fileInput.current?.click()}
                   >
-                    <i className="bi bi-upload me-1" />
+                    <i className="fa-solid fa-upload me-1" />
                     {imageUrl ? "Thay ảnh" : "Tải ảnh lên"}
                   </button>
                   {imageUrl && (
                     <button type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={handleRemove}>
-                      <i className="bi bi-trash me-1" />
+                      <i className="fa-solid fa-trash me-1" />
                       Bỏ ảnh
                     </button>
                   )}

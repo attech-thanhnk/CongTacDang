@@ -183,12 +183,12 @@ export default function CollectiveEvaluationsPage() {
   const recordActions = (record: CollectiveRecord): { primary: RowAction[]; menu: RowAction[] } => {
     const exports: RowAction[] = [];
     if (record.form === "M06" || record.form === "M07" || record.form === "M08") {
-      exports.push({ key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportRecord(record, "original") });
-      if (record.form === "M08") exports.push({ key: "xlsx", label: "Tải Excel", icon: "bi-download", onClick: () => exportRecordExcel(record) });
-      exports.push({ key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportRecord(record, "pdf") });
+      exports.push({ key: "word", label: "Tải Word", icon: "fa-download", onClick: () => exportRecord(record, "original") });
+      if (record.form === "M08") exports.push({ key: "xlsx", label: "Tải Excel", icon: "fa-download", onClick: () => exportRecordExcel(record) });
+      exports.push({ key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => exportRecord(record, "pdf") });
     }
     if (canManageCollective) {
-      return { primary: [{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setRecordEditor({ item: record }) }], menu: exports };
+      return { primary: [{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => setRecordEditor({ item: record }) }], menu: exports };
     }
     return { primary: exports.slice(0, 1), menu: exports.slice(1) };
   };
@@ -196,17 +196,17 @@ export default function CollectiveEvaluationsPage() {
   const meetingActions = (meeting: MeetingRecord): { primary: RowAction[]; menu: RowAction[] } => {
     const exports: RowAction[] = [];
     if (meeting.formCode === "M12") {
-      exports.push({ key: "12w", label: "Tải Mẫu 12 (Word)", icon: "bi-download", onClick: () => exportMeeting(meeting, "12", "original") });
-      exports.push({ key: "12p", label: "Tải Mẫu 12 (PDF)", icon: "bi-filetype-pdf", onClick: () => exportMeeting(meeting, "12", "pdf") });
-      exports.push({ key: "11w", label: "Tải Mẫu 11 phiếu trắng (Word)", icon: "bi-download", onClick: () => exportMeeting(meeting, "11", "original") });
-      exports.push({ key: "11p", label: "Tải Mẫu 11 phiếu trắng (PDF)", icon: "bi-filetype-pdf", onClick: () => exportMeeting(meeting, "11", "pdf") });
+      exports.push({ key: "12w", label: "Tải Mẫu 12 (Word)", icon: "fa-download", onClick: () => exportMeeting(meeting, "12", "original") });
+      exports.push({ key: "12p", label: "Tải Mẫu 12 (PDF)", icon: "fa-file-pdf", onClick: () => exportMeeting(meeting, "12", "pdf") });
+      exports.push({ key: "11w", label: "Tải Mẫu 11 phiếu trắng (Word)", icon: "fa-download", onClick: () => exportMeeting(meeting, "11", "original") });
+      exports.push({ key: "11p", label: "Tải Mẫu 11 phiếu trắng (PDF)", icon: "fa-file-pdf", onClick: () => exportMeeting(meeting, "11", "pdf") });
     }
     if (meeting.voteSummaries.length > 0) {
-      exports.push({ key: "13w", label: "Tải Mẫu 13 (Word)", icon: "bi-download", onClick: () => exportMeeting(meeting, "13", "original") });
-      exports.push({ key: "13p", label: "Tải Mẫu 13 (PDF)", icon: "bi-filetype-pdf", onClick: () => exportMeeting(meeting, "13", "pdf") });
+      exports.push({ key: "13w", label: "Tải Mẫu 13 (Word)", icon: "fa-download", onClick: () => exportMeeting(meeting, "13", "original") });
+      exports.push({ key: "13p", label: "Tải Mẫu 13 (PDF)", icon: "fa-file-pdf", onClick: () => exportMeeting(meeting, "13", "pdf") });
     }
     if (canManageMeeting) {
-      return { primary: [{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setMeetingEditor({ item: meeting }) }], menu: exports };
+      return { primary: [{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => setMeetingEditor({ item: meeting }) }], menu: exports };
     }
     return { primary: exports.slice(0, 1), menu: exports.slice(1) };
   };
@@ -239,7 +239,7 @@ export default function CollectiveEvaluationsPage() {
         <div className="page-body">
           <section className="card">
             <EmptyState
-              icon="bi-calendar-x"
+              icon="fa-calendar-xmark"
               title="Chưa có kỳ đánh giá"
               action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
             />
@@ -319,8 +319,8 @@ export default function CollectiveEvaluationsPage() {
     activeTab === "tracking"
       ? undefined
       : activeTab === "records"
-      ? canManageCollective && <Button icon="bi-plus-lg" onClick={() => setRecordEditor({ item: null })}>Lập hồ sơ</Button>
-      : canManageMeeting && <Button icon="bi-plus-lg" onClick={() => setMeetingEditor({ item: null })}>Lập biên bản</Button>;
+      ? canManageCollective && <Button icon="fa-plus" onClick={() => setRecordEditor({ item: null })}>Lập hồ sơ</Button>
+      : canManageMeeting && <Button icon="fa-plus" onClick={() => setMeetingEditor({ item: null })}>Lập biên bản</Button>;
 
   const showTabs = canReadRecords && canReadMeetings;
 
@@ -353,7 +353,7 @@ export default function CollectiveEvaluationsPage() {
               {records.length === 0 ? (
                 <EmptyState
                   compact
-                  icon="bi-people"
+                  icon="fa-users"
                   title="Chưa có hồ sơ tập thể trong kỳ"
                   description={canManageCollective ? "Lập hồ sơ tự đánh giá của tập thể (Mẫu 07) hoặc tổng hợp nhiệm vụ của đơn vị (Mẫu 08)." : undefined}
                 />
@@ -409,7 +409,7 @@ export default function CollectiveEvaluationsPage() {
               {meetings.length === 0 ? (
                 <EmptyState
                   compact
-                  icon="bi-journal-text"
+                  icon="fa-file-lines"
                   title="Chưa có biên bản trong kỳ"
                   description={canManageMeeting ? "Lập biên bản hội nghị (Mẫu 12) hoặc biên bản kiểm phiếu (Mẫu 13)." : undefined}
                 />

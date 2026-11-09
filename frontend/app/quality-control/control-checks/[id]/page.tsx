@@ -253,7 +253,7 @@ export default function ControlCheckDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Phiếu kiểm tra" />
         <div className="page-body">
-          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="fa-file-circle-xmark" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );
@@ -292,11 +292,11 @@ export default function ControlCheckDetailPage() {
               itemLabel="phiếu kiểm tra"
               disabled={busy}
               actions={[
-                { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
-                { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
-                { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
-                { key: "reopen", label: "Mở lại", icon: "bi-arrow-counterclockwise", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
-                { key: "cancel", label: "Hủy phiếu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
+                { key: "word", label: "Tải Word", icon: "fa-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => exportForm("pdf") },
+                { key: "return", label: "Trả lại", icon: "fa-reply", hidden: !data.canReturn, onClick: () => setDialog("return") },
+                { key: "reopen", label: "Mở lại", icon: "fa-rotate-left", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
+                { key: "cancel", label: "Hủy phiếu", icon: "fa-circle-xmark", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
               ]}
             />
           </div>

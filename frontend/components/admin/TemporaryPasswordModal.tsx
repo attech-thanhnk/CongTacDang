@@ -36,7 +36,7 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
       footer={
         <>
           <button type="button" className="btn btn-outline-secondary" onClick={() => handleCopy("both")}>
-            <i className={`bi ${copied === "both" ? "bi-check2" : "bi-clipboard"} me-1`} />
+            <i className={`fa-solid ${copied === "both" ? "fa-check" : "fa-copy"} me-1`} />
             Sao chép cả hai
           </button>
           <button type="button" className="btn btn-primary" onClick={onClose}>
@@ -46,7 +46,7 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
       }
     >
       <div className="alert alert-warning small py-2 d-flex gap-2" role="alert">
-        <i className="bi bi-exclamation-triangle-fill" />
+        <i className="fa-solid fa-triangle-exclamation" />
         <div>
           Mật khẩu tạm <strong>chỉ hiển thị một lần</strong> — hãy sao chép trước khi đóng.
         </div>
@@ -69,7 +69,7 @@ export function TemporaryPasswordModal({ credential, onClose }: { credential: Te
               aria-label={field.label}
             />
             <button type="button" className="btn btn-outline-secondary" onClick={() => handleCopy(field.kind)}>
-              <i className={`bi ${copied === field.kind ? "bi-check2 text-success" : "bi-clipboard"} me-1`} />
+              <i className={`fa-solid ${copied === field.kind ? "fa-check text-success" : "fa-copy"} me-1`} />
               {copied === field.kind ? "Đã sao chép" : "Sao chép"}
             </button>
           </div>

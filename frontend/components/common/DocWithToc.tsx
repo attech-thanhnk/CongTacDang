@@ -131,7 +131,7 @@ export function DocWithToc({ entries, ariaLabel, header, collapsible = false, ex
       <nav className={`${styles.toc} ${open ? styles.tocOpen : ""}`} aria-label={ariaLabel} data-toc-scroll>
         <button type="button" className={styles.tocToggle} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
           <span>Mục lục</span>
-          <i className="bi bi-chevron-down" aria-hidden="true" />
+          <i className="fa-solid fa-chevron-down" aria-hidden="true" />
         </button>
         <div className={styles.tocBody}>
           {header}
@@ -150,7 +150,7 @@ export function DocWithToc({ entries, ariaLabel, header, collapsible = false, ex
                   </a>
                   {hasChildren && (
                     <button type="button" className={styles.chev} aria-label={`${isOpen ? "Thu gọn" : "Mở"} ${e.label}`} aria-expanded={isOpen} onClick={() => toggle(e.id)}>
-                      <i className={`bi ${isOpen ? "bi-chevron-up" : "bi-chevron-down"}`} aria-hidden="true" />
+                      <i className={`fa-solid ${isOpen ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
                     </button>
                   )}
                 </li>

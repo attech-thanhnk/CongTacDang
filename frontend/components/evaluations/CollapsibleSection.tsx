@@ -53,7 +53,7 @@ export function CollapsibleSection({ title, tag, defaultOpen = true, flush = fal
     <section id={anchorId} className={`${styles.block} ${styles.anchor} ${open ? styles.open : ""} ${current ? styles.current : ""}`}>
       <h2 className={styles.toggleH}>
         <button type="button" className={styles.toggle} aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
-          <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"} ${styles.chev}`} aria-hidden="true" />
+          <i className={`fa-solid ${open ? "fa-chevron-down" : "fa-chevron-right"} ${styles.chev}`} aria-hidden="true" />
           <span className={styles.toggleTitle}>{title}</span>
           {tag && <span className={styles.end}>{tag}</span>}
         </button>

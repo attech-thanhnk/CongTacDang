@@ -102,7 +102,7 @@ export default function CriteriaSetsPage() {
         <section className="card">
           {canManage && <CardToolbar actions={
             <button type="button" className="btn btn-primary" onClick={() => { setForm(EMPTY_FORM); setShowCreate(true); }}>
-              <i className="bi bi-plus-lg me-1" />Tạo bộ tiêu chí
+              <i className="fa-solid fa-plus me-1" />Tạo bộ tiêu chí
             </button>
           } />}
           <div className="card-body p-0">
@@ -135,17 +135,17 @@ export default function CriteriaSetsPage() {
                             disabled={busy}
                             primary={[
                               canManage && s.status === "Draft"
-                                ? { key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => router.push(`/criteria/${s.id}`) }
-                                : { key: "view", label: "Xem", icon: "bi-eye", onClick: () => router.push(`/criteria/${s.id}`) },
+                                ? { key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => router.push(`/criteria/${s.id}`) }
+                                : { key: "view", label: "Xem", icon: "fa-eye", onClick: () => router.push(`/criteria/${s.id}`) },
                             ]}
                             menu={[
-                              { key: "clone", label: "Nhân bản", icon: "bi-copy", hidden: !canManage, onClick: () => clone(s) },
+                              { key: "clone", label: "Nhân bản", icon: "fa-copy", hidden: !canManage, onClick: () => clone(s) },
                               {
-                                key: "archive", label: "Lưu trữ", icon: "bi-archive", danger: true, hidden: !canManage || s.status !== "Published",
+                                key: "archive", label: "Lưu trữ", icon: "fa-box-archive", danger: true, hidden: !canManage || s.status !== "Published",
                                 onClick: () => confirm({ title: "Lưu trữ bộ tiêu chí", message: `Kỳ đã dùng "${s.name}" không bị ảnh hưởng; bộ không chọn được cho kỳ mới.`, confirmText: "Lưu trữ", isDanger: true, onConfirm: () => run(() => criteriaService.archive(s.id, s.version), "Đã lưu trữ bộ tiêu chí.") }),
                               },
                               {
-                                key: "delete", label: "Xóa bản nháp", icon: "bi-trash", danger: true, hidden: !canManage || s.status !== "Draft",
+                                key: "delete", label: "Xóa bản nháp", icon: "fa-trash", danger: true, hidden: !canManage || s.status !== "Draft",
                                 onClick: () => confirm({ title: "Xóa bản nháp", message: `Xóa hẳn bản nháp "${s.name}"?`, confirmText: "Xóa", isDanger: true, onConfirm: () => run(() => criteriaService.remove(s.id, s.version), "Đã xóa bản nháp.") }),
                               },
                             ]}

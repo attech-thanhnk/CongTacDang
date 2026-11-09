@@ -101,7 +101,7 @@ export function DateField({ id, value, onChange, required, disabled, min, max, i
           onBlur={() => setTouched(true)}
         />
         <button type="button" className="btn btn-outline-secondary" disabled={disabled} onClick={openPicker} aria-label="Chọn ngày" title="Chọn ngày">
-          <i className="bi bi-calendar3" aria-hidden="true" />
+          <i className="fa-solid fa-calendar-days" aria-hidden="true" />
         </button>
       {touched && invalid && <div className="invalid-feedback">{message}</div>}
       </div>

@@ -166,7 +166,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
             )}
             <button type="button" className="btn btn-outline-secondary btn-sm text-nowrap"
               onClick={() => patch({ rows: [...form.rows, { key: newKey(), taskId: null, itemName: "", selfData: "" }] })}>
-              <i className="bi bi-plus-lg me-1" />Thêm dòng
+              <i className="fa-solid fa-plus me-1" />Thêm dòng
             </button>
           </div>
         </div>
@@ -185,7 +185,7 @@ export function CrosscheckRequestForm({ crosscheck, tasks = [], busy, submitLabe
             <div className="col-12 col-md-1 d-flex align-items-end justify-content-end">
               <button type="button" className="btn btn-outline-danger btn-sm" aria-label={`Bỏ dòng ${index + 1}`} title="Bỏ dòng"
                 onClick={() => patch({ rows: form.rows.filter((x) => x.key !== r.key) })}>
-                <i className="bi bi-trash" />
+                <i className="fa-solid fa-trash" />
               </button>
             </div>
           </div>

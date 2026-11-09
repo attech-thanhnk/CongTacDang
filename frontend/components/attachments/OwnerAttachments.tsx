@@ -62,7 +62,7 @@ export function OwnerAttachments({
   return (
     <div className={styles.attach}>
       <button type="button" className={styles.toggle} aria-expanded={open} onClick={() => setOpen(!open)}>
-        <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"}`} aria-hidden="true" />
+        <i className={`fa-solid ${open ? "fa-chevron-down" : "fa-chevron-right"}`} aria-hidden="true" />
         Tệp đính kèm{files ? <span className={styles.count}>({files.length})</span> : null}
       </button>
       {open && (

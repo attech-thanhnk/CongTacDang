@@ -234,7 +234,7 @@ export default function CrosscheckDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Phiếu xác nhận số liệu" />
         <div className="page-body">
-          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="fa-file-circle-xmark" title="Chưa mở được phiếu" description="Phiếu không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );
@@ -266,11 +266,11 @@ export default function CrosscheckDetailPage() {
               itemLabel="phiếu xác nhận số liệu"
               disabled={busy}
               actions={[
-                { key: "edit", label: "Sửa yêu cầu", icon: "bi-pencil-square", hidden: !data.canEditRequest || editingRequest, onClick: startEditRequest },
-                { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
-                { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
-                { key: "return", label: "Trả lại", icon: "bi-arrow-return-left", hidden: !data.canReturn, onClick: () => setDialog("return") },
-                { key: "cancel", label: "Hủy yêu cầu", icon: "bi-x-circle", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
+                { key: "edit", label: "Sửa yêu cầu", icon: "fa-pen-to-square", hidden: !data.canEditRequest || editingRequest, onClick: startEditRequest },
+                { key: "word", label: "Tải Word", icon: "fa-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => exportForm("pdf") },
+                { key: "return", label: "Trả lại", icon: "fa-reply", hidden: !data.canReturn, onClick: () => setDialog("return") },
+                { key: "cancel", label: "Hủy yêu cầu", icon: "fa-circle-xmark", danger: true, hidden: !data.canCancel, onClick: () => setDialog("cancel") },
               ]}
             />
           </div>

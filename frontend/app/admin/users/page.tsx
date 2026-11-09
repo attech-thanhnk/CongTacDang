@@ -123,7 +123,7 @@ export default function AdminUsersPage() {
         <Card>
           <CardToolbar alignEnd actions={canManage ? (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-              <i className="bi bi-plus-lg me-1" />
+              <i className="fa-solid fa-plus me-1" />
               Tạo tài khoản
             </button>
           ) : undefined}>
@@ -211,7 +211,7 @@ export default function AdminUsersPage() {
               </div>
               <div className="col-6 col-md-3 col-xl-2 d-flex gap-1">
                 <button type="submit" className="btn btn-sm btn-outline-primary flex-fill" disabled={loading}>
-                  <i className="bi bi-search me-1" />
+                  <i className="fa-solid fa-magnifying-glass me-1" />
                   Lọc
                 </button>
                 <button
@@ -221,7 +221,7 @@ export default function AdminUsersPage() {
                   aria-label="Xóa bộ lọc"
                   onClick={clearFilters}
                 >
-                  <i className="bi bi-x-lg" />
+                  <i className="fa-solid fa-xmark" />
                 </button>
               </div>
             </form>
@@ -254,7 +254,7 @@ export default function AdminUsersPage() {
                 ) : items.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-5 text-secondary">
-                      <i className="bi bi-inbox fs-3 d-block mb-2" />
+                      <i className="fa-solid fa-inbox fs-3 d-block mb-2" />
                       Không có tài khoản phù hợp.
                     </td>
                   </tr>
@@ -297,7 +297,7 @@ export default function AdminUsersPage() {
               </div>
             ) : items.length === 0 ? (
               <div className={styles.empty}>
-                <i className="bi bi-inbox fs-3 d-block mb-2" />
+                <i className="fa-solid fa-inbox fs-3 d-block mb-2" />
                 Không có tài khoản phù hợp.
               </div>
             ) : (
@@ -315,13 +315,13 @@ export default function AdminUsersPage() {
                     </div>
                     {(account.positionTitle || account.departmentName) && (
                       <div className={styles.cardMeta}>
-                        <i className="bi bi-briefcase" aria-hidden="true" />
+                        <i className="fa-solid fa-briefcase" aria-hidden="true" />
                         {[account.positionTitle, account.departmentName].filter(Boolean).join(" · ")}
                       </div>
                     )}
                     {account.partyCellName && (
                       <div className={styles.cardMeta}>
-                        <i className="bi bi-flag" aria-hidden="true" />
+                        <i className="fa-solid fa-flag" aria-hidden="true" />
                         {account.partyCellName}
                       </div>
                     )}

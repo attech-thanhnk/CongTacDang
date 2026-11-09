@@ -15,9 +15,9 @@ const STATUS_META: Record<AssignmentStatus, { label: string; className: string }
 };
 
 const SCOPE_ICON: Record<RoleAssignment["scopeType"], string> = {
-  Global: "bi-globe2",
-  Department: "bi-building",
-  PartyCell: "bi-flag",
+  Global: "fa-globe",
+  Department: "fa-building",
+  PartyCell: "fa-flag",
 };
 
 export interface AssignmentTableProps {
@@ -92,7 +92,7 @@ export function AssignmentTable({
                     <td className={showUser ? "fw-semibold" : "ps-3 fw-semibold"}>{a.roleName}</td>
                   )}
                   <td className="text-nowrap">
-                    <i className={`bi ${SCOPE_ICON[a.scopeType] ?? "bi-globe2"} me-1 text-secondary`} />
+                    <i className={`fa-solid ${SCOPE_ICON[a.scopeType] ?? "fa-globe"} me-1 text-secondary`} />
                     {a.scopeName}
                   </td>
                   <td className="small text-nowrap">
@@ -110,10 +110,10 @@ export function AssignmentTable({
                       <RowActions
                         itemLabel={showUser ? a.fullName : a.roleName}
                         iconOnly
-                        primary={[{ key: "edit", label: "Sửa thời hạn, ghi chú", icon: "bi-pencil", hidden: a.status === "Expired" || !onEdit, onClick: () => onEdit?.(a) }]}
+                        primary={[{ key: "edit", label: "Sửa thời hạn, ghi chú", icon: "fa-pen", hidden: a.status === "Expired" || !onEdit, onClick: () => onEdit?.(a) }]}
                         menu={[
-                          { key: "end", label: "Kết thúc ngay", icon: "bi-stop-circle", danger: true, hidden: a.status !== "Active" || !onEnd, onClick: () => onEnd?.(a) },
-                          { key: "delete", label: "Xóa phân công", icon: "bi-trash", danger: true, hidden: !onDelete, onClick: () => onDelete?.(a) },
+                          { key: "end", label: "Kết thúc ngay", icon: "fa-circle-stop", danger: true, hidden: a.status !== "Active" || !onEnd, onClick: () => onEnd?.(a) },
+                          { key: "delete", label: "Xóa phân công", icon: "fa-trash", danger: true, hidden: !onDelete, onClick: () => onDelete?.(a) },
                         ]}
                       />
                     </td>

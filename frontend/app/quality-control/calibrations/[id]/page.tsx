@@ -330,7 +330,7 @@ export default function CalibrationDetailPage() {
       <div className="page-wrapper">
         <PageHeader title="Biên bản họp thống nhất" />
         <div className="page-body">
-          <EmptyState card icon="bi-file-earmark-x" title="Chưa mở được biên bản" description="Biên bản không tồn tại hoặc bạn không có quyền xem." />
+          <EmptyState card icon="fa-file-circle-xmark" title="Chưa mở được biên bản" description="Biên bản không tồn tại hoặc bạn không có quyền xem." />
         </div>
       </div>
     );
@@ -377,10 +377,10 @@ export default function CalibrationDetailPage() {
               itemLabel="biên bản họp thống nhất"
               disabled={busy}
               actions={[
-                { key: "word", label: "Tải Word", icon: "bi-download", onClick: () => exportForm("original") },
-                { key: "pdf", label: "Tải PDF", icon: "bi-filetype-pdf", onClick: () => exportForm("pdf") },
-                { key: "reopen", label: "Mở lại", icon: "bi-arrow-counterclockwise", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
-                { key: "void", label: "Hủy biên bản", icon: "bi-x-circle", danger: true, hidden: !data.canVoid, onClick: () => setDialog("void") },
+                { key: "word", label: "Tải Word", icon: "fa-download", onClick: () => exportForm("original") },
+                { key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => exportForm("pdf") },
+                { key: "reopen", label: "Mở lại", icon: "fa-rotate-left", hidden: !data.canReopen, onClick: () => setDialog("reopen") },
+                { key: "void", label: "Hủy biên bản", icon: "fa-circle-xmark", danger: true, hidden: !data.canVoid, onClick: () => setDialog("void") },
               ]}
             />
           </div>
@@ -537,7 +537,7 @@ export default function CalibrationDetailPage() {
                   <div className="col-auto">
                     <button type="button" className="btn btn-outline-danger btn-sm" aria-label="Xóa người tham dự" disabled={busy}
                       onClick={() => set({ attendees: draft.attendees.filter((_, x) => x !== i) })}>
-                      <i className="bi bi-trash" aria-hidden="true" />
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
                     </button>
                   </div>
                 )}
@@ -654,7 +654,7 @@ export default function CalibrationDetailPage() {
                       {!lock && (
                         <button type="button" className="btn btn-outline-danger btn-sm" aria-label="Xóa trường hợp" disabled={busy}
                           onClick={() => set({ cases: draft.cases.filter((x) => x.recordId !== c.recordId) })}>
-                          <i className="bi bi-trash" aria-hidden="true" />
+                          <i className="fa-solid fa-trash" aria-hidden="true" />
                         </button>
                       )}
                     </div>

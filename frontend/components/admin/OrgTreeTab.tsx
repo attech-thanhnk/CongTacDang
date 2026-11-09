@@ -199,7 +199,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
         {/* Một nút đảo: đang có nhánh thu gọn thì mở hết, ngược lại thu gọn hết. */}
         {collapsed.size > 0 ? (
           <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setCollapsed(new Set())} disabled={!!search}>
-            <i className="bi bi-arrows-expand me-1" />
+            <i className="fa-solid fa-angles-down me-1" />
             Mở rộng tất cả
           </button>
         ) : (
@@ -209,16 +209,16 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
             onClick={() => setCollapsed(new Set(items.filter((i) => i.childCount > 0).map((i) => i.id)))}
             disabled={!!search}
           >
-            <i className="bi bi-arrows-collapse me-1" />
+            <i className="fa-solid fa-angles-up me-1" />
             Thu gọn tất cả
           </button>
         )}
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={load} disabled={loading} aria-label="Làm mới" title="Làm mới">
-          <i className="bi bi-arrow-clockwise" />
+          <i className="fa-solid fa-rotate-right" />
         </button>
         {canManage && (
           <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => openCreate()}>
-            <i className="bi bi-plus-lg me-1" />
+            <i className="fa-solid fa-plus me-1" />
             Thêm {unit} gốc
           </button>
         )}
@@ -246,7 +246,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
               ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5 text-secondary">
-                    <i className="bi bi-inbox fs-3 d-block mb-2" />
+                    <i className="fa-solid fa-inbox fs-3 d-block mb-2" />
                     Chưa có {unit} nào.
                   </td>
                 </tr>
@@ -262,7 +262,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                             onClick={() => toggle(item.id)}
                             title={collapsed.has(item.id) ? "Mở rộng" : "Thu gọn"}
                           >
-                            <i className={`bi ${collapsed.has(item.id) ? "bi-chevron-right" : "bi-chevron-down"}`} />
+                            <i className={`fa-solid ${collapsed.has(item.id) ? "fa-chevron-right" : "fa-chevron-down"}`} />
                           </button>
                         ) : (
                           <span className="me-1" style={{ display: "inline-block", width: 14 }} />
@@ -292,16 +292,16 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={item.name}
-                          primary={[{ key: "edit", label: "Sửa", title: "Sửa / đổi cấp trên", icon: "bi-pencil", onClick: () => openEdit(item) }]}
+                          primary={[{ key: "edit", label: "Sửa", title: "Sửa / đổi cấp trên", icon: "fa-pen", onClick: () => openEdit(item) }]}
                           menu={[
-                            { key: "add-child", label: `Thêm ${unit} cấp dưới`, icon: "bi-diagram-2", onClick: () => openCreate(item) },
+                            { key: "add-child", label: `Thêm ${unit} cấp dưới`, icon: "fa-sitemap", onClick: () => openCreate(item) },
                             {
                               key: "toggle",
                               label: item.isActive ? "Ngừng hoạt động" : "Hoạt động lại",
-                              icon: item.isActive ? "bi-pause-circle" : "bi-play-circle",
+                              icon: item.isActive ? "fa-circle-pause" : "fa-circle-play",
                               onClick: () => toggleActive(item),
                             },
-                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(item) },
+                            { key: "delete", label: "Xóa", icon: "fa-trash", danger: true, onClick: () => handleDelete(item) },
                           ]}
                         />
                       </td>

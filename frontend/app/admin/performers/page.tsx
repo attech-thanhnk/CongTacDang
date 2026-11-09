@@ -349,7 +349,7 @@ function TemporaryBadge({ validTo }: { validTo: string }) {
   const soon = isExpiringSoon(validTo);
   return (
     <span className={`status-badge ${soon ? "tone-warning" : "tone-info"}`}>
-      <i className="bi bi-clock me-1" />
+      <i className="fa-solid fa-clock me-1" />
       Giao tạm đến {lastDay(validTo)}
     </span>
   );
@@ -395,7 +395,7 @@ function ReviewCard({
           onClick={onToggle}
           aria-expanded={open}
         >
-          <i className={`bi ${open ? "bi-chevron-down" : "bi-chevron-right"} me-1`} />
+          <i className={`fa-solid ${open ? "fa-chevron-down" : "fa-chevron-right"} me-1`} />
           Cần xem lại ({items.length})
         </button>
         {open && (
@@ -417,8 +417,8 @@ function ReviewCard({
                 <span className="ms-auto flex-shrink-0">
                   <RowActions
                     itemLabel={item.fullName}
-                    primary={[{ key: "view", label: "Xem đơn vị", icon: "bi-eye", onClick: () => onViewUnit(item) }]}
-                    menu={[{ key: "remove", label: "Gỡ phân công", icon: "bi-person-dash", danger: true, onClick: () => onRemove(item) }]}
+                    primary={[{ key: "view", label: "Xem đơn vị", icon: "fa-eye", onClick: () => onViewUnit(item) }]}
+                    menu={[{ key: "remove", label: "Gỡ phân công", icon: "fa-user-minus", danger: true, onClick: () => onRemove(item) }]}
                   />
                 </span>
               </li>
@@ -468,7 +468,7 @@ function JobCard({
             </div>
           </div>
           <button type="button" className="btn btn-sm btn-outline-secondary" disabled={!canAdd} onClick={onAdd}>
-            <i className="bi bi-plus-lg me-1" />
+            <i className="fa-solid fa-plus me-1" />
             Thêm người
           </button>
         </div>
@@ -493,7 +493,7 @@ function JobCard({
                     <span
                       className="status-badge tone-warning"
                     >
-                      <i className="bi bi-exclamation-triangle me-1" />
+                      <i className="fa-solid fa-triangle-exclamation me-1" />
                       Không giữ chức vụ ở nơi giao
                     </span>
                   )
@@ -503,8 +503,8 @@ function JobCard({
                   <RowActions
                     itemLabel={person.fullName}
                     menu={[
-                      { key: "user", label: "Xem tài khoản", icon: "bi-person", hidden: !canViewUsers, onClick: () => onViewUser(person) },
-                      { key: "remove", label: "Gỡ khỏi việc này", icon: "bi-person-dash", danger: true, hidden: !person.assignedHere, onClick: () => onRemove(person) },
+                      { key: "user", label: "Xem tài khoản", icon: "fa-user", hidden: !canViewUsers, onClick: () => onViewUser(person) },
+                      { key: "remove", label: "Gỡ khỏi việc này", icon: "fa-user-minus", danger: true, hidden: !person.assignedHere, onClick: () => onRemove(person) },
                     ]}
                   />
                 </span>

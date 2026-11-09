@@ -336,7 +336,7 @@ export default function PeriodDetailPage() {
           <>
             {hasPermission("report.export") && !isDraft && (
               <button type="button" className="btn btn-outline-secondary" disabled={downloading} onClick={downloadRatingSummary}>
-                <i className="bi bi-download me-1" />
+                <i className="fa-solid fa-download me-1" />
                 {downloading ? "Đang tải..." : "Bảng tổng hợp xếp loại"}
               </button>
             )}
@@ -344,7 +344,7 @@ export default function PeriodDetailPage() {
               <button type="button" className="btn btn-primary" disabled={busy || openBlocker !== null}
                 title={openBlocker ?? undefined}
                 onClick={() => confirm({ title: "Mở kỳ đánh giá", message: "Sau khi mở kỳ chỉ sửa được thời hạn các bước; không đổi được diện quyết định và bộ tiêu chí.", confirmText: "Mở kỳ", isDanger: false, onConfirm: () => openPeriod() })}>
-                <i className="bi bi-play-fill me-1" />Mở kỳ
+                <i className="fa-solid fa-play me-1" />Mở kỳ
               </button>
             )}
             {canManage && !isDraft && period.status !== "Closed" && (
@@ -352,9 +352,9 @@ export default function PeriodDetailPage() {
                   itemLabel={period.name}
                   disabled={busy}
                   actions={[
-                    { key: "unlock", label: "Mở lại kỳ", icon: "bi-unlock", hidden: period.status !== "Locked", onClick: () => setUnlockOpen(true) },
+                    { key: "unlock", label: "Mở lại kỳ", icon: "fa-lock-open", hidden: period.status !== "Locked", onClick: () => setUnlockOpen(true) },
                     {
-                      key: "lock", label: "Khóa dữ liệu", icon: "bi-lock", danger: true, hidden: period.status !== "Open",
+                      key: "lock", label: "Khóa dữ liệu", icon: "fa-lock", danger: true, hidden: period.status !== "Open",
                       onClick: () => confirm({
                         title: "Khóa dữ liệu kỳ",
                         message: "Chủ hồ sơ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục.",
@@ -364,7 +364,7 @@ export default function PeriodDetailPage() {
                       }),
                     },
                     {
-                      key: "close", label: "Đóng kỳ", icon: "bi-x-octagon", danger: true,
+                      key: "close", label: "Đóng kỳ", icon: "fa-circle-xmark", danger: true,
                       disabled: unpublishedCount > 0,
                       title: unpublishedCount > 0 ? `Còn ${unpublishedCount} hồ sơ chưa công bố` : undefined,
                       onClick: () => confirm({
@@ -390,7 +390,7 @@ export default function PeriodDetailPage() {
             <ul className="list-group list-group-flush">
               {checklist.map((item) => (
                 <li key={item.action} className="list-group-item d-flex align-items-center gap-2">
-                  <i className={`bi ${item.ok ? "bi-check-circle-fill text-success" : "bi-exclamation-circle-fill text-warning"}`} />
+                  <i className={`fa-solid ${item.ok ? "fa-circle-check text-success" : "fa-circle-exclamation text-warning"}`} />
                   <span className="flex-grow-1">{item.text}</span>
                   {!item.ok && <button type="button" className="btn btn-outline-primary btn-sm" onClick={item.go}>{item.action}</button>}
                 </li>
@@ -399,7 +399,7 @@ export default function PeriodDetailPage() {
                 <li key={item.kind} className="list-group-item">
                   <details>
                     <summary className="d-flex align-items-center gap-2" style={{ cursor: "pointer" }}>
-                      <i className="bi bi-info-circle-fill text-info" />
+                      <i className="fa-solid fa-circle-info text-info" />
                       <span className="flex-grow-1">Kiểm tra dữ liệu: {item.title}</span>
                       <span className="small text-secondary">Xem</span>
                     </summary>
@@ -540,10 +540,10 @@ function RunningStatusStrip({ period, readiness, checking, onCheck }: {
           {!readiness ? (
             <span className="text-secondary">{checking ? "Đang kiểm tra người thực hiện" : "Chưa kiểm tra người thực hiện"}</span>
           ) : issues === 0 ? (
-            <span className="text-success"><i className="bi bi-check-circle-fill me-1" aria-hidden="true" />Đủ người thực hiện</span>
+            <span className="text-success"><i className="fa-solid fa-circle-check me-1" aria-hidden="true" />Đủ người thực hiện</span>
           ) : (
             <button type="button" className="btn btn-link p-0 text-danger" aria-expanded={open === "readiness"} onClick={() => toggle("readiness")}>
-              <i className="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />Thiếu <span className="num">{issues}</span> bước
+              <i className="fa-solid fa-triangle-exclamation me-1" aria-hidden="true" />Thiếu <span className="num">{issues}</span> bước
             </button>
           )}
           <span className="text-secondary" aria-hidden="true">·</span>
@@ -675,7 +675,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
           {canAdd && !adding && (
             <div className={styles.toolbarEnd}>
               <button type="button" className="btn btn-primary btn-sm" aria-expanded={false} onClick={() => setAdding(true)}>
-                <i className="bi bi-plus-lg me-1" />Thêm người
+                <i className="fa-solid fa-plus me-1" />Thêm người
               </button>
             </div>
           )}
@@ -739,7 +739,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                       )}
                     </span>
                     <button type="button" className="btn btn-primary btn-sm" disabled={busy || selected.length === 0} onClick={addSelected}>
-                      <i className="bi bi-plus-lg me-1" />Thêm <span className="num">{selected.length}</span> người
+                      <i className="fa-solid fa-plus me-1" />Thêm <span className="num">{selected.length}</span> người
                     </button>
                   </div>
                   <div className={styles.candidates}>
@@ -824,7 +824,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                     {(p.weightFrameCode !== commonFrame || (!!p.weightFrameCode && !p.weightFrameName && !!period.criteria)) && (
                       <span className="tag t-wait ms-2" title={p.weightFrameName || "Khung không có trong bộ tiêu chí của kỳ"}>
                         Khung {p.weightFrameCode || "—"}
-                        {p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="bi bi-exclamation-triangle text-danger ms-1" aria-hidden="true" />}
+                        {p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="fa-solid fa-triangle-exclamation text-danger ms-1" aria-hidden="true" />}
                       </span>
                     )}
                     <div className={styles.unitSub}>{p.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"}</div>
@@ -838,13 +838,13 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                         itemLabel={p.fullName}
                         disabled={busy}
                         primary={canAdd
-                          ? [{ key: "edit", label: "Sửa", icon: "bi-pencil", title: "Sửa thông tin", onClick: () => setEditing(p) }]
-                          : [{ key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }]}
+                          ? [{ key: "edit", label: "Sửa", icon: "fa-pen", title: "Sửa thông tin", onClick: () => setEditing(p) }]
+                          : [{ key: "profile", label: "Đổi diện quyết định", icon: "fa-code-branch", onClick: () => setProfileTargets([p]) }]}
                         menu={[
-                          ...(canAdd ? [{ key: "profile", label: "Đổi diện quyết định", icon: "bi-diagram-3", onClick: () => setProfileTargets([p]) }] : []),
-                          ...(p.canMarkNotRated ? [{ key: "not-rated", label: "Không đánh giá (Chưa xếp loại)", icon: "bi-slash-circle", onClick: () => setNotRated({ participant: p, mark: true }) }] : []),
-                          ...(p.canUnmarkNotRated ? [{ key: "not-rated-cancel", label: "Bỏ đánh dấu Chưa xếp loại", icon: "bi-arrow-counterclockwise", onClick: () => setNotRated({ participant: p, mark: false }) }] : []),
-                          ...(canAdd ? [{ key: "remove", label: "Bỏ khỏi kỳ", icon: "bi-trash", danger: true, onClick: () => remove(p) }] : []),
+                          ...(canAdd ? [{ key: "profile", label: "Đổi diện quyết định", icon: "fa-code-branch", onClick: () => setProfileTargets([p]) }] : []),
+                          ...(p.canMarkNotRated ? [{ key: "not-rated", label: "Không đánh giá (Chưa xếp loại)", icon: "fa-ban", onClick: () => setNotRated({ participant: p, mark: true }) }] : []),
+                          ...(p.canUnmarkNotRated ? [{ key: "not-rated-cancel", label: "Bỏ đánh dấu Chưa xếp loại", icon: "fa-rotate-left", onClick: () => setNotRated({ participant: p, mark: false }) }] : []),
+                          ...(canAdd ? [{ key: "remove", label: "Bỏ khỏi kỳ", icon: "fa-trash", danger: true, onClick: () => remove(p) }] : []),
                         ]}
                       />
                     </td>
@@ -1071,7 +1071,7 @@ function CriteriaSection({ period, editable, busy, onChoose }: CriteriaSectionPr
             </span>
             <span className="ms-auto d-flex align-items-center gap-2">
               <button type="button" className="btn btn-outline-secondary btn-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-                <i className={`bi ${expanded ? "bi-chevron-up" : "bi-chevron-down"} me-1`} />{expanded ? "Ẩn nội dung" : "Xem nội dung"}
+                <i className={`fa-solid ${expanded ? "fa-chevron-up" : "fa-chevron-down"} me-1`} />{expanded ? "Ẩn nội dung" : "Xem nội dung"}
               </button>
               <Link href="/criteria" className="btn btn-outline-secondary btn-sm">Quản lý bộ tiêu chí</Link>
             </span>

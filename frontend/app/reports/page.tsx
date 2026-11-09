@@ -128,7 +128,7 @@ export default function ReportsPage() {
       return (
         <Link href="/collective-evaluations" className={styles.navLink}>
           Đến Đánh giá tập thể
-          <i className="bi bi-arrow-right" aria-hidden="true" />
+          <i className="fa-solid fa-arrow-right" aria-hidden="true" />
         </Link>
       );
     }
@@ -136,7 +136,7 @@ export default function ReportsPage() {
     const exportWord: RowAction = {
       key: "original",
       label: `Tải ${fileLabel(report)}`,
-      icon: "bi-download",
+      icon: "fa-download",
       disabled: !!reason,
       title: reason ?? undefined,
       onClick: () => download(report, "original"),
@@ -144,7 +144,7 @@ export default function ReportsPage() {
     const exportPdf: RowAction = {
       key: "pdf",
       label: "Tải PDF",
-      icon: "bi-filetype-pdf",
+      icon: "fa-file-pdf",
       disabled: !!reason,
       hidden: report.scope === "none",
       onClick: () => download(report, "pdf"),
@@ -152,7 +152,7 @@ export default function ReportsPage() {
     if (report.id === "mau-16") {
       return (
         <RowActions
-          primary={[{ key: "draft", label: showForm16 ? "Đóng soạn thảo" : "Soạn báo cáo", icon: showForm16 ? "bi-x-lg" : "bi-pencil-square", disabled: !!reason || !periodId, title: reason ?? undefined, onClick: () => setShowForm16(!showForm16) }]}
+          primary={[{ key: "draft", label: showForm16 ? "Đóng soạn thảo" : "Soạn báo cáo", icon: showForm16 ? "fa-xmark" : "fa-pen-to-square", disabled: !!reason || !periodId, title: reason ?? undefined, onClick: () => setShowForm16(!showForm16) }]}
           menu={[exportWord, exportPdf]}
           itemLabel={report.code}
           disabled={busy !== null}
@@ -239,7 +239,7 @@ export default function ReportsPage() {
         {renderGroup("Báo cáo nội bộ", REPORTS.filter((r) => r.group === "internal"), false, REPORTS.filter((r) => r.group === "hd03").some(visible) ? undefined : scopeSelect)}
         {!REPORTS.some(visible) && (
           <section className="card">
-            <EmptyState icon="bi-file-earmark-bar-graph" title="Không có báo cáo để tải" description="Tài khoản chưa được giao quyền xuất báo cáo." />
+            <EmptyState icon="fa-chart-column" title="Không có báo cáo để tải" description="Tài khoản chưa được giao quyền xuất báo cáo." />
           </section>
         )}
       </div>

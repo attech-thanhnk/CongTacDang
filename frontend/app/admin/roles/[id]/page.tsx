@@ -211,7 +211,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         <div className="page-body">
           <div className="alert alert-danger">{loadError}</div>
           <Link href="/admin/roles" className="btn btn-sm btn-outline-secondary">
-            <i className="bi bi-arrow-left me-1" />
+            <i className="fa-solid fa-arrow-left me-1" />
             Về danh sách
           </Link>
         </div>
@@ -240,7 +240,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         badge={
           role.isProtected ? (
             <span className="status-badge tone-neutral">
-              <i className="bi bi-lock-fill me-1" />
+              <i className="fa-solid fa-lock me-1" />
               Vai trò bảo vệ
             </span>
           ) : undefined
@@ -248,12 +248,12 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         actions={
           <>
             <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>
-              <i className="bi bi-pencil me-1" />
+              <i className="fa-solid fa-pen me-1" />
               Sửa
             </button>
             <HeaderMenu
               itemLabel={role.name}
-              actions={[{ key: "delete", label: "Xóa vai trò", icon: "bi-trash", danger: true, hidden: role.isProtected, onClick: handleDelete }]}
+              actions={[{ key: "delete", label: "Xóa vai trò", icon: "fa-trash", danger: true, hidden: role.isProtected, onClick: handleDelete }]}
             />
           </>
         }
@@ -264,14 +264,14 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
         <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
           <li className="nav-item">
             <button type="button" className={`nav-link text-nowrap ${tab === "permissions" ? "active" : ""}`} onClick={() => setTab("permissions")}>
-              <i className="bi bi-shield-check me-1" />
+              <i className="fa-solid fa-user-shield me-1" />
               Ma trận quyền
             </button>
           </li>
           {canAssign && (
             <li className="nav-item">
               <button type="button" className={`nav-link text-nowrap ${tab === "assignments" ? "active" : ""}`} onClick={() => setTab("assignments")}>
-                <i className="bi bi-people me-1" />
+                <i className="fa-solid fa-users me-1" />
                 Người được gán <span className="text-secondary fw-medium ms-1 num">{role.assignmentCount}</span>
               </button>
             </li>
@@ -282,7 +282,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
           <div>
             {heldBySelf && (
               <div className="alert alert-info py-2 mb-3">
-                <i className="bi bi-info-circle me-2" />
+                <i className="fa-solid fa-circle-info me-2" />
                 Bạn đang giữ vai trò này nên không tự sửa quyền được.
               </div>
             )}
@@ -316,12 +316,12 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                 <div className={styles.toolbarActions}>
                   {dirty && (
                     <button type="button" className="btn btn-sm btn-outline-secondary" disabled={saving} onClick={() => setSelected(new Set(role.permissionCodes))}>
-                      <i className="bi bi-arrow-counterclockwise me-1" />
+                      <i className="fa-solid fa-rotate-left me-1" />
                       Hoàn tác
                     </button>
                   )}
                   <button type="button" className="btn btn-sm btn-primary" disabled={!dirty || saving} onClick={savePermissions}>
-                    {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-check2 me-1" />}
+                    {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="fa-solid fa-check me-1" />}
                     Lưu quyền
                   </button>
                 </div>
@@ -349,7 +349,7 @@ export default function AdminRoleDetailPage({ params }: { params: { id: string }
                   </label>
                 </div>
                 <button type="button" className="btn btn-sm btn-primary" onClick={() => setAssignmentForm({})}>
-                  <i className="bi bi-plus-lg me-1" />
+                  <i className="fa-solid fa-plus me-1" />
                   Gán cho người
                 </button>
               </div>

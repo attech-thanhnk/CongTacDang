@@ -144,7 +144,7 @@ export function LoginEventsTab() {
           </div>
           <div className="col-12 col-md-2 d-flex gap-1">
             <button type="submit" className="btn btn-sm btn-outline-primary flex-fill" disabled={loading}>
-              <i className="bi bi-search me-1" />
+              <i className="fa-solid fa-magnifying-glass me-1" />
               Lọc
             </button>
             <button
@@ -158,7 +158,7 @@ export function LoginEventsTab() {
                 setPage(1);
               }}
             >
-              <i className="bi bi-x-lg" />
+              <i className="fa-solid fa-xmark" />
             </button>
           </div>
         </form>
@@ -184,7 +184,7 @@ export function LoginEventsTab() {
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-5 text-secondary">
-                  <i className="bi bi-inbox fs-3 d-block mb-2" />
+                  <i className="fa-solid fa-inbox fs-3 d-block mb-2" />
                   {hasFilters ? "Không có lần đăng nhập phù hợp với bộ lọc." : "Chưa có lần đăng nhập nào được ghi lại."}
                 </td>
               </tr>

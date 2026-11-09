@@ -162,7 +162,7 @@ export function AttachmentList({
             return (
               <li key={key} className={styles.item}>
                 <div className={styles.row}>
-                  <i className={`bi ${kind.icon} ${styles.icon} ${styles[kind.tone]}`} aria-hidden="true" />
+                  <i className={`fa-solid ${kind.icon} ${styles.icon} ${styles[kind.tone]}`} aria-hidden="true" />
                   {f.id ? (
                     <button type="button" className={styles.name} title={f.fileName} aria-label={`Tải xuống ${f.fileName}`} onClick={() => download(f)}>
                       {f.fileName}
@@ -175,19 +175,19 @@ export function AttachmentList({
                   {showVersions && f.id && (f.versionNumber ?? 1) > 1 && (
                     <button type="button" className={styles.act} title="Các phiên bản" aria-label={`Các phiên bản của tệp ${f.fileName}`}
                       aria-expanded={versionsOf === f.id} onClick={() => toggleVersions(f)}>
-                      <i className="bi bi-clock-history" aria-hidden="true" /><span className={styles.actText}>Bản {f.versionNumber}</span>
+                      <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" /><span className={styles.actText}>Bản {f.versionNumber}</span>
                     </button>
                   )}
                   {onReplace && !disabled && (
                     <button type="button" className={styles.act} disabled={!!busy} title="Thay bằng tệp khác" aria-label={`Thay tệp ${f.fileName}`}
                       onClick={() => { setReplacing(f); replaceRef.current?.click(); }}>
-                      <i className="bi bi-arrow-repeat" aria-hidden="true" /><span className={styles.actText}>Thay</span>
+                      <i className="fa-solid fa-arrows-rotate" aria-hidden="true" /><span className={styles.actText}>Thay</span>
                     </button>
                   )}
                   {onRemove && !disabled && (
                     <button type="button" className={`${styles.act} ${styles.actDanger}`} disabled={!!busy} title="Gỡ tệp" aria-label={`Gỡ tệp ${f.fileName}`}
                       onClick={() => remove(f)}>
-                      <i className="bi bi-trash3" aria-hidden="true" /><span className={styles.actText}>Gỡ</span>
+                      <i className="fa-solid fa-trash" aria-hidden="true" /><span className={styles.actText}>Gỡ</span>
                     </button>
                   )}
                 </div>
@@ -202,7 +202,7 @@ export function AttachmentList({
                         <button type="button" className={styles.act} aria-label={`Tải xuống bản ${v.versionNumber} của ${f.fileName}`}
                           onClick={() => attachmentService.downloadVersion(f.id as string, v.versionNumber ?? 1, v.fileName)
                             .catch((err: unknown) => setError(errorMessage(err, "Tải phiên bản xuống không thành công.")))}>
-                          <i className="bi bi-download" aria-hidden="true" /><span className={styles.actText}>Tải</span>
+                          <i className="fa-solid fa-download" aria-hidden="true" /><span className={styles.actText}>Tải</span>
                         </button>
                       </li>
                     ))}
@@ -218,7 +218,7 @@ export function AttachmentList({
         <div className={styles.addLine}>
           <button type="button" className={`btn btn-sm btn-outline-primary ${styles.addBtn}`} disabled={!!busy}
             aria-label={`${addLabel}${suffix}`} onClick={() => { setError(null); addRef.current?.click(); }}>
-            {busy === "add" ? <span className="spinner-border spinner-border-sm" aria-hidden="true" /> : <i className="bi bi-paperclip" aria-hidden="true" />}
+            {busy === "add" ? <span className="spinner-border spinner-border-sm" aria-hidden="true" /> : <i className="fa-solid fa-paperclip" aria-hidden="true" />}
             {busy === "add" ? "Đang tải lên..." : addLabel}
           </button>
           <span className={styles.hint}>{ATTACH_HINT}</span>
@@ -226,7 +226,7 @@ export function AttachmentList({
       )}
       {error && (
         <div className={styles.error} role="alert">
-          <i className="bi bi-exclamation-circle" aria-hidden="true" />
+          <i className="fa-solid fa-circle-exclamation" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}

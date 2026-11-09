@@ -91,7 +91,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         <span className="initials">{initialsOf(user.fullName)}</span>
         <span className={styles.short}>{shortNameOf(user.fullName)}</span>
-        <i className={`bi bi-chevron-down ${styles.chev}`} aria-hidden="true" />
+        <i className={`fa-solid fa-chevron-down ${styles.chev}`} aria-hidden="true" />
       </button>
       {open && (
         <div className={styles.menu} role="menu">
@@ -101,16 +101,16 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <small>{user.userName}</small>
           </div>
           <Link href="/account" role="menuitem" className={styles.item} onClick={go}>
-            <i className="bi bi-person-gear" />
+            <i className="fa-solid fa-user-gear" />
             Tài khoản
           </Link>
           <Link href="/help" role="menuitem" className={`${styles.item} ${styles.helpItem}`} onClick={go}>
-            <i className="bi bi-question-circle" />
+            <i className="fa-solid fa-circle-question" />
             Hướng dẫn
           </Link>
           <div className={styles.sep} />
           <button type="button" role="menuitem" className={`${styles.item} ${styles.danger}`} onClick={handleLogout}>
-            <i className="bi bi-box-arrow-right" />
+            <i className="fa-solid fa-right-from-bracket" />
             Đăng xuất
           </button>
           {version && versionLabel(version) && <div className={styles.version} title={`Dựng lúc ${version.buildTime}`}>{versionLabel(version)}</div>}

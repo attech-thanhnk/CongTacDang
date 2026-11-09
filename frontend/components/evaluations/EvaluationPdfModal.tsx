@@ -132,15 +132,15 @@ export const EvaluationPdfModal: React.FC<Props> = ({ isOpen, onClose, record, f
           )}
           <div className={styles.actions}>
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handlePrint} disabled={!pdfUrl}>
-              <i className="bi bi-printer me-1" />
+              <i className="fa-solid fa-print me-1" />
               In
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleDownload} disabled={!pdfBlob}>
-              <i className="bi bi-download me-1" />
+              <i className="fa-solid fa-download me-1" />
               Tải PDF
             </button>
             <button type="button" className={styles.close} onClick={onClose} aria-label="Đóng">
-              <i className="bi bi-x-lg" />
+              <i className="fa-solid fa-xmark" />
             </button>
           </div>
         </header>

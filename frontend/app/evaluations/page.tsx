@@ -162,7 +162,7 @@ export default function EvaluationsPage() {
 
   const toggleSort = (key: SortKey) => setSort((s) => (s?.key === key ? { key, desc: !s.desc } : { key, desc: false }));
   const sortIcon = (key: SortKey) =>
-    sort?.key === key ? <i className={`bi ${sort.desc ? "bi-sort-down" : "bi-sort-up"} ms-1`} aria-hidden="true" /> : null;
+    sort?.key === key ? <i className={`fa-solid ${sort.desc ? "fa-sort-down" : "fa-sort-up"} ms-1`} aria-hidden="true" /> : null;
   const ariaSort = (key: SortKey) => (sort?.key === key ? (sort.desc ? "descending" : "ascending") : undefined);
 
   const chip = (value: string, label: string, count: number, danger = false) => {
@@ -200,7 +200,7 @@ export default function EvaluationsPage() {
             </div>
           ) : (
             <EmptyState card
-              icon="bi-folder2-open"
+              icon="fa-folder-open"
               title={periods.length === 0 ? "Chưa có kỳ đánh giá đang diễn ra" : "Bạn chưa có hồ sơ trong kỳ này"}
             />
           )}
@@ -215,7 +215,7 @@ export default function EvaluationsPage() {
 
       <div className="page-body">
         {!periodsLoading && periods.length === 0 && <EmptyState card
-            icon="bi-calendar-x"
+            icon="fa-calendar-xmark"
             title="Chưa có kỳ đánh giá đang diễn ra"
             action={hasPermission("period.manage") ? <Link href="/periods" className="btn btn-primary">Đến trang Kỳ đánh giá</Link> : undefined}
           />}
@@ -256,7 +256,7 @@ export default function EvaluationsPage() {
             ) : filtered.length === 0 ? (
               records.length > 0 ? (
                 <EmptyState
-                  icon="bi-funnel"
+                  icon="fa-filter"
                   title="Không có hồ sơ phù hợp"
                   description="Thử đổi bộ lọc hoặc từ khóa tìm."
                   compact
@@ -272,7 +272,7 @@ export default function EvaluationsPage() {
                 />
               ) : (
                 <EmptyState
-                  icon="bi-folder2-open"
+                  icon="fa-folder-open"
                   title="Chưa có hồ sơ"
                   compact
                 />
@@ -339,7 +339,7 @@ export default function EvaluationsPage() {
               {quotas.groups.some((q) => q.isExceedingQuota) && (
                 <span className="tag t-bad">Vượt trần {quotas.groups.filter((q) => q.isExceedingQuota).length} nhóm</span>
               )}
-              <i className={`bi bi-chevron-down ${styles.foldIcon}`} aria-hidden="true" />
+              <i className={`fa-solid fa-chevron-down ${styles.foldIcon}`} aria-hidden="true" />
             </summary>
             <p className={`small text-secondary mb-0 ${styles.foldNote}`}>
               Tối đa {Math.round(quotas.ratio * 100)}% số &quot;Hoàn thành tốt&quot; của nhóm.

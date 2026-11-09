@@ -87,7 +87,7 @@ export function AppSidebar() {
             <div className="t2">{brandMain}</div>
           </div>
           <button type="button" onClick={closeSidebar} className="side-close d-md-none" aria-label="Đóng menu">
-            <i className="bi bi-x-lg" />
+            <i className="fa-solid fa-xmark" />
           </button>
         </div>
 
@@ -108,7 +108,7 @@ export function AppSidebar() {
                       disabled={hasActive}
                     >
                       <span className="side-label">{group.title}</span>
-                      <i className={`bi ${isOpen ? "bi-chevron-up" : "bi-chevron-down"}`} aria-hidden="true" />
+                      <i className={`fa-solid ${isOpen ? "fa-chevron-up" : "fa-chevron-down"}`} aria-hidden="true" />
                     </button>
                   ) : (
                     <div className="side-grp"><span className="side-label">{group.title}</span></div>
@@ -124,7 +124,7 @@ export function AppSidebar() {
                         aria-current={isActive ? "page" : undefined}
                         title={isSidebarCollapsed ? item.title : undefined}
                       >
-                        <i className={`bi ${item.icon}`} />
+                        <i className={`fa-solid ${item.icon}`} />
                         <span className="side-label">{item.title}</span>
                       </Link>
                     );

@@ -152,11 +152,11 @@ export function AxisReportsInput({
                           onChange={(level) => updateTask(axis.code, k, { level })} />
                         <div className="btn-group btn-group-sm flex-shrink-0">
                           <button type="button" className="btn btn-outline-secondary" title="Lên" aria-label="Chuyển lên" disabled={k === 0}
-                            onClick={() => moveTask(axis.code, k, -1)}><i className="bi bi-arrow-up" /></button>
+                            onClick={() => moveTask(axis.code, k, -1)}><i className="fa-solid fa-arrow-up" /></button>
                           <button type="button" className="btn btn-outline-secondary" title="Xuống" aria-label="Chuyển xuống" disabled={k === tasks.length - 1}
-                            onClick={() => moveTask(axis.code, k, 1)}><i className="bi bi-arrow-down" /></button>
+                            onClick={() => moveTask(axis.code, k, 1)}><i className="fa-solid fa-arrow-down" /></button>
                           <button type="button" className="btn btn-outline-danger" title="Xóa nhiệm vụ" aria-label="Xóa nhiệm vụ"
-                            onClick={() => setTasks(axis.code, tasks.filter((_, i) => i !== k))}><i className="bi bi-x-lg" /></button>
+                            onClick={() => setTasks(axis.code, tasks.filter((_, i) => i !== k))}><i className="fa-solid fa-xmark" /></button>
                         </div>
                       </div>
                       {(task.items ?? []).map((item, j) => (
@@ -169,14 +169,14 @@ export function AxisReportsInput({
                             onChange={(level) => updateTask(axis.code, k, { items: (task.items ?? []).map((x, i) => (i === j ? { ...x, level } : x)) })} />
                           <button type="button" className="btn btn-link btn-sm text-danger p-0 pt-1" title="Xóa ý" aria-label="Xóa ý"
                             onClick={() => updateTask(axis.code, k, { items: (task.items ?? []).filter((_, i) => i !== j) })}>
-                            <i className="bi bi-x-lg" />
+                            <i className="fa-solid fa-xmark" />
                           </button>
                         </div>
                       ))}
                       {(task.items ?? []).length < AXIS_REPORT_LIMITS.items && (
                         <button type="button" className="btn btn-link btn-sm p-0" style={{ marginLeft: 92 }}
                           onClick={() => updateTask(axis.code, k, { items: [...(task.items ?? []), { content: "", level: null }] })}>
-                          <i className="bi bi-plus-lg me-1" />Thêm ý
+                          <i className="fa-solid fa-plus me-1" />Thêm ý
                         </button>
                       )}
                     </div>
@@ -184,7 +184,7 @@ export function AxisReportsInput({
                   <div>
                     <button type="button" className="btn btn-outline-primary btn-sm" disabled={tasks.length >= AXIS_REPORT_LIMITS.tasks}
                       onClick={() => setTasks(axis.code, [...tasks, { content: "", level: null, items: [] }])}>
-                      <i className="bi bi-plus-lg me-1" />Thêm nhiệm vụ
+                      <i className="fa-solid fa-plus me-1" />Thêm nhiệm vụ
                     </button>
                   </div>
                 </div>

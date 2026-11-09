@@ -31,7 +31,7 @@ export function AdminSection({ summary, logs }: { summary: AdminSummaryDto | nul
           </div>
           {items.length === 0 ? (
             <div className={styles.allDone}>
-              <i className="bi bi-check2-circle" aria-hidden="true" />
+              <i className="fa-solid fa-circle-check" aria-hidden="true" />
               Không có việc cần xử lý
             </div>
           ) : (
@@ -40,7 +40,7 @@ export function AdminSection({ summary, logs }: { summary: AdminSummaryDto | nul
                 <Link key={item.code} href={item.link} className={styles.alert}>
                   <span>{item.label}</span>
                   <b className="num">{item.count}</b>
-                  <i className={`bi bi-chevron-right ${styles.shortcutGo}`} aria-hidden="true" />
+                  <i className={`fa-solid fa-chevron-right ${styles.shortcutGo}`} aria-hidden="true" />
                 </Link>
               ))}
             </div>

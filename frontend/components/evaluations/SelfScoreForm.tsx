@@ -490,7 +490,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           {uses09C && sections.length > 0 && (
             <div className="mb-3">
               <button type="button" className="btn btn-link btn-sm p-0" onClick={() => setShowPreview((v) => !v)}>
-                <i className={`bi ${showPreview ? "bi-eye-slash" : "bi-eye"} me-1`} />{showPreview ? "Ẩn xem trước" : "Xem trước bản in"}
+                <i className={`fa-solid ${showPreview ? "fa-eye-slash" : "fa-eye"} me-1`} />{showPreview ? "Ẩn xem trước" : "Xem trước bản in"}
               </button>
               {showPreview && (
                 <div className="mt-2">
@@ -517,7 +517,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
           </select>
           {gradeCheck && (
             <div className="form-text text-warning-emphasis" role="status">
-              <i className="bi bi-exclamation-triangle me-1" aria-hidden="true" />{gradeCheck.message}{gradeCheck.required ? " Hãy nêu lý do." : ""}
+              <i className="fa-solid fa-triangle-exclamation me-1" aria-hidden="true" />{gradeCheck.message}{gradeCheck.required ? " Hãy nêu lý do." : ""}
             </div>
           )}
         </div>
@@ -541,9 +541,9 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             </span>
           )}
           <button type="button" className="btn btn-outline-secondary" disabled={busy || saving} onClick={saveDraft}>
-            {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-save me-1" />}Lưu nháp
+            {saving ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="fa-solid fa-floppy-disk me-1" />}Lưu nháp
           </button>
-          <button type="submit" className="btn btn-primary" disabled={busy || saving}><i className="bi bi-send me-1" aria-hidden="true" />Nộp phiếu</button>
+          <button type="submit" className="btn btn-primary" disabled={busy || saving}><i className="fa-solid fa-paper-plane me-1" aria-hidden="true" />Nộp phiếu</button>
         </div>
       </div>
     </form>

@@ -28,7 +28,7 @@ export function AppHeader() {
     <header className="app-header">
       <div className="hdr-left">
         <button type="button" onClick={toggleSidebar} className="app-header-menu" aria-label="Mở menu">
-          <i className="bi bi-list" />
+          <i className="fa-solid fa-bars" />
         </button>
         {/* Trang đã đăng ký tiêu đề thì đó là h1 duy nhất; trang khác dùng tên mục menu làm dự phòng. */}
         {pageTitle ? (
@@ -41,7 +41,7 @@ export function AppHeader() {
       <div className="app-header-right">
         {user && !user.mustChangePassword && (
           <Link href="/help" className="app-header-help" aria-label="Hướng dẫn" title="Hướng dẫn">
-            <i className="bi bi-question-circle" />
+            <i className="fa-solid fa-circle-question" />
           </Link>
         )}
         {/* Tài khoản phải đổi mật khẩu chỉ được gọi API đổi mật khẩu — không nạp chuông nhắc việc (tránh 403). */}

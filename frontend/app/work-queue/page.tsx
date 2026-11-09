@@ -113,11 +113,11 @@ export default function WorkQueuePage() {
           </div>
         ) : groups.length === 0 && !keyword ? (
           <EmptyState card
-            icon="bi-check2-circle"
+            icon="fa-circle-check"
             title="Không có việc nào đang chờ bạn"
           />
         ) : groups.length === 0 ? (
-          <EmptyState card icon="bi-search" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
+          <EmptyState card icon="fa-magnifying-glass" title="Không tìm thấy cán bộ phù hợp" description="Thử từ khóa khác." compact />
         ) : (
           groups.map((group, index) => {
             // Cả nhóm cùng một hạn thì ghi hạn một lần ở tiêu đề.
@@ -134,7 +134,7 @@ export default function WorkQueuePage() {
                   </h2>
                   {index === 0 && (
                     <button type="button" className="btn btn-outline-secondary btn-sm ms-auto" onClick={() => load()} aria-label="Làm mới" title="Làm mới">
-                      <i className="bi bi-arrow-clockwise" />
+                      <i className="fa-solid fa-rotate-right" />
                     </button>
                   )}
                 </div>

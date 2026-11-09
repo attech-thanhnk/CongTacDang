@@ -48,7 +48,7 @@ function CheckResult({ check }: { check: TemplateCheck }) {
         </div>
       ) : (
         <div className="text-success fw-semibold mb-2">
-          <i className="bi bi-check-circle me-1" />
+          <i className="fa-solid fa-circle-check me-1" />
           Tệp hợp lệ.
         </div>
       )}
@@ -293,7 +293,7 @@ function HistoryModal({
                     {v.note && <div>{v.note}</div>}
                     {v.warnings.map((w) => (
                       <div key={w} className="text-warning-emphasis">
-                        <i className="bi bi-exclamation-triangle me-1" />
+                        <i className="fa-solid fa-triangle-exclamation me-1" />
                         {w}
                       </div>
                     ))}
@@ -309,8 +309,8 @@ function HistoryModal({
                       itemLabel={`v${v.versionNumber}`}
                       disabled={busy !== ""}
                       primary={[
-                        { key: "activate", label: "Kích hoạt", icon: "bi-check2-circle", hidden: v.isActive, onClick: () => handleActivate(v) },
-                        { key: "download", label: "Tải xuống", icon: "bi-download", onClick: () => handleDownload(v) },
+                        { key: "activate", label: "Kích hoạt", icon: "fa-circle-check", hidden: v.isActive, onClick: () => handleActivate(v) },
+                        { key: "download", label: "Tải xuống", icon: "fa-download", onClick: () => handleDownload(v) },
                       ]}
                       iconOnly
                     />
@@ -477,7 +477,7 @@ export default function TemplatesPage() {
                           )}
                           {active && t.activeMissingTags.length > 0 && (
                             <div className="text-warning-emphasis mt-1" title={t.activeMissingTags.join("\n")}>
-                              <i className="bi bi-exclamation-triangle me-1" />
+                              <i className="fa-solid fa-triangle-exclamation me-1" />
                               Thiếu {t.activeMissingTags.length} tag so với file gốc
                             </div>
                           )}
@@ -501,14 +501,14 @@ export default function TemplatesPage() {
                                 key: "upload",
                                 label: "Tải lên",
                                 title: "Tải lên phiên bản mới",
-                                icon: "bi-upload",
+                                icon: "fa-upload",
                                 onClick: () => setDialog({ kind: "upload", template: t }),
                               },
                               {
                                 key: "current",
                                 label: "Tải xuống",
                                 title: "Tải file đang dùng",
-                                icon: "bi-download",
+                                icon: "fa-download",
                                 onClick: () =>
                                   download(`cur-${t.code}`, () =>
                                     templateService.downloadCurrent(
@@ -522,25 +522,25 @@ export default function TemplatesPage() {
                               {
                                 key: "original",
                                 label: "Tải file gốc",
-                                icon: "bi-file-earmark-word",
+                                icon: "fa-file-word",
                                 onClick: () => download(`org-${t.code}`, () => templateService.downloadOriginal(t.code, t.templateFileName)),
                               },
                               {
                                 key: "history",
                                 label: "Lịch sử phiên bản",
-                                icon: "bi-clock-history",
+                                icon: "fa-clock-rotate-left",
                                 onClick: () => setDialog({ kind: "history", template: t }),
                               },
                               {
                                 key: "tags",
                                 label: "Danh mục tag",
-                                icon: "bi-tags",
+                                icon: "fa-tags",
                                 onClick: () => setDialog({ kind: "tags", template: t }),
                               },
                               {
                                 key: "use-original",
                                 label: "Dùng file gốc",
-                                icon: "bi-arrow-counterclockwise",
+                                icon: "fa-rotate-left",
                                 danger: true,
                                 hidden: !active,
                                 onClick: () => handleUseOriginal(t),

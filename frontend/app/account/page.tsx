@@ -12,9 +12,9 @@ import styles from "./account.module.css";
 type Section = "profile" | "roles" | "security";
 
 const SECTIONS: { key: Section; label: string; icon: string }[] = [
-  { key: "profile", label: "Thông tin cá nhân", icon: "bi-person" },
-  { key: "roles", label: "Vai trò", icon: "bi-shield-check" },
-  { key: "security", label: "Mật khẩu", icon: "bi-key" },
+  { key: "profile", label: "Thông tin cá nhân", icon: "fa-user" },
+  { key: "roles", label: "Vai trò", icon: "fa-user-tag" },
+  { key: "security", label: "Mật khẩu", icon: "fa-key" },
 ];
 
 /** Tài khoản của người đang đăng nhập: thông tin cá nhân, vai trò, đổi mật khẩu. */
@@ -44,7 +44,7 @@ export default function AccountPage() {
   const sections: InfoSection[] = [
     {
       title: "Công tác",
-      icon: "bi-briefcase",
+      icon: "fa-briefcase",
       items: [
         { label: "Chức danh", value: profile?.adminTitle },
         { label: "Phòng / đơn vị", value: profile?.adminDeptName },
@@ -52,7 +52,7 @@ export default function AccountPage() {
     },
     {
       title: "Đảng",
-      icon: "bi-star",
+      icon: "fa-flag",
       items: [{ label: "Chi bộ", value: profile?.partyBranchName, wide: true }],
     },
   ];
@@ -71,7 +71,7 @@ export default function AccountPage() {
               aria-current={section === s.key ? "page" : undefined}
               onClick={() => choose(s.key)}
             >
-              <i className={`bi ${s.icon}`} />
+              <i className={`fa-solid ${s.icon}`} />
               {s.label}
             </button>
           ))}

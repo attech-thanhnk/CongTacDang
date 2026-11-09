@@ -107,12 +107,12 @@ export default function DashboardPage() {
       <div className="page-body">
         {noPeriod ? (
           <EmptyState card
-            icon="bi-calendar-x"
+            icon="fa-calendar-xmark"
             title="Chưa có kỳ đánh giá"
             action={
               hasPermission("period.manage") ? (
                 <Link href="/periods" className="btn btn-primary">
-                  <i className="bi bi-plus-lg me-1" />
+                  <i className="fa-solid fa-plus me-1" />
                   Tạo kỳ đánh giá
                 </Link>
               ) : undefined

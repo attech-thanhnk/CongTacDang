@@ -15,12 +15,12 @@ import { catalogService, OrgUnitType } from "@/services/catalogService";
 type Tab = "departments" | "branches" | "unit-types" | "positions" | "form-layouts" | "holidays";
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: "departments", label: "Đơn vị chính quyền", icon: "bi-building" },
-  { key: "branches", label: "Tổ chức Đảng", icon: "bi-flag" },
-  { key: "unit-types", label: "Loại đơn vị", icon: "bi-tags" },
-  { key: "positions", label: "Chức vụ", icon: "bi-person-badge" },
-  { key: "form-layouts", label: "Kiểu trình bày biểu mẫu", icon: "bi-file-earmark-text" },
-  { key: "holidays", label: "Ngày nghỉ", icon: "bi-calendar-x" },
+  { key: "departments", label: "Đơn vị chính quyền", icon: "fa-building" },
+  { key: "branches", label: "Tổ chức Đảng", icon: "fa-flag" },
+  { key: "unit-types", label: "Loại đơn vị", icon: "fa-tags" },
+  { key: "positions", label: "Chức vụ", icon: "fa-id-badge" },
+  { key: "form-layouts", label: "Kiểu trình bày biểu mẫu", icon: "fa-file-lines" },
+  { key: "holidays", label: "Ngày nghỉ", icon: "fa-calendar-xmark" },
 ];
 
 /** Danh mục tổ chức: mọi người đã đăng nhập xem được; sửa cần quyền "Quản lý danh mục". */
@@ -58,7 +58,7 @@ export default function CatalogPage() {
           {TABS.map((t) => (
             <li className="nav-item" key={t.key}>
               <button type="button" className={`nav-link text-nowrap ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
-                <i className={`bi ${t.icon} me-1`} />
+                <i className={`fa-solid ${t.icon} me-1`} />
                 {t.label}
               </button>
             </li>

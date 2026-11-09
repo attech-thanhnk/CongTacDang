@@ -110,7 +110,7 @@ function PermissionText({ permission, locked }: { permission: PermissionDefiniti
         )}
         {locked && (
           <span className="status-badge tone-neutral" title="Vai trò được bảo vệ phải giữ quyền này">
-            <i className="bi bi-lock-fill me-1" />
+            <i className="fa-solid fa-lock me-1" />
             Bắt buộc
           </span>
         )}
@@ -125,7 +125,7 @@ function ReadOnlyItem({ permission, granted, locked }: { permission: PermissionD
     <li className={`${styles.item} ${granted ? "" : styles.off}`}>
       <div className={`${styles.row} ${styles.rowLocked}`}>
         <span className={`${styles.mark} ${granted ? styles.markOn : styles.markOff}`} role="img" aria-label={granted ? "Có quyền" : "Chưa cấp"} title={granted ? "Có quyền" : "Chưa cấp"}>
-          <i className={`bi ${granted ? "bi-check-lg" : "bi-dash"}`} />
+          <i className={`fa-solid ${granted ? "fa-check" : "fa-minus"}`} />
         </span>
         <PermissionText permission={permission} locked={locked && granted} />
       </div>

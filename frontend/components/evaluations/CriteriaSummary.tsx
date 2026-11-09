@@ -104,7 +104,7 @@ export function CriteriaSummary({ content, navigation = false }: CriteriaSummary
           <ul className={styles.formList}>
             {RECORD_FORMS.filter((f) => f.code === "09A" || (content.requiredForms ?? []).includes(f.code)).map((f) => (
               <li key={f.code}>
-                <i className="bi bi-file-earmark-text" aria-hidden="true" />
+                <i className="fa-solid fa-file-lines" aria-hidden="true" />
                 {f.name}
               </li>
             ))}

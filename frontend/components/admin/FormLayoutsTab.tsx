@@ -140,7 +140,7 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
         {canManage && (
           <div className="card-header d-flex flex-wrap align-items-center gap-2">
             <button type="button" className="btn btn-sm btn-primary ms-auto" onClick={() => setForm({ ...EMPTY_FORM })}>
-              <i className="bi bi-plus-lg me-1" />
+              <i className="fa-solid fa-plus me-1" />
               Thêm kiểu
             </button>
           </div>
@@ -189,10 +189,10 @@ export function FormLayoutsTab({ canManage }: { canManage: boolean }) {
                       <td className="pe-3 text-end text-nowrap">
                         <RowActions
                           itemLabel={l.name}
-                          primary={[{ key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => openEdit(l) }]}
+                          primary={[{ key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => openEdit(l) }]}
                           menu={[
-                            { key: "clone", label: "Nhân bản", icon: "bi-copy", onClick: () => openEdit(l, true) },
-                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, onClick: () => handleDelete(l) },
+                            { key: "clone", label: "Nhân bản", icon: "fa-copy", onClick: () => openEdit(l, true) },
+                            { key: "delete", label: "Xóa", icon: "fa-trash", danger: true, onClick: () => handleDelete(l) },
                           ]}
                         />
                       </td>

@@ -495,7 +495,7 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
                 <div className="col-2 col-md-1 order-md-last text-end">
                   <button type="button" className={`btn btn-sm btn-outline-danger ${styles.iconBtn}`} aria-label="Bỏ nhiệm vụ" title="Bỏ nhiệm vụ"
                     onClick={() => setItems(items.filter((_, i) => i !== index))}>
-                    <i className="bi bi-x-lg" aria-hidden="true" />
+                    <i className="fa-solid fa-xmark" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="col-12 col-md-6">
@@ -516,7 +516,7 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
               </div>
             </div>
           ))}
-          <Button type="button" size="sm" variant="outline-secondary" icon="bi-plus-lg"
+          <Button type="button" size="sm" variant="outline-secondary" icon="fa-plus"
             onClick={() => setItems([...items, emptyItem(catalog?.form08Categories[0]?.code ?? "1", items.length + 1)])}>
             Thêm nhiệm vụ
           </Button>
@@ -534,7 +534,7 @@ export function CollectiveRecordEditor({ periodId, catalog, catalogState, branch
         <Button
           type="submit"
           variant="primary"
-          icon="bi-check-lg"
+          icon="fa-check"
           loading={saving}
           loadingText="Đang lưu..."
           disabled={catalogState !== "ready" || (!!editing && !dirty)}

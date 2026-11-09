@@ -58,12 +58,12 @@ export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChan
             <ul className="pagination pagination-sm mb-0 flex-wrap">
               <li className={`page-item ${atFirst ? "disabled" : ""}`}>
                 <button type="button" className="page-link" onClick={() => go(1)} disabled={atFirst} aria-label="Trang đầu">
-                  <i className="bi bi-chevron-double-left" />
+                  <i className="fa-solid fa-angles-left" />
                 </button>
               </li>
               <li className={`page-item ${atFirst ? "disabled" : ""}`}>
                 <button type="button" className="page-link" onClick={() => go(current - 1)} disabled={atFirst} aria-label="Trang trước">
-                  <i className="bi bi-chevron-left" />
+                  <i className="fa-solid fa-chevron-left" />
                 </button>
               </li>
               {pageWindow(current, totalPages).map((token) =>
@@ -85,12 +85,12 @@ export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChan
               )}
               <li className={`page-item ${atLast ? "disabled" : ""}`}>
                 <button type="button" className="page-link" onClick={() => go(current + 1)} disabled={atLast} aria-label="Trang sau">
-                  <i className="bi bi-chevron-right" />
+                  <i className="fa-solid fa-chevron-right" />
                 </button>
               </li>
               <li className={`page-item ${atLast ? "disabled" : ""}`}>
                 <button type="button" className="page-link" onClick={() => go(totalPages)} disabled={atLast} aria-label="Trang cuối">
-                  <i className="bi bi-chevron-double-right" />
+                  <i className="fa-solid fa-angles-right" />
                 </button>
               </li>
             </ul>

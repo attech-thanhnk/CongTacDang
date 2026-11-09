@@ -7,7 +7,7 @@ import styles from "./RowActions.module.css";
 export interface RowAction {
   key: string;
   label: string;
-  /** Lớp bootstrap-icons, ví dụ "bi-pencil-square". */
+  /** Lớp Font Awesome, ví dụ "fa-pen-to-square". */
   icon?: string;
   onClick: () => void;
   /** Thao tác nguy hiểm: luôn nằm cuối menu, chữ đỏ, có đường kẻ ngăn. */
@@ -170,7 +170,7 @@ export function RowActions({ primary = [], menu = [], itemLabel, iconOnly, prima
       title={a.title && a.title !== a.label ? a.title : undefined}
       onClick={() => run(a)}
     >
-      {a.icon ? <i className={`bi ${a.icon} ${styles.itemIcon}`} aria-hidden="true" /> : <span className={styles.itemIcon} />}
+      {a.icon ? <i className={`fa-solid ${a.icon} ${styles.itemIcon}`} aria-hidden="true" /> : <span className={styles.itemIcon} />}
       <span>{a.label}</span>
     </button>
   );
@@ -189,7 +189,7 @@ export function RowActions({ primary = [], menu = [], itemLabel, iconOnly, prima
             disabled={disabled || a.disabled}
             onClick={a.onClick}
           >
-            {a.icon && <i className={`bi ${a.icon}`} aria-hidden="true" />}
+            {a.icon && <i className={`fa-solid ${a.icon}`} aria-hidden="true" />}
             {!iconOnly && <span className={styles.primaryLabel}>{a.label}</span>}
           </button>
         );
@@ -208,7 +208,7 @@ export function RowActions({ primary = [], menu = [], itemLabel, iconOnly, prima
           onClick={() => (open ? close(false) : setOpen(true))}
           onKeyDown={onTriggerKey}
         >
-          <i className="bi bi-three-dots" aria-hidden="true" />
+          <i className="fa-solid fa-ellipsis" aria-hidden="true" />
         </button>
       )}
       {open &&

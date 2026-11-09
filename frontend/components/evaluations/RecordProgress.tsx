@@ -107,10 +107,10 @@ export function RecordProgress({ progress, onSelect, mine = false }: Props) {
           const label = describeStep(item);
           const content = (
             <>
-              <div className={styles.c}>{done ? <i className="bi bi-check-lg" aria-hidden="true" /> : index + 1}</div>
+              <div className={styles.c}>{done ? <i className="fa-solid fa-check" aria-hidden="true" /> : index + 1}</div>
               <span className={styles.stepName}>
                 {item.name}
-                {item.mode === "External" && <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />}
+                {item.mode === "External" && <i className="fa-solid fa-arrow-up-right-from-square ms-1" aria-hidden="true" />}
                 {!isCurrent && !done && item.overdue && <em className={`${styles.stepMeta} ${styles.late}`}>Quá hạn</em>}
               </span>
             </>

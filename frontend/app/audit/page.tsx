@@ -153,18 +153,18 @@ function AuditPageContent() {
         <div className="d-flex flex-column gap-3">
           <TabsRow actions={tab === "actions" ? (
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => loadLogs()} disabled={loading}>
-              <i className={`bi ${loading ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-1`} />
+              <i className={`fa-solid ${loading ? "fa-arrows-rotate" : "fa-rotate-right"} me-1`} />
               Làm mới
             </button>
           ) : undefined}>
           <ul className="nav nav-tabs">
             {[
-              { key: "actions" as const, label: "Nhật ký thao tác", icon: "bi-activity" },
-              { key: "logins" as const, label: "Nhật ký đăng nhập", icon: "bi-box-arrow-in-right" },
+              { key: "actions" as const, label: "Nhật ký thao tác", icon: "fa-clock-rotate-left" },
+              { key: "logins" as const, label: "Nhật ký đăng nhập", icon: "fa-right-to-bracket" },
             ].map((t) => (
               <li className="nav-item" key={t.key}>
                 <button type="button" className={`nav-link ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
-                  <i className={`bi ${t.icon} me-1`} />
+                  <i className={`fa-solid ${t.icon} me-1`} />
                   {t.label}
                 </button>
               </li>
@@ -239,7 +239,7 @@ function AuditPageContent() {
                     )}
                     <div className="col-12 col-md-auto d-flex flex-wrap gap-2">
                       <button type="submit" className="btn btn-sm btn-primary" disabled={loading}>
-                        <i className="bi bi-search me-1" />Tra cứu
+                        <i className="fa-solid fa-magnifying-glass me-1" />Tra cứu
                       </button>
                       {hasFilters && (
                         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearFilters}>
@@ -252,7 +252,7 @@ function AuditPageContent() {
                         onClick={() => setAdvanced((v) => !v)}
                         aria-expanded={advanced}
                       >
-                        <i className={`bi ${advanced ? "bi-chevron-up" : "bi-sliders"} me-1`} />
+                        <i className={`fa-solid ${advanced ? "fa-chevron-up" : "fa-sliders"} me-1`} />
                         {advanced ? "Thu gọn" : "Lọc nâng cao"}
                       </button>
                     </div>
@@ -275,7 +275,7 @@ function AuditPageContent() {
                       ) : logs.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="text-center py-5 text-secondary">
-                            <i className="bi bi-inbox fs-3 d-block mb-2" />
+                            <i className="fa-solid fa-inbox fs-3 d-block mb-2" />
                             {hasFilters ? "Không có thao tác phù hợp với bộ lọc." : "Chưa có thao tác nào được ghi lại."}
                           </td>
                         </tr>
@@ -304,7 +304,7 @@ function AuditPageContent() {
                             <td className={styles.actor}>{actorLabel(log.actorName)}</td>
                             <td className={`text-nowrap ${styles.cAction}`}>
                               <span className={`tag ${meta.tone}`}>
-                                <i className={`bi ${meta.icon} me-1`} />{meta.label}
+                                <i className={`fa-solid ${meta.icon} me-1`} />{meta.label}
                               </span>
                             </td>
                             <td className={styles.cEntity}>
@@ -312,7 +312,7 @@ function AuditPageContent() {
                               {name && <div className={`small text-secondary ${styles.clip}`} title={name}>{name}</div>}
                             </td>
                             <td className={`pe-3 text-end text-secondary ${styles.cGo}`}>
-                              <i className="bi bi-chevron-right" aria-hidden="true" />
+                              <i className="fa-solid fa-chevron-right" aria-hidden="true" />
                             </td>
                           </tr>
                         );
@@ -344,7 +344,7 @@ function AuditPageContent() {
             footer={
               <>
                 <button type="button" className="btn btn-outline-secondary" onClick={() => showHistoryOf(selectedLog)}>
-                  <i className="bi bi-clock-history me-1" />Lịch sử đối tượng này
+                  <i className="fa-solid fa-clock-rotate-left me-1" />Lịch sử đối tượng này
                 </button>
                 <button type="button" className="btn btn-primary" onClick={() => setSelectedLog(null)}>Đóng</button>
               </>
@@ -358,7 +358,7 @@ function AuditPageContent() {
               <dt>Thao tác</dt>
               <dd>
                 <span className={`tag ${actionMeta(selectedLog.action).tone}`}>
-                  <i className={`bi ${actionMeta(selectedLog.action).icon} me-1`} />{actionMeta(selectedLog.action).label}
+                  <i className={`fa-solid ${actionMeta(selectedLog.action).icon} me-1`} />{actionMeta(selectedLog.action).label}
                 </span>
               </dd>
               <dt>Đối tượng</dt>

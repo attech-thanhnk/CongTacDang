@@ -23,7 +23,7 @@ export function BackButton() {
 
   return (
     <button type="button" className="back-btn" onClick={goBack} aria-label={`Quay lại ${target.title}`}>
-      <i className="bi bi-arrow-left" aria-hidden="true" />
+      <i className="fa-solid fa-arrow-left" aria-hidden="true" />
       <span>{target.title}</span>
     </button>
   );

@@ -94,7 +94,7 @@ export default function AdminRolesPage() {
         <Card>
           <CardToolbar actions={
             <button type="button" className="btn btn-primary" onClick={() => setForm({})}>
-              <i className="bi bi-plus-lg me-1" />
+              <i className="fa-solid fa-plus me-1" />
               Tạo vai trò
             </button>
           } />
@@ -132,7 +132,7 @@ export default function AdminRolesPage() {
                         </Link>
                         {role.isProtected && (
                           <span className="status-badge tone-neutral ms-2" title="Vai trò được bảo vệ: không xóa, không gỡ quyền quản trị">
-                            <i className="bi bi-lock-fill me-1" />
+                            <i className="fa-solid fa-lock me-1" />
                             Bảo vệ
                           </span>
                         )}
@@ -148,13 +148,13 @@ export default function AdminRolesPage() {
                               key: "permissions",
                               label: "Phân quyền",
                               title: "Quyền và người được gán",
-                              icon: "bi-shield-check",
+                              icon: "fa-user-shield",
                               onClick: () => router.push(`/admin/roles/${role.id}`),
                             },
                           ]}
                           menu={[
-                            { key: "edit", label: "Sửa", icon: "bi-pencil", onClick: () => setForm({ role }) },
-                            { key: "delete", label: "Xóa", icon: "bi-trash", danger: true, hidden: role.isProtected, onClick: () => handleDelete(role) },
+                            { key: "edit", label: "Sửa", icon: "fa-pen", onClick: () => setForm({ role }) },
+                            { key: "delete", label: "Xóa", icon: "fa-trash", danger: true, hidden: role.isProtected, onClick: () => handleDelete(role) },
                           ]}
                         />
                       </td>

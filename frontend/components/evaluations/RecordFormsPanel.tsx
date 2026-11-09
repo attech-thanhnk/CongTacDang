@@ -74,7 +74,7 @@ export function RecordFormsPanel({
           {forms.length > 0 && onPreview && (
             <div className={styles.filesBar}>
               <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onPreview}>
-                <i className="bi bi-printer me-1" />
+                <i className="fa-solid fa-print me-1" />
                 Xem bản in
               </button>
             </div>
@@ -92,14 +92,14 @@ export function RecordFormsPanel({
                       {
                         key: "word",
                         label: busy === `${key}-original` ? "Đang tải..." : "Tải Word",
-                        icon: "bi-download",
+                        icon: "fa-download",
                         onClick: () => download(form.code, "original", form.requestId),
                       },
                     ]}
                     menu={[
-                      { key: "pdf", label: "Tải PDF", icon: "bi-file-earmark-pdf", onClick: () => download(form.code, "pdf", form.requestId) },
+                      { key: "pdf", label: "Tải PDF", icon: "fa-file-pdf", onClick: () => download(form.code, "pdf", form.requestId) },
                       ...(form.hasExcel && !form.requestId
-                        ? [{ key: "xlsx", label: "Excel", icon: "bi-file-earmark-excel", onClick: () => download(form.code, "xlsx") }]
+                        ? [{ key: "xlsx", label: "Excel", icon: "fa-file-excel", onClick: () => download(form.code, "xlsx") }]
                         : []),
                     ]}
                   />

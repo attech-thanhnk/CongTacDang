@@ -86,9 +86,9 @@ export const Button: React.FC<ButtonProps> = ({
         </>
       ) : (
         <>
-          {icon && iconPosition === "left" && <i className={`bi ${icon}`}></i>}
+          {icon && iconPosition === "left" && <i className={`fa-solid ${icon}`}></i>}
           {children && <span>{children}</span>}
-          {icon && iconPosition === "right" && <i className={`bi ${icon}`}></i>}
+          {icon && iconPosition === "right" && <i className={`fa-solid ${icon}`}></i>}
         </>
       )}
     </button>

@@ -47,7 +47,7 @@ export function MyTasksSection({
     return (
       <section className={styles.block} aria-label="Việc cần xử lý">
         <div className={styles.allDone}>
-          <i className="bi bi-check2-circle" aria-hidden="true" />
+          <i className="fa-solid fa-circle-check" aria-hidden="true" />
           Không có việc nào đang chờ bạn
         </div>
       </section>

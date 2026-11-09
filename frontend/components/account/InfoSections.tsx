@@ -28,7 +28,7 @@ export function InfoSections({ sections, className = "" }: { sections: InfoSecti
       {sections.map((section) => (
         <section key={section.title} className={styles.section}>
           <h3 className={styles.title}>
-            {section.icon && <i className={`bi ${section.icon}`} aria-hidden="true" />}
+            {section.icon && <i className={`fa-solid ${section.icon}`} aria-hidden="true" />}
             {section.title}
           </h3>
           <dl className={styles.grid}>

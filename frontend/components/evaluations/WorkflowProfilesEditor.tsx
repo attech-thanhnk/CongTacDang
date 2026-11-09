@@ -152,7 +152,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
         ))}
         {editable && (
           <button type="button" className="btn btn-sm btn-outline-success" onClick={addProfile}>
-            <i className="bi bi-plus-lg me-1" />Thêm diện quyết định (sao chép)
+            <i className="fa-solid fa-plus me-1" />Thêm diện quyết định (sao chép)
           </button>
         )}
       </div>

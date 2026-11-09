@@ -17,7 +17,7 @@ export interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = "bi-inbox",
+  icon = "fa-inbox",
   title,
   description,
   action,
@@ -42,7 +42,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           fontSize: compact ? "20px" : "24px",
         }}
       >
-        <i className={`bi ${icon}`}></i>
+        <i className={`fa-solid ${icon}`}></i>
       </div>
       <h6 className="fw-semibold mb-0" style={{ fontSize: "16px", color: "var(--ink)" }}>
         {title}

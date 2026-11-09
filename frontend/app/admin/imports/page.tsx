@@ -206,7 +206,7 @@ export default function ImportsPage() {
                         disabled={!selected || busy !== ""}
                         onClick={downloadTemplate}
                       >
-                        <i className="bi bi-download me-1" />
+                        <i className="fa-solid fa-download me-1" />
                         {busy === "template" ? "Đang tải…" : "Tải file mẫu"}
                       </button>
                     </div>
@@ -239,7 +239,7 @@ export default function ImportsPage() {
                     />
                     <div className="d-grid d-sm-flex justify-content-sm-end mt-3">
                       <button type="button" className="btn btn-primary px-4" disabled={!file || busy !== ""} onClick={runPreview}>
-                        <i className="bi bi-search me-1" />
+                        <i className="fa-solid fa-magnifying-glass me-1" />
                         {busy === "preview" ? "Đang kiểm tra…" : "Kiểm tra file"}
                       </button>
                     </div>
@@ -254,7 +254,7 @@ export default function ImportsPage() {
           <Card>
             <div className="card-body">
               <div className="fw-semibold mb-1">
-                <i className="bi bi-check-circle text-success me-1" />
+                <i className="fa-solid fa-circle-check text-success me-1" />
                 Đã nhập {result.total} dòng: {result.created} tạo mới, {result.updated} cập nhật.
               </div>
               {result.resultFileToken && (
@@ -268,7 +268,7 @@ export default function ImportsPage() {
                   </div>
                   {!resultDownloaded && (
                     <button type="button" className="btn btn-warning btn-sm" disabled={busy !== ""} onClick={downloadResult}>
-                      <i className="bi bi-key me-1" />
+                      <i className="fa-solid fa-key me-1" />
                       {busy === "result" ? "Đang tải…" : "Tải file mật khẩu tạm"}
                     </button>
                   )}
@@ -376,7 +376,7 @@ export default function ImportsPage() {
                   disabled={preview.summary.error > 0 || busy !== ""}
                   onClick={runCommit}
                 >
-                  <i className="bi bi-upload me-1" />
+                  <i className="fa-solid fa-upload me-1" />
                   {busy === "commit" ? "Đang nhập…" : "Nhập dữ liệu"}
                 </button>
               </div>

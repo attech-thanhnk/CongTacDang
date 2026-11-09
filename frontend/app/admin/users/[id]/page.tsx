@@ -330,7 +330,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         <div className="page-body">
           <div className="alert alert-danger">{loadError}</div>
           <Link href="/admin/users" className="btn btn-sm btn-outline-secondary">
-            <i className="bi bi-arrow-left me-1" />
+            <i className="fa-solid fa-arrow-left me-1" />
             Về danh sách
           </Link>
         </div>
@@ -352,7 +352,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   const infoSections: InfoSection[] = [
     {
       title: "Tài khoản",
-      icon: "bi-person",
+      icon: "fa-user",
       items: [
         { label: "Tên đăng nhập", value: <code>{account.username}</code> },
         { label: "Ngày sinh", value: account.dateOfBirth ? formatDateOnly(account.dateOfBirth) : null },
@@ -366,7 +366,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     },
     {
       title: "Công tác",
-      icon: "bi-briefcase",
+      icon: "fa-briefcase",
       items: [
         { label: "Đơn vị công tác chính", value: account.departmentName },
         { label: "Khung tỷ trọng mặc định", value: account.weightFrameCode || "Mặc định của bộ tiêu chí" },
@@ -374,7 +374,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     },
     {
       title: "Đảng",
-      icon: "bi-star",
+      icon: "fa-flag",
       items: [
         { label: "Đảng viên", value: account.isPartyMember ? "Có" : "Không" },
         { label: "Số thẻ đảng viên", value: account.isPartyMember ? account.partyCardNumber : null },
@@ -384,11 +384,11 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
   ];
 
   const moreActions: RowAction[] = [
-    { key: "reset", label: "Đặt lại mật khẩu", icon: "bi-key", onClick: handleResetPassword },
+    { key: "reset", label: "Đặt lại mật khẩu", icon: "fa-key", onClick: handleResetPassword },
     {
       key: "active",
       label: account.isActive ? "Vô hiệu hóa" : "Mở lại tài khoản",
-      icon: account.isActive ? "bi-person-slash" : "bi-person-check",
+      icon: account.isActive ? "fa-user-slash" : "fa-user-check",
       onClick: toggleActive,
       disabled: isSelf && account.isActive,
       title: isSelf && account.isActive ? "Không thể tự vô hiệu hóa tài khoản của mình." : undefined,
@@ -396,7 +396,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     {
       key: "delete",
       label: "Xóa tài khoản",
-      icon: "bi-trash",
+      icon: "fa-trash",
       onClick: handleDelete,
       danger: true,
       disabled: isSelf,
@@ -414,12 +414,12 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             <>
               {(account.isLockedOut || account.failedLoginCount > 0) && (
                 <button type="button" className="btn btn-outline-secondary" onClick={handleUnlock}>
-                  <i className="bi bi-unlock me-1" />
+                  <i className="fa-solid fa-lock-open me-1" />
                   Mở khóa đăng nhập
                 </button>
               )}
               <button type="button" className="btn btn-primary" onClick={() => setEditing(true)}>
-                <i className="bi bi-pencil me-1" />
+                <i className="fa-solid fa-pen me-1" />
                 Sửa
               </button>
               <HeaderMenu actions={moreActions} itemLabel={account.fullName} />
@@ -433,7 +433,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         {canAssign && review.length > 0 && (
           <div className="alert alert-warning small mb-0">
             <div className="fw-semibold mb-1">
-              <i className="bi bi-exclamation-triangle me-1" />
+              <i className="fa-solid fa-triangle-exclamation me-1" />
               Vai trò cần xem lại
             </div>
             <ul className="list-unstyled mb-0">
@@ -455,17 +455,17 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
         <ul className="nav nav-tabs flex-nowrap" style={{ overflowX: "auto", overflowY: "hidden" }}>
           {(
             [
-              { key: "info" as const, label: "Thông tin", icon: "bi-person-vcard", show: true },
-              { key: "positions" as const, label: "Chức vụ", icon: "bi-diagram-3", show: true },
-              { key: "assignments" as const, label: "Vai trò & phạm vi", icon: "bi-person-badge", show: canAssign },
-              { key: "effective" as const, label: "Người này làm được gì", icon: "bi-shield-check", show: true },
+              { key: "info" as const, label: "Thông tin", icon: "fa-address-card", show: true },
+              { key: "positions" as const, label: "Chức vụ", icon: "fa-sitemap", show: true },
+              { key: "assignments" as const, label: "Vai trò & phạm vi", icon: "fa-user-tag", show: canAssign },
+              { key: "effective" as const, label: "Người này làm được gì", icon: "fa-list-check", show: true },
             ]
           )
             .filter((t) => t.show)
             .map((t) => (
               <li className="nav-item" key={t.key}>
                 <button type="button" className={`nav-link text-nowrap ${tab === t.key ? "active" : ""}`} onClick={() => setTab(t.key)}>
-                  <i className={`bi ${t.icon} me-1`} />
+                  <i className={`fa-solid ${t.icon} me-1`} />
                   {t.label}
                 </button>
               </li>
@@ -507,7 +507,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
                     disabled={isSelf || roles.length === 0}
                     title={isSelf ? "Không thể tự phân công vai trò cho chính mình." : undefined}
                   >
-                    <i className="bi bi-plus-lg me-1" />
+                    <i className="fa-solid fa-plus me-1" />
                     Phân công vai trò
                   </button>
                 </div>
@@ -551,7 +551,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
             <div className="card-header d-flex justify-content-between align-items-center gap-2">
               <h2 className="mb-0">Quyền đang có hiệu lực</h2>
               <button type="button" className="btn btn-sm btn-outline-secondary" onClick={loadEffective} disabled={effectiveLoading} aria-label="Tải lại" title="Tải lại">
-                <i className="bi bi-arrow-clockwise" />
+                <i className="fa-solid fa-rotate-right" />
               </button>
             </div>
             <EffectivePermissionsPanel data={effective} loading={effectiveLoading} error={effectiveError} moduleNames={moduleNames} />

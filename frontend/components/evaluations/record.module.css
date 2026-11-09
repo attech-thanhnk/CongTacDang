@@ -166,8 +166,9 @@
 }
 
 .sub2 > summary::before {
-  content: "\F285";
-  font-family: "bootstrap-icons";
+  content: "\f054";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
   font-size: 12px;
   color: var(--ink-3);
   transition: transform 0.15s;

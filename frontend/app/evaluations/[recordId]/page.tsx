@@ -204,7 +204,7 @@ export default function EvaluationRecordPage() {
             <div className={styles.headBtn}>
               {hasForms && (
                 <button type="button" className="btn btn-outline-secondary" aria-label="Biểu mẫu" title="Biểu mẫu" onClick={() => revealSection(FORMS_ANCHOR)}>
-                  <i className="bi bi-file-earmark-text" aria-hidden="true" /><span className={styles.hideNarrow}> Biểu mẫu</span>
+                  <i className="fa-solid fa-file-lines" aria-hidden="true" /><span className={styles.hideNarrow}> Biểu mẫu</span>
                 </button>
               )}
               <HeaderMenu
@@ -213,7 +213,7 @@ export default function EvaluationRecordPage() {
                 actions={menuActions.map((a) => ({
                   key: a.action,
                   label: a.label,
-                  icon: a.action === "MarkNotRated" ? "bi-slash-circle" : "bi-arrow-counterclockwise",
+                  icon: a.action === "MarkNotRated" ? "fa-ban" : "fa-rotate-left",
                   danger: a.action === "MarkNotRated",
                   onClick: () => setReasonAction(a),
                 }))}
@@ -226,18 +226,18 @@ export default function EvaluationRecordPage() {
           <div id={CONFLICT_ANCHOR} className="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-0" role="alert">
             <span>{conflict}</span>
             <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => load()}>
-              <i className="bi bi-arrow-clockwise me-1" aria-hidden="true" />Tải lại
+              <i className="fa-solid fa-rotate-right me-1" aria-hidden="true" />Tải lại
             </button>
           </div>
         )}
         {record.returnReason && (
           <div className="alert alert-danger mb-0">
-            <i className="bi bi-arrow-return-left me-2" aria-hidden="true" /><strong>Bị trả lại:</strong> {record.returnReason}
+            <i className="fa-solid fa-reply me-2" aria-hidden="true" /><strong>Bị trả lại:</strong> {record.returnReason}
           </div>
         )}
         {record.notRatedReason && (
           <div className="alert alert-secondary mb-0">
-            <i className="bi bi-slash-circle me-2" aria-hidden="true" /><strong>Chưa xếp loại:</strong> {record.notRatedReason}
+            <i className="fa-solid fa-ban me-2" aria-hidden="true" /><strong>Chưa xếp loại:</strong> {record.notRatedReason}
             {record.notRatedByName && <span className="text-secondary"> — {record.notRatedByName}{record.notRatedAt ? `, ${formatDateTime(record.notRatedAt)}` : ""}</span>}
           </div>
         )}
@@ -251,7 +251,7 @@ export default function EvaluationRecordPage() {
 
         {blockedActions.map((a) => (
           <div key={a.action + a.step} className="alert alert-warning mb-0" role="alert">
-            <i className="bi bi-lock me-2" aria-hidden="true" /><strong>{a.label}:</strong> {a.blockedReason}
+            <i className="fa-solid fa-lock me-2" aria-hidden="true" /><strong>{a.label}:</strong> {a.blockedReason}
           </div>
         ))}
         {gateWarnings.length > 0 && (
@@ -473,7 +473,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
     const text = items.length === 1 ? [day, by].filter(Boolean).join(" · ") : items.map(doneText).join(" · ");
     return (
       <span className={`tag ${styles.stepTagDone}`} title={text || undefined}>
-        <i className="bi bi-check-lg" aria-hidden="true" />
+        <i className="fa-solid fa-check" aria-hidden="true" />
         {day ? (
           <span className={styles.stepTagText}>
             <span className="num">{day}</span>
@@ -506,7 +506,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
             .catch((error: unknown) => toast.error(errorMessage(error, "Tải văn bản đính kèm không thành công.")));
         }}
       >
-        <i className="bi bi-paperclip me-1" aria-hidden="true" />Tệp đính kèm
+        <i className="fa-solid fa-paperclip me-1" aria-hidden="true" />Tệp đính kèm
       </button>
     );
     const doc = withDocument ? documentText(result.documentNumber, result.documentDate) : null;

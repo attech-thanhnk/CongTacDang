@@ -6,10 +6,10 @@ import toastStyles from "./toast.module.css";
 export type ToastType = "success" | "error" | "warning" | "info";
 
 const TOAST_ICON: Record<ToastType, string> = {
-  success: "bi-check-lg",
-  error: "bi-exclamation-lg",
-  warning: "bi-exclamation-lg",
-  info: "bi-info-lg",
+  success: "fa-check",
+  error: "fa-exclamation",
+  warning: "fa-exclamation",
+  info: "fa-info",
 };
 
 export interface ToastItem {
@@ -102,14 +102,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className={`${toastStyles.toast} ${toastStyles[t.type] ?? ""}`} role={t.type === "error" ? "alert" : "status"}>
             <span className={toastStyles.icon} aria-hidden="true">
-              <i className={`bi ${TOAST_ICON[t.type]}`} />
+              <i className={`fa-solid ${TOAST_ICON[t.type]}`} />
             </span>
             <div className={toastStyles.body}>
               {t.title && <div className={toastStyles.title}>{t.title}</div>}
               <div className={toastStyles.message}>{t.message}</div>
             </div>
             <button type="button" onClick={() => removeToast(t.id)} className={toastStyles.close} aria-label="Đóng">
-              <i className="bi bi-x-lg" />
+              <i className="fa-solid fa-xmark" />
             </button>
             {!!t.duration && t.duration > 0 && (
               <span
@@ -151,8 +151,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     }}
                   >
                     <i
-                      className={`bi ${
-                        confirmModal.isDanger !== false ? "bi-exclamation-triangle" : "bi-question-circle"
+                      className={`fa-solid ${
+                        confirmModal.isDanger !== false ? "fa-triangle-exclamation" : "fa-circle-question"
                       } fs-5`}
                     ></i>
                   </div>

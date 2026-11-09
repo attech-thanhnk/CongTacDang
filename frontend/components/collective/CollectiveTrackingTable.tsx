@@ -16,7 +16,7 @@ function FormCell({ form }: { form: CollectiveTrackingForm }) {
 /** Bảng theo dõi tổ chức Đảng đã/chưa lập Mẫu 06, 07, 08 trong kỳ; chỉ hiển thị. */
 export function CollectiveTrackingTable({ tracking }: { tracking: CollectiveTracking | null }) {
   if (!tracking || tracking.rows.length === 0) {
-    return <EmptyState compact icon="bi-people" title="Chưa có tổ chức Đảng nào có cán bộ trong kỳ" />;
+    return <EmptyState compact icon="fa-users" title="Chưa có tổ chức Đảng nào có cán bộ trong kỳ" />;
   }
   const done = tracking.rows.filter((row) => row.complete).length;
   return (
