@@ -74,8 +74,8 @@ public class PositionSeniorityTests
             [Id("giam-doc")] = new() { Pos("Giám đốc", "M14", true) },
         };
 
-        var ordered = PositionRules.OrderBySeniority(people, held, p => p.Id, p => p.Dept, p => p.Name).Select(p => p.Name);
+        var ordered = PositionRules.OrderBySeniority(people, held, new Dictionary<string, int> { ["B"] = 0, ["A"] = 1 }, p => p.Id, p => p.Dept, p => p.Name).Select(p => p.Name);
 
-        Assert.Equal(new[] { "giam-doc", "pho-a", "khong-chuc-vu", "truong-b", "pho-b" }, ordered);
+        Assert.Equal(new[] { "giam-doc", "truong-b", "pho-b", "pho-a", "khong-chuc-vu" }, ordered);
     }
 }

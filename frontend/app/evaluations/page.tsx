@@ -59,7 +59,8 @@ export default function EvaluationsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [department, setDepartment] = useState("");
   const [partyCell, setPartyCell] = useState("");
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
+  // Chưa bấm tiêu đề cột thì giữ thứ tự chức danh do máy chủ trả về.
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   // Bộ lọc mở sẵn từ đường dẫn (vd. bấm tổ chức Đảng ở Tổng quan); chỉ áp dụng lần nạp đầu.
@@ -141,22 +142,22 @@ export default function EvaluationsPage() {
     const list = baseFiltered.filter((r) =>
       !statusFilter ? true : statusFilter === RETURNED ? !!r.returnReason : statusFilter === OVERDUE ? isOverdue(r) : r.status === statusFilter
     );
+    if (!sort) return list;
     const direction = sort.desc ? -1 : 1;
-    return [...list].sort((a, b) => {
-      const byName = a.fullName.localeCompare(b.fullName, "vi");
-      if (sort.key === "status") return (statusRank(a.status) - statusRank(b.status)) * direction || byName;
-      return byName * direction;
-    });
+    return [...list].sort((a, b) =>
+      sort.key === "status"
+        ? (statusRank(a.status) - statusRank(b.status)) * direction
+        : a.fullName.localeCompare(b.fullName, "vi") * direction);
   }, [baseFiltered, statusFilter, sort]);
   const paging = usePagination(filtered, {
     storageKey: "evaluations",
     resetKeys: [periodId, search, statusFilter, department, partyCell, sort],
   });
 
-  const toggleSort = (key: SortKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: false }));
+  const toggleSort = (key: SortKey) => setSort((s) => (s?.key === key ? { key, desc: !s.desc } : { key, desc: false }));
   const sortIcon = (key: SortKey) =>
-    sort.key === key ? <i className={`bi ${sort.desc ? "bi-sort-down" : "bi-sort-up"} ms-1`} aria-hidden="true" /> : null;
-  const ariaSort = (key: SortKey) => (sort.key === key ? (sort.desc ? "descending" : "ascending") : undefined);
+    sort?.key === key ? <i className={`bi ${sort.desc ? "bi-sort-down" : "bi-sort-up"} ms-1`} aria-hidden="true" /> : null;
+  const ariaSort = (key: SortKey) => (sort?.key === key ? (sort.desc ? "descending" : "ascending") : undefined);
 
   const chip = (value: string, label: string, count: number, danger = false) => {
     const active = statusFilter === value;

@@ -101,7 +101,7 @@ public class EvaluationService : IEvaluationService
     private async Task<List<EvaluationRecord>> BySeniorityAsync(List<EvaluationRecord> records, CancellationToken ct)
     {
         var held = await _positions.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
-        return PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName);
+        return PositionRules.OrderBySeniority(records, held, await _positions.GetUnitOrderAsync(ct), r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName);
     }
 
     /// <inheritdoc />

@@ -171,7 +171,7 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
         var result = new List<ControlCheckCandidateDto>();
         var seniority = await _records.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
-        foreach (var r in PositionRules.OrderBySeniority(records, seniority, x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
+        foreach (var r in PositionRules.OrderBySeniority(records, seniority, await _records.GetUnitOrderAsync(ct), x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
         {
             if (r.MemberId == me || taken.Contains(r.Id) || !scope.Matches(null, r.DepartmentId, r.PartyCellId))
                 continue;
@@ -211,7 +211,8 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
             ResultName = i.Result is { } r ? ControlCheckRules.ResultName(r) : null,
             Evidence = i.Evidence
         }).ToList();
-        dto.Records = check.Records.OrderBy(r => r.Record.Member?.FullName, StringComparer.CurrentCulture).Select(r => new ControlCheckRecordDto
+        var seniority = await _records.GetHeldPositionsAsync(check.Records.Select(r => r.Record.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        dto.Records = PositionRules.OrderBySeniority(check.Records, seniority, await _records.GetUnitOrderAsync(ct), r => r.Record.MemberId, r => r.Record.Department?.Name, r => r.Record.Member?.FullName).Select(r => new ControlCheckRecordDto
         {
             RecordId = r.RecordId,
             MemberId = r.Record.MemberId,

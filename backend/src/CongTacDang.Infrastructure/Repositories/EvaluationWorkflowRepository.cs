@@ -167,6 +167,9 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
         MemberSources(_db.PartyMemberProfiles.AsNoTracking().Where(m => memberIds.Contains(m.Id))).ToListAsync(ct);
 
     /// <inheritdoc />
+    public Task<Dictionary<string, int>> GetUnitOrderAsync(CancellationToken ct = default) => UnitOrder.LoadAsync(_db, ct);
+
+    /// <inheritdoc />
     public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default) =>
         PositionRepository.LoadHeldPositionsAsync(_db, userIds, at, ct);
 

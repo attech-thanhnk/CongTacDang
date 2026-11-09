@@ -46,6 +46,9 @@ public interface IPositionRepository
     /// <summary>Xóa mềm khi lưu.</summary>
     void RemoveMemberPosition(MemberPosition memberPosition);
 
+    /// <summary>Thứ tự đơn vị chính quyền theo cây (cha trước con, anh em theo số thứ tự), khóa là tên đơn vị.</summary>
+    Task<Dictionary<string, int>> GetUnitOrderAsync(CancellationToken ct = default);
+
     /// <summary>Chức vụ hiệu lực tại <paramref name="at"/>; <paramref name="userIds"/> null = mọi cán bộ.</summary>
     Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid>? userIds, DateTime at, CancellationToken ct = default);
 

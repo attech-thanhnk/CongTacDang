@@ -44,12 +44,13 @@ public static class PositionRules
     /// <summary>Lãnh đạo cấp Công ty (hạng tới Kiểm soát viên) xếp thành nhóm đầu.</summary>
     public const int CompanyLeadershipMaxRank = 150;
 
-    /// <summary>Danh sách cán bộ từ chức danh cao xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.</summary>
+    /// <summary>Danh sách cán bộ từ chức danh cao xuống: lãnh đạo Công ty, rồi từng đơn vị theo thứ tự trong cây (Trưởng trước Phó), cuối cùng theo tên.</summary>
     public static List<T> OrderBySeniority<T>(IEnumerable<T> items, IReadOnlyDictionary<Guid, List<HeldPosition>> held,
-        Func<T, Guid> memberId, Func<T, string?> departmentName, Func<T, string?> fullName)
+        IReadOnlyDictionary<string, int> unitOrder, Func<T, Guid> memberId, Func<T, string?> departmentName, Func<T, string?> fullName)
         => items
             .Select(item => (Item: item, Rank: SeniorityRank(held.GetValueOrDefault(memberId(item)))))
             .OrderBy(x => x.Rank <= CompanyLeadershipMaxRank ? 0 : 1)
+            .ThenBy(x => x.Rank <= CompanyLeadershipMaxRank ? -1 : unitOrder.GetValueOrDefault(departmentName(x.Item) ?? string.Empty, int.MaxValue))
             .ThenBy(x => x.Rank <= CompanyLeadershipMaxRank ? string.Empty : departmentName(x.Item) ?? string.Empty, StringComparer.CurrentCulture)
             .ThenBy(x => x.Rank)
             .ThenBy(x => fullName(x.Item) ?? string.Empty, StringComparer.CurrentCulture)

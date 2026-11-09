@@ -98,7 +98,7 @@ public sealed class PublishedResultService : IPublishedResultService
         var currentUserId = _currentUser.UserId;
 
         var held = await _positions.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
-        result.Items = PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
+        result.Items = PositionRules.OrderBySeniority(records, held, await _positions.GetUnitOrderAsync(ct), r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
             .Select(r => new PublishedResultItemDto
             {
                 RecordId = _guard.Can(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(r)) ? r.Id : null,

@@ -752,7 +752,7 @@ public sealed class PeriodService : IPeriodService
         var today = EvaluationMapping.Today(DateTime.UtcNow);
         // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
         var held = await _repo.GetHeldPositionsAsync(records.Select(r => r.MemberId).ToList(), DateTime.UtcNow, ct);
-        return PositionRules.OrderBySeniority(records, held, r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
+        return PositionRules.OrderBySeniority(records, held, await _repo.GetUnitOrderAsync(ct), r => r.MemberId, r => r.Department?.Name, r => r.Member?.FullName)
             .Select(r => WithNotRatedActions(ToParticipant(r, settings, criteria, today), r, period.Status))
             .ToList();
     }
@@ -773,7 +773,7 @@ public sealed class PeriodService : IPeriodService
         var members = await _repo.SearchMembersAsync(departmentId, partyCellId, query, ct);
         var held = await _repo.GetHeldPositionsAsync(members.Select(m => m.Id).ToList(), DateTime.UtcNow, ct);
         // Cấp trên xuống: lãnh đạo Công ty, rồi từng đơn vị (Trưởng trước Phó), cuối cùng theo tên.
-        members = PositionRules.OrderBySeniority(members, held, m => m.Id, m => m.DepartmentName, m => m.FullName);
+        members = PositionRules.OrderBySeniority(members, held, await _repo.GetUnitOrderAsync(ct), m => m.Id, m => m.DepartmentName, m => m.FullName);
         return members.Select(m => new ParticipantCandidateDto
         {
             MemberId = m.Id,

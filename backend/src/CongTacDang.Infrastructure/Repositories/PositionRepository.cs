@@ -86,6 +86,9 @@ public sealed class PositionRepository : IPositionRepository
     public void RemoveMemberPosition(MemberPosition memberPosition) => _db.MemberPositions.Remove(memberPosition);
 
     /// <inheritdoc />
+    public Task<Dictionary<string, int>> GetUnitOrderAsync(CancellationToken ct = default) => UnitOrder.LoadAsync(_db, ct);
+
+    /// <inheritdoc />
     public Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(
         IReadOnlyCollection<Guid>? userIds, DateTime at, CancellationToken ct = default) => LoadHeldPositionsAsync(_db, userIds, at, ct);
 

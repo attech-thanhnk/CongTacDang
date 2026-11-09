@@ -89,6 +89,9 @@ public interface IEvaluationWorkflowRepository : IOrgSubtreeReader
     /// <summary>Cán bộ đang hoạt động; Phòng/Chi bộ null = không lọc.</summary>
     Task<List<MemberSnapshotSource>> SearchMembersAsync(Guid? departmentId, Guid? partyCellId, string? query, CancellationToken ct = default);
 
+    /// <summary>Thứ tự đơn vị chính quyền theo cây (cha trước con, anh em theo số thứ tự), khóa là tên đơn vị.</summary>
+    Task<Dictionary<string, int>> GetUnitOrderAsync(CancellationToken ct = default);
+
     /// <summary>Chức vụ hiệu lực tại <paramref name="at"/> của các cán bộ (để gợi ý diện quyết định theo chức vụ).</summary>
     Task<Dictionary<Guid, List<HeldPosition>>> GetHeldPositionsAsync(IReadOnlyCollection<Guid> userIds, DateTime at, CancellationToken ct = default);
 

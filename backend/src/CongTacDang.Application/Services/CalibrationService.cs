@@ -119,7 +119,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
     {
         var session = await RequireSessionAsync(id, ct);
         EnsureCanView(session);
-        return BuildDto(session);
+        return await BuildDtoAsync(session, ct);
     }
 
     /// <inheritdoc />
@@ -138,7 +138,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
 
         var result = new List<CalibrationCandidateDto>();
         var seniority = await _records.GetHeldPositionsAsync(records.Select(r => r.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
-        foreach (var r in PositionRules.OrderBySeniority(records, seniority, x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
+        foreach (var r in PositionRules.OrderBySeniority(records, seniority, await _records.GetUnitOrderAsync(ct), x => x.MemberId, x => x.Department?.Name, x => x.Member?.FullName))
         {
             if (IsOwn(r) || taken.ContainsKey(r.Id)
                 || !_guard.Can(PermissionCodes.EvaluationCalibrationManage, AccessTarget.ForRecord(r).ForWrite()))
@@ -715,9 +715,10 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
 
     #region DTO
 
-    private CalibrationSessionDto BuildDto(CalibrationSession s)
+    private async Task<CalibrationSessionDto> BuildDtoAsync(CalibrationSession s, CancellationToken ct)
     {
-        var rows = s.Records.OrderBy(r => NameOf(r.Record), StringComparer.CurrentCulture).ToList();
+        var seniority = await _records.GetHeldPositionsAsync(s.Records.Select(r => r.Record.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
+        var rows = PositionRules.OrderBySeniority(s.Records, seniority, await _records.GetUnitOrderAsync(ct), r => r.Record.MemberId, r => r.Record.Department?.Name, r => r.Record.Member?.FullName);
         var cases = s.Cases.OrderBy(c => c.Order).ToList();
         var names = rows.ToDictionary(r => r.RecordId, r => NameOf(r.Record));
         var lines = CalibrationRules.Summarize(s.Records.ToList(), cases);
@@ -1135,7 +1136,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
     private async Task<CalibrationSession> RequireSessionAsync(Guid id, CancellationToken ct) =>
         await _repo.FindAsync(id, ct) ?? throw new NotFoundException("Không tìm thấy biên bản họp thống nhất.");
 
-    private async Task<CalibrationSessionDto> ReloadAsync(Guid id, CancellationToken ct) => BuildDto(await RequireSessionAsync(id, ct));
+    private async Task<CalibrationSessionDto> ReloadAsync(Guid id, CancellationToken ct) => await BuildDtoAsync(await RequireSessionAsync(id, ct), ct);
 
     private async Task<string> ActorNameAsync(CancellationToken ct)
     {

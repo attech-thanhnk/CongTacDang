@@ -1200,7 +1200,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         // Trong mỗi nhóm việc: theo kỳ, rồi từ chức danh cao xuống.
         var held = await _repo.GetHeldPositionsAsync(queue.Groups.SelectMany(g => g.Items).Select(i => i.MemberId).Distinct().ToList(), DateTime.UtcNow, ct);
         foreach (var group in queue.Groups)
-            group.Items = PositionRules.OrderBySeniority(group.Items, held, i => i.MemberId, i => i.DepartmentName, i => i.FullName)
+            group.Items = PositionRules.OrderBySeniority(group.Items, held, await _repo.GetUnitOrderAsync(ct), i => i.MemberId, i => i.DepartmentName, i => i.FullName)
                 .OrderBy(i => i.PeriodName).ToList();
         return queue;
     }

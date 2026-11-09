@@ -116,7 +116,7 @@ public sealed class UserAccountRepository : IUserAccountRepository
         // Hạng chức danh tính ngoài CSDL nên sắp xếp trước rồi mới lấy đúng trang.
         var rows = await query.Select(m => new { m.Id, m.FullName, Department = m.Department != null ? m.Department.Name : null }).ToListAsync(ct);
         var held = await _positions.GetHeldPositionsAsync(rows.Select(r => r.Id).ToList(), DateTime.UtcNow, ct);
-        var pageIds = PositionRules.OrderBySeniority(rows, held, r => r.Id, r => r.Department, r => r.FullName)
+        var pageIds = PositionRules.OrderBySeniority(rows, held, await _positions.GetUnitOrderAsync(ct), r => r.Id, r => r.Department, r => r.FullName)
             .Skip((criteria.Page - 1) * criteria.PageSize)
             .Take(criteria.PageSize)
             .Select(r => r.Id)
