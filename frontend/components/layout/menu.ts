@@ -99,6 +99,8 @@ export function buildMenu(user: AuthUser | null, hasPermission: (code: string) =
         { title: "Kỳ đánh giá", href: "/periods", icon: "bi-calendar3", permission: "period.manage" },
         { title: "Bộ tiêu chí", href: "/criteria", icon: "bi-list-check", permission: "criteria.manage" },
         { title: "Danh mục tổ chức", href: "/catalog", icon: "bi-building", permission: "catalog.manage" },
+        // Người quản lý danh mục đã có thẻ Ngày nghỉ trong Danh mục tổ chức.
+        { title: "Ngày nghỉ", href: "/holidays", icon: "bi-calendar-x", check: () => hasPermission("period.manage") && !hasPermission("catalog.manage") },
       ],
     },
     {

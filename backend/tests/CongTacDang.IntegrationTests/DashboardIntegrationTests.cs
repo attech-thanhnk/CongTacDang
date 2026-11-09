@@ -329,6 +329,33 @@ public sealed class DashboardIntegrationTests
         Assert.Equal(new HashSet<Guid> { expiring.Id }, await Ids("noPosition"));
     }
 
+    [SkippableFact]
+    public async Task Holidays_OnlyGlobalPeriodManagerOrCatalogManagerCanEdit()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var sfx = Guid.NewGuid().ToString("N")[..6];
+        var dept = await CreateDepartmentAsync(sfx);
+        var role = (await _factory.CreateRoleAsync(PermissionCodes.PeriodManage)).Id;
+        var global = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(global.Id, role, RoleScopeType.Global, null);
+        var scoped = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(scoped.Id, role, RoleScopeType.Department, dept);
+        var plain = await _factory.CreateUserAsync();
+
+        var date = new DateOnly(2090, 1, 1).AddDays(Random.Shared.Next(0, 3000)).ToString("yyyy-MM-dd");
+        var body = new { date, name = $"Nghỉ {sfx}" };
+        using var globalC = await _factory.LoginAsAsync(global.Username, global.Password, distinctClientIp: true);
+        using var scopedC = await _factory.LoginAsAsync(scoped.Username, scoped.Password, distinctClientIp: true);
+        using var plainC = await _factory.LoginAsAsync(plain.Username, plain.Password, distinctClientIp: true);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await scopedC.PostAsJsonAsync("/api/holidays", body)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await plainC.PostAsJsonAsync("/api/holidays", body)).StatusCode);
+        var created = await globalC.PostAsJsonAsync("/api/holidays", body);
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        var id = JsonDocument.Parse(await created.Content.ReadAsStringAsync()).RootElement.GetProperty("data")[0].GetProperty("id").GetString();
+        Assert.Equal(HttpStatusCode.OK, (await globalC.DeleteAsync($"/api/holidays/{id}")).StatusCode);
+    }
+
     private async Task<Guid> CreateDepartmentAsync(string sfx)
     {
         var id = Guid.Empty;

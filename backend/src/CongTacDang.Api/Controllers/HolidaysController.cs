@@ -18,10 +18,19 @@ namespace CongTacDang.Api.Controllers;
 public class HolidaysController : ControllerBase
 {
     private readonly IHolidayService _service;
+    private readonly IAuthorizationGuard _guard;
 
-    public HolidaysController(IHolidayService service)
+    public HolidaysController(IHolidayService service, IAuthorizationGuard guard)
     {
         _service = service;
+        _guard = guard;
+    }
+
+    // Ngày nghỉ áp dụng toàn công ty nên người quản lý kỳ phải có phạm vi toàn công ty.
+    private void EnsureCanEdit()
+    {
+        if (!_guard.HasAny(PermissionCodes.CatalogManage))
+            _guard.Ensure(PermissionCodes.PeriodManage, AccessTarget.None);
     }
 
     /// <summary>Ngày nghỉ của một năm (xem: mọi người đã đăng nhập).</summary>
@@ -34,27 +43,30 @@ public class HolidaysController : ControllerBase
 
     /// <summary>Thêm một ngày hoặc một khoảng ngày nghỉ.</summary>
     [HttpPost]
-    [RequirePermission(PermissionCodes.CatalogManage)]
+    [RequireAnyPermission(PermissionCodes.CatalogManage, PermissionCodes.PeriodManage)]
     public async Task<IActionResult> Create([FromBody] SaveHolidayDto request)
     {
+        EnsureCanEdit();
         var items = await _service.CreateAsync(request);
         return Ok(ApiResponse<List<HolidayDto>>.Ok(items, $"Đã thêm {items.Count} ngày nghỉ."));
     }
 
     /// <summary>Sửa ngày nghỉ.</summary>
     [HttpPut("{id:guid}")]
-    [RequirePermission(PermissionCodes.CatalogManage)]
+    [RequireAnyPermission(PermissionCodes.CatalogManage, PermissionCodes.PeriodManage)]
     public async Task<IActionResult> Update(Guid id, [FromBody] SaveHolidayDto request)
     {
+        EnsureCanEdit();
         var item = await _service.UpdateAsync(id, request);
         return Ok(ApiResponse<HolidayDto>.Ok(item, "Đã cập nhật ngày nghỉ."));
     }
 
     /// <summary>Xóa ngày nghỉ.</summary>
     [HttpDelete("{id:guid}")]
-    [RequirePermission(PermissionCodes.CatalogManage)]
+    [RequireAnyPermission(PermissionCodes.CatalogManage, PermissionCodes.PeriodManage)]
     public async Task<IActionResult> Delete(Guid id)
     {
+        EnsureCanEdit();
         await _service.DeleteAsync(id);
         return Ok(ApiResponse.Ok("Đã xóa ngày nghỉ."));
     }
