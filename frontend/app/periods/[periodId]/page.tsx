@@ -91,7 +91,7 @@ export default function PeriodDetailPage() {
       setPeriod(loaded);
       if (!initialTabRef.current) {
         initialTabRef.current = true;
-        // Mở từ Tổng quan (bước chưa có người thực hiện) thì vào thẳng tab Người thực hiện các bước.
+        // Mở từ Tổng quan (bước chưa có người thực hiện): kỳ dự thảo vào tab này, kỳ đang chạy mở danh sách ở thẻ Tiến độ.
         const wanted = new URLSearchParams(window.location.search).get("tab");
         if (canManage && wanted === "readiness" && loaded.status !== "Closed") setTab("readiness");
         else if (canManage && (loaded.status === "Open" || loaded.status === "Locked")) setTab("progress");
@@ -521,7 +521,8 @@ function RunningStatusStrip({ period, readiness, checking, onCheck }: {
   checking: boolean;
   onCheck: () => void;
 }) {
-  const [open, setOpen] = useState<"criteria" | "readiness" | null>(null);
+  const [open, setOpen] = useState<"criteria" | "readiness" | null>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "readiness" ? "readiness" : null);
   const toggle = (key: "criteria" | "readiness") => setOpen(open === key ? null : key);
   const issues = readiness?.issues.filter((i) => i.permission).length ?? 0;
   return (

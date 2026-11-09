@@ -89,4 +89,4 @@ Khối **Quản trị cần xử lý** ở trang **Tổng quan** chỉ liệt k�
 - đảng viên chưa có tổ chức Đảng, người sinh hoạt tại tổ chức Đảng có tổ chức con, cán bộ chưa có chức vụ;
 - bước chưa có người thực hiện của kỳ đang mở (chỉ người quản lý kỳ toàn công ty thấy).
 
-Bấm một mục để mở trang **Tài khoản** đã lọc sẵn (ô **Cần xử lý**) hoặc trang kỳ ở thẻ **Người thực hiện các bước**. Dòng trên cùng ghi số tài khoản đã đăng nhập trong 7 ngày. Người có quyền xem nhật ký thấy thêm **Hoạt động gần đây** bên dưới.
+Bấm một mục để mở trang **Tài khoản** đã lọc sẵn (ô **Cần xử lý**) hoặc trang kỳ, với danh sách bước thiếu người đã mở sẵn ở thẻ **Tiến độ**. Dòng trên cùng ghi số tài khoản đã đăng nhập trong 7 ngày. Người có quyền xem nhật ký thấy thêm **Hoạt động gần đây** bên dưới.

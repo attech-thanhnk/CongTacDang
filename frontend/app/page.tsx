@@ -44,7 +44,7 @@ export default function DashboardPage() {
     let mounted = true;
     Promise.all([
       canAdminSummary ? dashboardService.getAdmin().catch(() => null) : Promise.resolve(null),
-      canAudit ? auditService.getLogs({ pageSize: RECENT_LOGS }).then((p) => p.items).catch(() => null) : Promise.resolve(null),
+      canAudit ? auditService.getLogs({ pageSize: RECENT_LOGS, excludeEntityType: "RefreshToken" }).then((p) => p.items).catch(() => null) : Promise.resolve(null),
     ]).then(([summary, recent]) => {
       if (!mounted) return;
       setAdminSummary(summary);
