@@ -21,6 +21,7 @@ import { CollapsibleSection, revealSection } from "@/components/evaluations/Coll
 import { AxisSummaryView, SelfAssessmentView } from "@/components/evaluations/IndividualFormInputs";
 import { loadCriteria, useCriteria } from "@/components/evaluations/useCriteria";
 import { BackButton } from "@/components/common/BackButton";
+import { HeaderMenu } from "@/components/common/HeaderMenu";
 import { initialsOf } from "@/components/dashboard/taskUtils";
 import styles from "@/components/evaluations/record.module.css";
 import { attachmentService } from "@/services/attachmentService";
@@ -63,6 +64,7 @@ export default function EvaluationRecordPage() {
   const params = useParams<{ recordId: string }>();
   const recordId = params?.recordId;
   const { toast, confirm } = useToast();
+  const { user } = useAuth();
   const [record, setRecord] = useState<EvaluationRecordDto | null>(null);
   const [actions, setActions] = useState<RecordActionDto[]>([]);
   const [history, setHistory] = useState<EvaluationRecordHistoryDto[]>([]);
@@ -151,18 +153,22 @@ export default function EvaluationRecordPage() {
 
   // Bước đang làm mà người xem có thao tác → tới khu thao tác; còn lại → mở và cuộn tới khối nội dung của bước.
   const selectStep = (item: RecordStepProgressDto) => {
-    if (item.state === "current" && actions.some((a) => a.step === item.step)) {
+    if (item.state === "current" && panelActions.some((a) => a.step === item.step)) {
       goToActions();
       return;
     }
     revealSection(STEP_SECTION[item.step]);
   };
 
+  // Đánh dấu / bỏ đánh dấu chưa xếp loại nằm trong menu ⋯ ở đầu trang, không chiếm khu thao tác.
+  const menuActions = actions.filter((a) => MENU_ACTIONS.has(a.action));
+  const panelActions = actions.filter((a) => !MENU_ACTIONS.has(a.action));
   // Hành động bị cổng khóa vẫn có trong danh sách: chỉ hiện lý do máy chủ trả về, không tự suy luật.
   const blockedActions = actions.filter((a) => !!a.blockedBy && !!a.blockedReason);
   const gateWarnings = Array.from(new Set(actions.flatMap((a) => a.warnings ?? [])));
-  // Đang có việc chính (không chỉ trả lại / mở lại): thu gọn khối Biểu mẫu ở cuối trang để không chen việc chính.
-  const working = actions.some((a) => !a.requiresReason) || appealPending || planPending;
+  // Chủ hồ sơ đang phải làm bước hiện tại: dòng chờ ghi "Bạn".
+  const currentStep = record?.progress.find((p) => p.state === "current")?.step;
+  const mineNow = !!user && user.id === record?.memberId && panelActions.some((a) => !a.requiresReason && a.step === currentStep);
   const hasForms = forms.length + requestForms.length > 0;
 
   if (loading) {
@@ -194,10 +200,25 @@ export default function EvaluationRecordPage() {
               <p className={styles.lede}>{[record.positionTitle, record.departmentName].filter(Boolean).join(" · ")}</p>
             )}
           </div>
-          {hasForms && (
-            <button type="button" className={`btn btn-outline-secondary btn-sm ${styles.headBtn}`} aria-label="Biểu mẫu" title="Biểu mẫu" onClick={() => revealSection(FORMS_ANCHOR)}>
-              <i className="bi bi-file-earmark-text" aria-hidden="true" /><span className={styles.hideNarrow}> Biểu mẫu</span>
-            </button>
+          {(hasForms || menuActions.length > 0) && (
+            <div className={styles.headBtn}>
+              {hasForms && (
+                <button type="button" className="btn btn-outline-secondary" aria-label="Biểu mẫu" title="Biểu mẫu" onClick={() => revealSection(FORMS_ANCHOR)}>
+                  <i className="bi bi-file-earmark-text" aria-hidden="true" /><span className={styles.hideNarrow}> Biểu mẫu</span>
+                </button>
+              )}
+              <HeaderMenu
+                itemLabel={record.fullName}
+                disabled={busy}
+                actions={menuActions.map((a) => ({
+                  key: a.action,
+                  label: a.label,
+                  icon: a.action === "MarkNotRated" ? "bi-slash-circle" : "bi-arrow-counterclockwise",
+                  danger: a.action === "MarkNotRated",
+                  onClick: () => setReasonAction(a),
+                }))}
+              />
+            </div>
           )}
         </div>
 
@@ -240,7 +261,7 @@ export default function EvaluationRecordPage() {
         )}
 
         <section className={styles.block} aria-label="Tiến trình hồ sơ">
-          <RecordProgress progress={record.progress} onSelect={selectStep} />
+          <RecordProgress progress={record.progress} onSelect={selectStep} mine={mineNow} />
         </section>
 
         <div className={styles.cols}>
@@ -249,10 +270,10 @@ export default function EvaluationRecordPage() {
               {
                 key: "actions",
                 // Thao tác chỉ còn trả lại / mở lại (không phải việc chính) thì nhường chỗ cho việc đang chờ.
-                rank: actions.some((a) => !a.requiresReason) ? 0 : 2,
-                node: actions.length > 0 && (
+                rank: panelActions.some((a) => !a.requiresReason) ? 0 : 2,
+                node: panelActions.length > 0 && (
                   <div id={ACTIONS_ANCHOR} className={styles.actionsAnchor} tabIndex={-1}>
-                    <RecordActionPanel record={record} actions={actions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
+                    <RecordActionPanel record={record} actions={panelActions} busy={busy} onSubmit={perform} onReason={setReasonAction} />
                   </div>
                 ),
               },
@@ -266,10 +287,9 @@ export default function EvaluationRecordPage() {
           </div>
           <div className={`${styles.stack} ${styles.side}`}>
             <RecordFormsPanel
-              // Đổi chế độ thì dựng lại để áp trạng thái mở mặc định mới.
-              key={working ? "working" : "viewing"}
+              // Luôn gập sẵn; nút "Biểu mẫu" ở đầu trang mở và cuộn tới.
               anchorId={FORMS_ANCHOR}
-              defaultOpen={!working}
+              defaultOpen={false}
               recordId={record.id}
               fullName={record.fullName}
               forms={forms}
@@ -312,7 +332,10 @@ function orderBlocks(blocks: { key: string; rank: number; node: React.ReactNode 
 }
 
 /** Thao tác làm lùi hồ sơ: hộp xác nhận kiểu nguy hiểm. */
-const DANGER_ACTIONS = new Set<WorkflowActionCode>(["RevokeTaskApproval"]);
+/** Thao tác ít dùng đặt trong menu ⋯ ở đầu trang. */
+const MENU_ACTIONS = new Set<WorkflowActionCode>(["MarkNotRated", "UnmarkNotRated"]);
+
+const DANGER_ACTIONS =new Set<WorkflowActionCode>(["RevokeTaskApproval"]);
 
 const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
   SubmitTasks: "Nộp danh mục sản phẩm? Sau khi nộp, danh mục sẽ chuyển tới bước tiếp theo.",
@@ -360,7 +383,7 @@ function goToActions() {
   (first ?? area).focus({ preventScroll: true });
 }
 
-/** Thông tin hồ sơ: kỳ, Chi bộ, thẩm quyền, diện quyết định (chức vụ, phòng đã ở đầu trang). */
+/** Thông tin hồ sơ: Chi bộ, thẩm quyền, diện quyết định (chức vụ, phòng đã ở đầu trang). */
 function RecordInfo({ record }: { record: EvaluationRecordDto }) {
   return (
     <section className={styles.block}>
@@ -370,7 +393,6 @@ function RecordInfo({ record }: { record: EvaluationRecordDto }) {
       <div className={styles.body}>
         <Fields
           items={[
-            ["Kỳ", record.periodName],
             ["Chi bộ", record.partyCellName],
             ["Thẩm quyền", record.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"],
             ["Diện quyết định", record.workflowProfileName || record.workflowProfileCode],

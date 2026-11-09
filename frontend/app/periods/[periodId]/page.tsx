@@ -118,8 +118,11 @@ export default function PeriodDetailPage() {
 
   // Kỳ không còn Đang mở / Khóa dữ liệu (đã đóng) khi đang xem Tiến độ → về tab mặc định.
   useEffect(() => {
-    if (tab === "progress" && period && !(canManage && (period.status === "Open" || period.status === "Locked")))
-      setTab(canManage ? "participants" : "criteria");
+    if (!period) return;
+    const running = canManage && (period.status === "Open" || period.status === "Locked");
+    if (tab === "progress" && !running) setTab(canManage ? "participants" : "criteria");
+    // Kỳ đang chạy không còn tab riêng cho bộ tiêu chí và người thực hiện.
+    if (running && (tab === "readiness" || tab === "criteria")) setTab("progress");
   }, [tab, period, canManage]);
 
   if (error) return <div className="page-wrapper"><div className="alert alert-danger m-4">{error}</div></div>;
@@ -142,15 +145,16 @@ export default function PeriodDetailPage() {
         ? "Diện quyết định có thay đổi chưa lưu"
         : null;
   const unpublishedCount = participants.filter((p) => p.status !== "Published").length;
+  // Kỳ đang chạy: bộ tiêu chí và kiểm tra người thực hiện gộp thành dải đầu tab Tiến độ.
   const tabs: { key: PeriodTab; label: string; count?: number; warn?: boolean }[] = [
     ...(showProgress
       ? [{ key: "progress" as PeriodTab, label: "Tiến độ", count: overdueCount > 0 ? overdueCount : undefined, warn: true }]
       : []),
     ...(canManage ? [{ key: "participants" as PeriodTab, label: "Người được đánh giá", count: participants.length > 0 ? participants.length : undefined }] : []),
-    ...(showReadiness
+    ...(showReadiness && !showProgress
       ? [{ key: "readiness" as PeriodTab, label: "Người thực hiện các bước", count: stepIssues.length > 0 ? stepIssues.length : undefined, warn: true }]
       : []),
-    { key: "criteria", label: "Bộ tiêu chí" },
+    ...(!showProgress ? [{ key: "criteria" as PeriodTab, label: "Bộ tiêu chí" }] : []),
     { key: "profiles", label: dirty ? "Diện quyết định •" : "Diện quyết định" },
   ];
 
@@ -428,7 +432,12 @@ export default function PeriodDetailPage() {
           ))}
         </ul>
 
-        {tab === "progress" && showProgress && <PeriodProgressSection participants={participants} />}
+        {tab === "progress" && showProgress && (
+          <>
+            <RunningStatusStrip period={period} readiness={readiness} checking={checking} onCheck={checkReadiness} />
+            <PeriodProgressSection participants={participants} />
+          </>
+        )}
 
         {tab === "profiles" && (
         <section className="card">
@@ -503,6 +512,66 @@ export default function PeriodDetailPage() {
       />
     </div>
   );
+}
+
+/** Dải trạng thái của kỳ đang chạy: bộ tiêu chí và kết quả kiểm tra người thực hiện; bấm để xem chi tiết. */
+function RunningStatusStrip({ period, readiness, checking, onCheck }: {
+  period: EvaluationPeriodDto;
+  readiness: PeriodReadinessDto | null;
+  checking: boolean;
+  onCheck: () => void;
+}) {
+  const [open, setOpen] = useState<"criteria" | "readiness" | null>(null);
+  const toggle = (key: "criteria" | "readiness") => setOpen(open === key ? null : key);
+  const issues = readiness?.issues.filter((i) => i.permission).length ?? 0;
+  return (
+    <>
+      <section className="card">
+        <div className={`card-body ${styles.statusStrip}`}>
+          {period.criteria ? (
+            <button type="button" className="btn btn-link p-0" aria-expanded={open === "criteria"} onClick={() => toggle("criteria")}>
+              Bộ tiêu chí {period.criteria.name}
+            </button>
+          ) : (
+            <span className="text-secondary">Chưa chọn bộ tiêu chí</span>
+          )}
+          <span className="text-secondary" aria-hidden="true">·</span>
+          {!readiness ? (
+            <span className="text-secondary">{checking ? "Đang kiểm tra người thực hiện" : "Chưa kiểm tra người thực hiện"}</span>
+          ) : issues === 0 ? (
+            <span className="text-success"><i className="bi bi-check-circle-fill me-1" aria-hidden="true" />Đủ người thực hiện</span>
+          ) : (
+            <button type="button" className="btn btn-link p-0 text-danger" aria-expanded={open === "readiness"} onClick={() => toggle("readiness")}>
+              <i className="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />Thiếu <span className="num">{issues}</span> bước
+            </button>
+          )}
+          <span className="text-secondary" aria-hidden="true">·</span>
+          <button type="button" className="btn btn-link p-0" disabled={checking} onClick={onCheck}>
+            {checking && <span className="spinner-border spinner-border-sm me-1" />}Kiểm tra lại
+          </button>
+        </div>
+      </section>
+      {open === "criteria" && period.criteria && (
+        <section className="card"><div className="card-body"><CriteriaSummary content={period.criteria.content} /></div></section>
+      )}
+      {open === "readiness" && <ReadinessPanel readiness={readiness} loading={checking} onCheck={onCheck} />}
+    </>
+  );
+}
+
+/** Giá trị xuất hiện nhiều nhất; danh sách rỗng trả về chuỗi rỗng. */
+function mostCommon(values: string[]): string {
+  const counts = new Map<string, number>();
+  values.forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1));
+  let best = "";
+  let max = 0;
+  counts.forEach((count, value) => {
+    if (count > max) {
+      best = value;
+      max = count;
+    }
+  });
+  return best;
 }
 
 interface ParticipantsProps {
@@ -582,6 +651,8 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
       onConfirm: () => run(() => evaluationService.removeParticipant(period.id, p.recordId, p.version), "Đã bỏ khỏi danh sách."),
     });
 
+  // Khung tỷ trọng phổ biến nhất của kỳ coi là mặc định; chỉ gắn nhãn người khác khung này.
+  const commonFrame = mostCommon(participants.map((p) => p.weightFrameCode));
   const allChecked = participants.length > 0 && checked.length === participants.length;
   const paging = usePagination(participants, { storageKey: "period.participants" });
   const showToolbar = (canAdd && !adding) || (canChangeProfile && checked.length > 0);
@@ -697,7 +768,8 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                               {c.alreadyAdded && <span className="tag t-wait ms-2">Đã có</span>}
                               <div className="small text-secondary">{c.username}</div>
                             </td>
-                            <td>{c.positionName || "—"}</td>
+                            {/* Máy chủ ghi chức vụ chính trước, các chức vụ kiêm nhiệm sau dấu phẩy. */}
+                            <td title={c.positionName || undefined}>{c.positionName?.split(", ")[0] || "—"}</td>
                             <td>{c.departmentName || "—"}</td>
                             <td>{c.partyCellName || "—"}</td>
                           </tr>
@@ -727,9 +799,7 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                   </th>
                 )}
                 <th>Cán bộ</th>
-                <th className="d-none d-md-table-cell">Đơn vị</th>
-                <th className="d-none d-lg-table-cell" style={{ width: 80 }} title="Khung tỷ trọng">Khung</th>
-                <th className="d-none d-lg-table-cell text-nowrap" style={{ width: 130 }}>Cấp quyết định</th>
+                <th className={`d-none d-md-table-cell ${styles.unitCol}`}>Đơn vị</th>
                 <th className="d-none d-md-table-cell">Diện quyết định</th>
                 <th className="d-none d-md-table-cell">Trạng thái</th>
                 {canChangeProfile && <th className="text-end">Thao tác</th>}
@@ -744,13 +814,20 @@ function ParticipantsSection({ period, profiles, participants, departments, cell
                         onChange={(e) => setChecked(e.target.checked ? [...checked, p.recordId] : checked.filter((id) => id !== p.recordId))} />
                     </td>
                   )}
-                  <td className={styles.nameCell}><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link><div className="small text-secondary">{p.username}</div>
+                  <td className={styles.nameCell}><Link href={`/evaluations/${p.recordId}`} className="fw-semibold" title={p.username}>{p.fullName}</Link>
                     <div className="d-md-none mt-1"><RecordStatusBadge status={p.status} label={p.statusDisplayName} /></div>
                   </td>
-                  <td className="d-none d-md-table-cell">{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
-                  <td className="d-none d-lg-table-cell" title={p.weightFrameName || undefined}>{p.weightFrameCode || "—"}{p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="bi bi-exclamation-triangle text-danger ms-1" title="Khung không có trong bộ tiêu chí của kỳ" />}</td>
-                  <td className="d-none d-lg-table-cell text-nowrap">{p.approvalAuthority === "CapTren" ? "Cấp trên" : "Cơ sở"}</td>
-                  <td className="d-none d-md-table-cell">{p.workflowProfileName || p.workflowProfileCode}</td>
+                  <td className={`d-none d-md-table-cell ${styles.unitCol}`}>{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
+                  <td className="d-none d-md-table-cell">
+                    {p.workflowProfileName || p.workflowProfileCode}
+                    {(p.weightFrameCode !== commonFrame || (!!p.weightFrameCode && !p.weightFrameName && !!period.criteria)) && (
+                      <span className="tag t-wait ms-2" title={p.weightFrameName || "Khung không có trong bộ tiêu chí của kỳ"}>
+                        Khung {p.weightFrameCode || "—"}
+                        {p.weightFrameCode && !p.weightFrameName && period.criteria && <i className="bi bi-exclamation-triangle text-danger ms-1" aria-hidden="true" />}
+                      </span>
+                    )}
+                    <div className={styles.unitSub}>{p.approvalAuthority === "CapTren" ? "Cấp trên quyết định" : "Đảng ủy cơ sở quyết định"}</div>
+                  </td>
                   <td className="d-none d-md-table-cell"><RecordStatusBadge status={p.status} label={p.statusDisplayName} />
                     {p.notRatedReason && <div className="small text-secondary mt-1" title={p.notRatedReason}><span className="badge text-bg-secondary me-1">Chưa xếp loại</span>{p.notRatedReason}</div>}
                   </td>

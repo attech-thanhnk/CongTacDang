@@ -50,7 +50,8 @@ export function PeriodProgressSection({ participants }: Props) {
   const [department, setDepartment] = useState("");
   const [cell, setCell] = useState("");
   const [status, setStatus] = useState("");
-  const [onlyUrgent, setOnlyUrgent] = useState(false);
+  // Bấm nhãn đếm "Quá hạn" / "Sắp đến hạn" để lọc, bấm lại để bỏ lọc.
+  const [urgent, setUrgent] = useState<"" | "overdue" | "soon">("");
 
   const departments = useMemo(
     () => Array.from(new Set(participants.map((p) => p.departmentName).filter((v): v is string => !!v))).sort((a, b) => a.localeCompare(b, "vi")),
@@ -83,30 +84,37 @@ export function PeriodProgressSection({ participants }: Props) {
   const dueSoonCount = base.filter(isDueSoon).length;
 
   const rows = useMemo(() => {
-    const list = base.filter((p) => (!status || p.status === status) && (!onlyUrgent || isOverdue(p) || isDueSoon(p)));
+    const list = base.filter((p) =>
+      (!status || p.status === status) && (urgent === "" || (urgent === "overdue" ? isOverdue(p) : isDueSoon(p))));
     return [...list].sort((a, b) => urgency(a) - urgency(b) || a.fullName.localeCompare(b.fullName, "vi"));
-  }, [base, status, onlyUrgent]);
-  const paging = usePagination(rows, { storageKey: "period.progress", resetKeys: [department, cell, status, onlyUrgent] });
+  }, [base, status, urgent]);
+  const paging = usePagination(rows, { storageKey: "period.progress", resetKeys: [department, cell, status, urgent] });
 
   return (
     <section className="card">
       <div className={`card-body ${styles.toolbar}`}>
-        <select className="form-select form-select-sm" aria-label="Lọc theo Phòng" value={department} onChange={(e) => setDepartment(e.target.value)}>
-          <option value="">Tất cả Phòng</option>
+        <select className="form-select form-select-sm" aria-label="Lọc theo đơn vị" value={department} onChange={(e) => setDepartment(e.target.value)}>
+          <option value="">Tất cả đơn vị</option>
           {departments.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         <select className="form-select form-select-sm" aria-label="Lọc theo Chi bộ" value={cell} onChange={(e) => setCell(e.target.value)}>
           <option value="">Tất cả Chi bộ</option>
           {cells.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <div className="form-check mb-0">
-          <input className="form-check-input" type="checkbox" id="progress-urgent" checked={onlyUrgent} onChange={(e) => setOnlyUrgent(e.target.checked)} />
-          <label className="form-check-label" htmlFor="progress-urgent">Chỉ quá hạn / sắp đến hạn</label>
-        </div>
-        {(overdueCount > 0 || dueSoonCount > 0) && (
+        {(overdueCount > 0 || dueSoonCount > 0 || urgent !== "") && (
           <span className={styles.toolbarEnd}>
-            {overdueCount > 0 && <span className="tag t-bad">Quá hạn <span className="num">{overdueCount}</span></span>}
-            {dueSoonCount > 0 && <span className="tag t-wait">Sắp đến hạn <span className="num">{dueSoonCount}</span></span>}
+            {(overdueCount > 0 || urgent === "overdue") && (
+              <button type="button" className={`tag t-bad ${styles.tagBtn} ${urgent === "overdue" ? styles.tagOn : ""}`} aria-pressed={urgent === "overdue"}
+                onClick={() => setUrgent(urgent === "overdue" ? "" : "overdue")}>
+                Quá hạn <span className="num">{overdueCount}</span>
+              </button>
+            )}
+            {(dueSoonCount > 0 || urgent === "soon") && (
+              <button type="button" className={`tag t-wait ${styles.tagBtn} ${urgent === "soon" ? styles.tagOn : ""}`} aria-pressed={urgent === "soon"}
+                onClick={() => setUrgent(urgent === "soon" ? "" : "soon")}>
+                Sắp đến hạn <span className="num">{dueSoonCount}</span>
+              </button>
+            )}
           </span>
         )}
       </div>
@@ -131,31 +139,22 @@ export function PeriodProgressSection({ participants }: Props) {
       ) : (
         <>
         <div className="table-responsive">
-          <table className={`table table-hover align-middle mb-0 ${styles.compactTable}`}>
+          <table className={`table table-hover align-middle mb-0 ${styles.compactTable} ${styles.progressCards}`}>
             <thead>
               <tr>
                 <th>Cán bộ</th>
-                <th className="d-none d-md-table-cell">Đơn vị</th>
+                <th className={styles.unitCol}>Đơn vị</th>
                 <th>Bước đang chờ</th>
-                <th className="d-none d-md-table-cell">Hạn</th>
-                <th className="d-none d-sm-table-cell">Tình trạng hạn</th>
+                <th>Hạn</th>
               </tr>
             </thead>
             <tbody>
               {paging.pageItems.map((p) => (
                 <tr key={p.recordId}>
                   <td className={styles.nameCell}><Link href={`/evaluations/${p.recordId}`} className="fw-semibold">{p.fullName}</Link></td>
-                  <td className="d-none d-md-table-cell">{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
-                  <td>
-                    {p.currentStep ? p.statusDisplayName : <span className="tag t-ok">{p.statusDisplayName}</span>}
-                    {p.currentStep && (
-                      <div className="d-md-none small text-secondary num">
-                        Hạn {formatDate(p.currentStepDeadline)} <span className="d-sm-none"><DeadlineState participant={p} /></span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="d-none d-md-table-cell num text-nowrap">{p.currentStep ? formatDate(p.currentStepDeadline) : ""}</td>
-                  <td className="d-none d-sm-table-cell"><DeadlineState participant={p} /></td>
+                  <td className={styles.unitCol}>{p.departmentName || "—"}<div className={styles.unitSub}>{p.partyCellName || "—"}</div></td>
+                  <td>{p.currentStep ? p.statusDisplayName : <span className="tag t-ok">{p.statusDisplayName}</span>}</td>
+                  <td className="text-nowrap"><Deadline participant={p} /></td>
                 </tr>
               ))}
             </tbody>
@@ -174,10 +173,17 @@ export function PeriodProgressSection({ participants }: Props) {
   );
 }
 
-function DeadlineState({ participant: p }: { participant: PeriodParticipantDto }) {
-  if (!p.currentStep) return null;
-  if (isOverdue(p)) return <span className="tag t-bad">Quá hạn <span className="num">{p.daysOverdue}</span> ngày</span>;
-  if (isDueSoon(p))
-    return <span className="tag t-wait">{p.daysLeft === 0 ? "Hạn hôm nay" : <>Còn <span className="num">{p.daysLeft}</span> ngày</>}</span>;
-  return null;
+/** "dd/MM · còn N ngày" trong một ô; quá hạn chữ đỏ, sắp đến hạn chữ vàng. */
+function Deadline({ participant: p }: { participant: PeriodParticipantDto }) {
+  if (!p.currentStep || !p.currentStepDeadline) return null;
+  const day = formatDate(p.currentStepDeadline).slice(0, 5);
+  const state = isOverdue(p)
+    ? `quá hạn ${p.daysOverdue} ngày`
+    : p.daysLeft === 0
+      ? "hôm nay"
+      : p.daysLeft != null
+        ? `còn ${p.daysLeft} ngày`
+        : "";
+  const tone = isOverdue(p) ? styles.late : isDueSoon(p) ? styles.soon : "";
+  return <span className={`num ${tone}`}>{day}{state && ` · ${state}`}</span>;
 }

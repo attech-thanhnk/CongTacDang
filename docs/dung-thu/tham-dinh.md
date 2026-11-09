@@ -64,7 +64,7 @@ Người không đánh giá trong kỳ (nghỉ dài ngày, mới bổ nhiệm d�
 
 **Xong thì thấy:** dòng có nhãn **Chưa xếp loại** kèm lý do. Hồ sơ bỏ qua các bước, chờ Văn phòng Đảng ủy công bố; người đó không phải làm gì. Đánh dấu nhầm: **⋯** → **Bỏ đánh dấu Chưa xếp loại** (khi chưa công bố).
 
-Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩm định: nút **Không đánh giá (Chưa xếp loại)**.
+Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Biểu mẫu** ở đầu trang → **Không đánh giá (Chưa xếp loại)**.
 
 ## Phần B. Rà soát danh mục sản phẩm
 
@@ -143,7 +143,7 @@ Hồ sơ đang thẩm định cũng đánh dấu được ngay trong khung thẩ
 
 ## Phần F. Theo dõi, khóa và đóng kỳ
 
-- **Tiến độ:** trang kỳ → thẻ **Tiến độ**; tích **Chỉ quá hạn / sắp đến hạn** để thấy ai đang chậm.
+- **Tiến độ:** trang kỳ → thẻ **Tiến độ**; bấm nhãn **Quá hạn** hoặc **Sắp đến hạn** để thấy ai đang chậm. Dòng đầu thẻ cho biết bộ tiêu chí của kỳ và còn bước nào thiếu người thực hiện.
 - **Tổng quan:** khối **Tiến độ trong phạm vi** đếm hồ sơ toàn công ty theo bước, theo tổ chức Đảng, và liệt kê hồ sơ **Chậm hạn** kèm người phải làm. Khối **Quản trị cần xử lý** báo **Bước chưa có người thực hiện** của kỳ đang mở; bấm vào để mở thẳng thẻ **Người thực hiện các bước** của kỳ.
 - **Khóa dữ liệu:** khi mọi hồ sơ đã có biên bản họp thống nhất và phiếu kiểm tra: trang kỳ → **⋯** → **Khóa dữ liệu** → **Khóa dữ liệu**. Từ lúc này cán bộ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Còn thiếu thì **⋯** → **Mở lại kỳ**, làm xong rồi khóa lại.
 - **Đóng kỳ:** khi mọi hồ sơ đã công bố: **⋯** → **Đóng kỳ** → **Đóng kỳ**.

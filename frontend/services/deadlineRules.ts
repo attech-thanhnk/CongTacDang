@@ -8,10 +8,10 @@ export interface DeadlineRule {
 }
 
 export const DEADLINE_RULE_LABELS: Record<DeadlineRuleKind, string> = {
-  WorkingDayOfQuarter: "Ngày làm việc thứ … đầu quý",
-  BeforeDayOfLastMonth: "Trước ngày … tháng cuối quý",
-  DayOfLastMonth: "Ngày … tháng cuối quý",
-  WorkingDaysBeforeQuarter: "… ngày làm việc trước đầu quý",
+  WorkingDayOfQuarter: "Ngày làm việc thứ mấy đầu quý",
+  BeforeDayOfLastMonth: "Trước ngày trong tháng cuối quý",
+  DayOfLastMonth: "Ngày trong tháng cuối quý",
+  WorkingDaysBeforeQuarter: "Số ngày làm việc trước đầu quý",
 };
 
 export const DEADLINE_RULE_LIMITS: Record<DeadlineRuleKind, { min: number; max: number }> = {

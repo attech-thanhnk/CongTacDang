@@ -50,15 +50,16 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 ![Khung đăng ký sản phẩm](anh/can-bo-05-dang-ky.png)
 
 2. Mỗi sản phẩm điền:
-   - **Tên sản phẩm, công việc**; **Mã sản phẩm (nếu có)**;
+   - **Tên sản phẩm, công việc**;
    - **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**;
    - **Trọng số (điểm)**, **Thời hạn / mốc quý**;
-   - **Chuẩn đạt**, **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**.
+   - **Chuẩn đạt**;
+   - bấm **Thêm chi tiết** rồi điền **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**, **Mã sản phẩm (nếu có)**.
 3. Cần thêm sản phẩm: bấm **Thêm dòng**. Bỏ một dòng: bấm **Xóa** ở góc dòng đó.
 
 ![Đang nhập sản phẩm](anh/can-bo-06-dang-ky-nhap.png)
 
-4. Xem dòng **Tổng trọng số** ở chân khung: phải bằng số tối đa (ví dụ **70 / 70**).
+4. Xem dòng **Tổng trọng số** ở chân khung: phải bằng số tối đa (ví dụ **70 / 70**); số sản phẩm cho phép ghi ngay bên cạnh.
 5. Bấm **Nộp danh mục** → hộp **Xác nhận thao tác** → **Đồng ý**.
 
 ![Xác nhận nộp danh mục](anh/can-bo-08-dang-ky-xac-nhan.png)

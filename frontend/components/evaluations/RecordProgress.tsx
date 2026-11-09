@@ -9,6 +9,8 @@ interface Props {
   progress: RecordStepProgressDto[];
   /** Bấm vào bước đã xong / đang làm (điều hướng tới nội dung của bước trên trang). */
   onSelect?: (item: RecordStepProgressDto) => void;
+  /** Người xem là người làm bước đang chờ: ghi "Bạn" thay cho tên. */
+  mine?: boolean;
 }
 
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -57,8 +59,8 @@ export function performersText(item: RecordStepProgressDto): string {
 }
 
 /** "Chờ: <ai>" của bước đang làm; bước cấp trên thì ghi rõ cấp trên thực hiện. */
-function waitingText(item: RecordStepProgressDto): string {
-  const actor = performersText(item) || actorOf(item);
+function waitingText(item: RecordStepProgressDto, mine = false): string {
+  const actor = mine && item.mode !== "External" ? "Bạn" : performersText(item) || actorOf(item);
   if (!actor) return "";
   return item.mode === "External" ? actor : `Chờ: ${actor}`;
 }
@@ -88,12 +90,12 @@ export function describeStep(item: RecordStepProgressDto): string {
  * Nơi duy nhất hiện bước hiện tại, người đang chờ và hạn của hồ sơ.
  * Màn rộng: thanh đủ các bước; màn hẹp: bước hiện tại + số thứ tự và dải tiến độ.
  */
-export function RecordProgress({ progress, onSelect }: Props) {
+export function RecordProgress({ progress, onSelect, mine = false }: Props) {
   const steps = progress.filter((item) => item.state !== "skipped");
   const currentIndex = steps.findIndex((p) => p.state === "current");
   const current = currentIndex >= 0 ? steps[currentIndex] : null;
   const due = current ? dueOf(current) : null;
-  const waiting = current ? waitingText(current) : "";
+  const waiting = current ? waitingText(current, mine) : "";
   const doneCount = steps.filter((p) => p.state === "done").length;
 
   return (
@@ -109,8 +111,6 @@ export function RecordProgress({ progress, onSelect }: Props) {
               <span className={styles.stepName}>
                 {item.name}
                 {item.mode === "External" && <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />}
-                {isCurrent && waiting && <em className={styles.stepMeta}>{waiting}</em>}
-                {isCurrent && due && <em className={`${styles.stepMeta} ${due.late ? styles.late : ""} num`}>{due.text}</em>}
                 {!isCurrent && !done && item.overdue && <em className={`${styles.stepMeta} ${styles.late}`}>Quá hạn</em>}
               </span>
             </>
@@ -121,13 +121,12 @@ export function RecordProgress({ progress, onSelect }: Props) {
               className={`${styles.step} ${done ? styles.done : isCurrent ? styles.now : ""}`}
               aria-current={isCurrent ? "step" : undefined}
             >
-              {/* Bước đang làm đã ghi người chờ, hạn dưới tên: không lặp lại ở chú thích rê chuột. */}
               {(done || isCurrent) && onSelect ? (
-                <button type="button" className={styles.stepBtn} title={isCurrent ? undefined : label} aria-label={label} onClick={() => onSelect(item)}>
+                <button type="button" className={styles.stepBtn} title={label} aria-label={label} onClick={() => onSelect(item)}>
                   {content}
                 </button>
               ) : (
-                <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={isCurrent ? undefined : label} aria-label={label}>
+                <div className={`${styles.stepBtn} ${styles.stepIdle}`} role="group" title={label} aria-label={label}>
                   {content}
                 </div>
               )}
@@ -135,6 +134,13 @@ export function RecordProgress({ progress, onSelect }: Props) {
           );
         })}
       </ol>
+      {(waiting || due) && (
+        <p className={styles.stepsWait}>
+          {waiting}
+          {waiting && due ? " · " : null}
+          {due && <span className={`num ${due.late ? styles.late : ""}`}>{due.text}</span>}
+        </p>
+      )}
 
       <div className={styles.stepsCompact}>
         {current ? (

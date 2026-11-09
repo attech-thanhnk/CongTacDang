@@ -53,9 +53,12 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
     }
   };
 
+  // Chưa có ý kiến và chưa mở ô nhập: chỉ một dòng tiêu đề.
+  const hasBody = adding || data.items.length > 0;
+
   return (
     <section className="card">
-      <div className="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+      <div className={`card-header d-flex justify-content-between align-items-center gap-2 flex-wrap ${hasBody ? "" : "border-0"}`}>
         <h2 className="mb-0">Ý kiến trước phê duyệt</h2>
         {!adding && data.canRecord && (
           <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setAdding(true)}>
@@ -63,6 +66,7 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
           </button>
         )}
       </div>
+      {hasBody && (
       <div className="card-body d-flex flex-column gap-3">
         {adding && (
           <div className="d-flex flex-column gap-2">
@@ -94,6 +98,7 @@ export function RecordOpinionPanel({ record }: { record: EvaluationRecordDto }) 
           </div>
         ))}
       </div>
+      )}
     </section>
   );
 }

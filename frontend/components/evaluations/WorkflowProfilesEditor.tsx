@@ -180,7 +180,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           <div className="table-responsive">
             <table className="table table-sm align-middle mb-2">
               <thead>
-                <tr className="text-secondary" style={{ fontSize: 13 }}><th style={{ width: 32 }}>#</th><th>Bước</th><th style={{ width: 150 }}>Chế độ</th><th>Người thực hiện (quyền)</th><th style={{ width: 330 }}>Thời hạn</th></tr>
+                <tr className="text-secondary" style={{ fontSize: 13 }}><th style={{ width: 32 }}>#</th><th>Bước</th><th style={{ width: 150 }}>Chế độ</th><th>Người thực hiện (quyền)</th><th style={{ width: 400 }}>Thời hạn</th></tr>
               </thead>
               <tbody>
                 {STEP_ORDER.map((step, index) => {
@@ -219,7 +219,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                       <td>
                         <div className="d-flex flex-column gap-1">
                           <div className="d-flex gap-1">
-                            <select className="form-select form-select-sm" style={{ minWidth: 0, flex: 1 }} value={setting.rule?.kind ?? ""}
+                            <select className="form-select form-select-sm" style={{ minWidth: 260, flex: 1 }} value={setting.rule?.kind ?? ""}
                               disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Cách tính thời hạn — ${STEP_NAMES[step]}`}
                               onChange={(e) => setRule(step, e.target.value as DeadlineRuleKind | "")}>
                               <option value="">Nhập tay</option>
@@ -234,7 +234,8 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
                           </div>
                           <DateField value={setting.deadline || ""}
                             disabled={!deadlinesEditable || setting.mode === "Off"} aria-label={`Thời hạn — ${STEP_NAMES[step]}`}
-                            onChange={(value) => setStep(step, { deadline: value || null })} />                        </div>
+                            onChange={(value) => setStep(step, { deadline: value || null })} />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -244,7 +245,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
           </div>
 
           <div className="mb-3">
-            <div className="fw-semibold mb-1" style={{ fontSize: 14 }}>Kiểm tra trước quyết định</div>
+            <div className="fw-semibold mb-1" style={{ fontSize: 14 }}>Cổng trước quyết định</div>
             <div className="row g-2">
               {GATE_CODES.map((gate) => (
                 <div className="col-12 col-md-4" key={gate}>
