@@ -18,7 +18,22 @@ public class PeriodTimelineDto
 {
     public string PeriodName { get; set; } = string.Empty;
     public string PeriodStatus { get; set; } = string.Empty;
+    /// <summary>Các diện quyết định người xem được thấy; diện của chính họ đứng đầu.</summary>
+    public List<TimelineProfileDto> Profiles { get; set; } = new();
     public List<TimelineStepDto> Steps { get; set; } = new();
+}
+
+public class TimelineProfileDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsMine { get; set; }
+}
+
+public class TimelineDeadlineDto
+{
+    public string ProfileCode { get; set; } = string.Empty;
+    public DateOnly? Deadline { get; set; }
 }
 
 public class TimelineStepDto
@@ -31,6 +46,8 @@ public class TimelineStepDto
     public DateOnly? DeadlineTo { get; set; }
     /// <summary>done | current | pending.</summary>
     public string State { get; set; } = string.Empty;
+    /// <summary>Hạn theo từng diện có thực hiện bước này.</summary>
+    public List<TimelineDeadlineDto> Deadlines { get; set; } = new();
 }
 
 /// <summary>Kết quả đã công bố gần nhất của chính người xem ở kỳ trước kỳ đang chọn.</summary>

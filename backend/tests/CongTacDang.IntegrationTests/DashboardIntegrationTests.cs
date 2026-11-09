@@ -230,6 +230,10 @@ public sealed class DashboardIntegrationTests
             .Single(s => s.GetProperty("step").GetString() == "B2_SELF_SCORE");
         Assert.Equal(today.AddDays(5).ToString("yyyy-MM-dd"), selfScore.GetProperty("deadlineFrom").GetString());
         Assert.Equal(today.AddDays(9).ToString("yyyy-MM-dd"), selfScore.GetProperty("deadlineTo").GetString());
+        var deadlines = selfScore.GetProperty("deadlines").EnumerateArray().Select(d => d.GetProperty("deadline").GetString()).ToList();
+        Assert.Contains(today.AddDays(5).ToString("yyyy-MM-dd"), deadlines);
+        Assert.Contains(today.AddDays(9).ToString("yyyy-MM-dd"), deadlines);
+        Assert.True(view.GetProperty("timeline").GetProperty("profiles")[0].GetProperty("isMine").GetBoolean());
 
         var last = view.GetProperty("lastResult");
         Assert.Equal($"Kỳ trước {sfx}", last.GetProperty("periodName").GetString());

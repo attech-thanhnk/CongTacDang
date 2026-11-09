@@ -83,7 +83,7 @@ public sealed class DashboardService : IDashboardService
             var profiles = others.Count == 0 && (mine == null || _guard.HasAny(PermissionCodes.PeriodManage))
                 ? settings.Profiles
                 : shown.Select(r => EvaluationMapping.ProfileOf(settings, r)).GroupBy(p => p.Code).Select(g => g.First()).ToList();
-            result.Timeline = BuildTimeline(period, profiles, today);
+            result.Timeline = BuildTimeline(period, profiles, mine == null ? null : EvaluationMapping.ProfileOf(settings, mine).Code, today);
         }
 
         result.LastResult = await LastResultAsync(period, userId, ct);
@@ -143,9 +143,17 @@ public sealed class DashboardService : IDashboardService
             result.Items.Add(new AdminAlertDto { Code = code, Label = label, Count = count, Link = link });
     }
 
-    private static PeriodTimelineDto BuildTimeline(EvaluationPeriod period, IReadOnlyList<WorkflowProfile> profiles, DateOnly today)
+    private static PeriodTimelineDto BuildTimeline(EvaluationPeriod period, IReadOnlyList<WorkflowProfile> profiles, string? myProfileCode, DateOnly today)
     {
-        var timeline = new PeriodTimelineDto { PeriodName = period.Name, PeriodStatus = period.Status.ToString() };
+        var timeline = new PeriodTimelineDto
+        {
+            PeriodName = period.Name,
+            PeriodStatus = period.Status.ToString(),
+            Profiles = profiles
+                .OrderByDescending(p => p.Code == myProfileCode)
+                .Select(p => new TimelineProfileDto { Code = p.Code, Name = p.Name, IsMine = p.Code == myProfileCode })
+                .ToList()
+        };
         foreach (var step in WorkflowSteps.Ordered)
         {
             var active = profiles.Where(p => p.IsActive(step)).ToList();
@@ -158,7 +166,8 @@ public sealed class DashboardService : IDashboardService
                 Name = active[0].StepDisplayName(step),
                 DeadlineFrom = deadlines.Count > 0 ? deadlines.Min() : null,
                 DeadlineTo = deadlines.Count > 0 ? deadlines.Max() : null,
-                State = "pending"
+                State = "pending",
+                Deadlines = active.Select(p => new TimelineDeadlineDto { ProfileCode = p.Code, Deadline = p.Deadline(step) }).ToList()
             });
         }
 

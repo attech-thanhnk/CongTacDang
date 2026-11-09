@@ -1,0 +1,123 @@
+/* Tờ lịch chọn ngày: số dương to, số âm nhỏ bên dưới. */
+.picker {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.head select {
+  flex: 1;
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.week {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  padding: 2px 0 4px;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.day:hover {
+  background: var(--tint);
+}
+
+.day:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.solar {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.lunar {
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--ink-3);
+}
+
+.lunarFirst {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.weekend,
+.weekend .solar {
+  color: var(--bad);
+}
+
+.holiday,
+.holiday:hover {
+  background: var(--bad-bg);
+}
+
+.today {
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+.range,
+.range:hover {
+  background: var(--primary-tint);
+}
+
+.selected,
+.selected:hover {
+  background: var(--primary);
+}
+
+.selected .solar,
+.selected .lunar {
+  color: #fff;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--bad-bg);
+  border: 1px solid var(--bad-line);
+}

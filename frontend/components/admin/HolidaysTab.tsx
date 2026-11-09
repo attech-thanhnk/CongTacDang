@@ -9,6 +9,8 @@ import { AdminModal } from "./AdminModal";
 import { useFormDirty } from "./useFormDirty";
 import { errorMessage, errorTitle } from "./adminUtils";
 import { DateField } from "@/components/evaluations/DateField";
+import { LunarMonthPicker } from "./LunarMonthPicker";
+import { lunarLabel, toLunar } from "@/lib/lunarCalendar";
 
 interface FormState {
   id?: string;
@@ -69,6 +71,15 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
     }
   };
 
+  // Thêm mới: bấm ngày đầu rồi ngày cuối; bấm tiếp là chọn lại từ đầu.
+  const pickDate = (iso: string) => {
+    setForm((current) => {
+      if (!current) return current;
+      if (current.id || !current.date || current.endDate || iso < current.date) return { ...current, date: iso, endDate: "" };
+      return iso > current.date ? { ...current, endDate: iso } : current;
+    });
+  };
+
   const handleDelete = (item: Holiday) =>
     confirm({
       title: "Xóa ngày nghỉ",
@@ -97,7 +108,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
             value={year} onChange={(e) => setYear(Number(e.target.value) || year)} />
           {canManage && (
             <button type="button" className="btn btn-sm btn-primary ms-auto text-nowrap"
-              onClick={() => setForm({ date: `${year}-01-01`, endDate: "", name: "" })}>
+              onClick={() => setForm({ date: "", endDate: "", name: "" })}>
               <i className="fa-solid fa-plus me-1" />Thêm ngày nghỉ
             </button>
           )}
@@ -108,20 +119,22 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
               <tr>
                 <th className="ps-3" style={{ width: 140 }}>Ngày</th>
                 <th style={{ width: 120 }}>Thứ</th>
+                <th style={{ width: 110 }}>Âm lịch</th>
                 <th>Tên ngày nghỉ</th>
                 {canManage && <th className="pe-3 text-end" style={{ width: 130 }}>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="text-center py-4 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải…</td></tr>
+                <tr><td colSpan={5} className="text-center py-4 text-secondary loading-delay"><span className="spinner-border spinner-border-sm me-2" />Đang tải…</td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-4 text-secondary">Chưa có ngày nghỉ nào trong năm {year}.</td></tr>
+                <tr><td colSpan={5} className="text-center py-4 text-secondary">Chưa có ngày nghỉ nào trong năm {year}.</td></tr>
               ) : (
                 paging.pageItems.map((h) => (
                   <tr key={h.id}>
                     <td className="ps-3 fw-semibold">{formatDate(h.date)}</td>
                     <td>{weekday(h.date)}</td>
+                    <td className="num">{lunarLabel(toLunar(h.date))}</td>
                     <td>{h.name}</td>
                     {canManage && (
                       <td className="pe-3 text-end text-nowrap">
@@ -148,11 +161,11 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
       </Card>
 
       {form && (
-        <AdminModal title={form.id ? "Sửa ngày nghỉ" : "Thêm ngày nghỉ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={460}
+        <AdminModal title={form.id ? "Sửa ngày nghỉ" : "Thêm ngày nghỉ"} onClose={() => setForm(null)} closeDisabled={saving} maxWidth={560}
           footer={
             <>
             <button type="button" className="btn btn-outline-secondary" disabled={saving} onClick={() => setForm(null)}>Hủy</button>
-            <button type="submit" form="holiday-form" className="btn btn-primary" disabled={saving || !formDirty}>{saving ? "Đang lưu…" : "Lưu"}</button>
+            <button type="submit" form="holiday-form" className="btn btn-primary" disabled={saving || !formDirty || !form.date}>{saving ? "Đang lưu…" : "Lưu"}</button>
             </>
           }
         >
@@ -174,6 +187,7 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                 </div>
               )}
             </div>
+            <LunarMonthPicker from={form.date} to={form.id ? undefined : form.endDate} initialYear={year} onPick={pickDate} />
           </form>
         </AdminModal>
       )}

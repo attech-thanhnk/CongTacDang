@@ -10,11 +10,21 @@ export interface TimelineStepDto {
   deadlineFrom?: string | null;
   deadlineTo?: string | null;
   state: TimelineState;
+  /** Hạn theo từng diện có thực hiện bước này. */
+  deadlines: { profileCode: string; deadline?: string | null }[];
+}
+
+export interface TimelineProfileDto {
+  code: string;
+  name: string;
+  isMine: boolean;
 }
 
 export interface PeriodTimelineDto {
   periodName: string;
   periodStatus: string;
+  /** Diện của người xem đứng đầu. */
+  profiles: TimelineProfileDto[];
   steps: TimelineStepDto[];
 }
 

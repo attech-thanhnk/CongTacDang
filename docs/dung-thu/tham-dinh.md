@@ -15,7 +15,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ### A1. Tạo kỳ
 
-Trước khi tạo kỳ, vào menu **Ngày nghỉ** (nhóm **Thiết lập**) nhập các ngày lễ, Tết của năm để hạn các bước tính đúng ngày làm việc.
+Trước khi tạo kỳ, vào menu **Ngày nghỉ** (nhóm **Thiết lập**) nhập các ngày lễ, Tết của năm để hạn các bước tính đúng ngày làm việc. Khi thêm, bấm chọn ngày trên tờ lịch có sẵn ngày âm; nghỉ nhiều ngày thì bấm ngày đầu rồi ngày cuối.
 
 1. Menu **Kỳ đánh giá** (nhóm **Thiết lập**) → bấm **Tạo kỳ**.
 2. Hộp **Tạo kỳ đánh giá**: chọn **Năm**, **Quý**; **Từ ngày**, **Đến ngày** và **Tên kỳ** tự điền, sửa nếu cần; chọn **Bộ tiêu chí**.

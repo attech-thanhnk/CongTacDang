@@ -35,6 +35,13 @@ export function dayMonth(value?: string | null): string {
   return d && m ? `${d}/${m}` : "";
 }
 
+/** "yyyy-MM-dd" → "dd/MM/yyyy" (không đổi múi giờ). */
+export function fullDate(value?: string | null): string {
+  if (!value) return "";
+  const [y, m, d] = value.slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "";
+}
+
 /** Hạn của bước: một ngày hoặc khoảng khi các diện quyết định khác hạn. */
 export function deadlineRange(from?: string | null, to?: string | null): string {
   if (!from && !to) return "";
