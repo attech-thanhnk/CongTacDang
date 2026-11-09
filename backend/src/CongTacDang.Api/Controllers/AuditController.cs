@@ -33,9 +33,10 @@ public class AuditController : ControllerBase
         [FromQuery] string? action = null,
         [FromQuery] int? page = null,
         [FromQuery] int? pageSize = null,
+        [FromQuery] string? excludeEntityType = null,
         CancellationToken ct = default)
     {
-        var logs = await _auditService.GetAuditLogsAsync(new AuditLogQuery(entityType, entityId, action, page, pageSize), ct);
+        var logs = await _auditService.GetAuditLogsAsync(new AuditLogQuery(entityType, entityId, action, page, pageSize, excludeEntityType), ct);
         return Ok(ApiResponse<AuditLogPageDto>.Ok(logs, "Lấy nhật ký audit thành công."));
     }
 

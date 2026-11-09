@@ -518,6 +518,8 @@ public class AuditRepository : IAuditRepository
         var scoped = all;
         if (!string.IsNullOrWhiteSpace(criteria.EntityType))
             scoped = scoped.Where(x => x.EntityType == criteria.EntityType);
+        else if (!string.IsNullOrWhiteSpace(criteria.ExcludeEntityType))
+            scoped = scoped.Where(x => x.EntityType != criteria.ExcludeEntityType);
         if (!string.IsNullOrWhiteSpace(criteria.EntityId))
             scoped = scoped.Where(x => x.EntityId == criteria.EntityId);
         var query = string.IsNullOrWhiteSpace(criteria.Action) ? scoped : scoped.Where(x => x.Action == criteria.Action);

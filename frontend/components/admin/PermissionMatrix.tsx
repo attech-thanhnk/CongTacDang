@@ -102,7 +102,7 @@ function PermissionText({ permission, locked }: { permission: PermissionDefiniti
   return (
     <span className={styles.body}>
       <span className={styles.titleLine}>
-        <span className={styles.name}>{permission.name}</span>
+        <span className={styles.name} title={permission.code}>{permission.name}</span>
         {!permission.appliesScope && (
           <span className="tag t-wait" title="Vai trò có quyền này chỉ gán được phạm vi Toàn công ty">
             Chỉ Toàn công ty
@@ -115,11 +115,7 @@ function PermissionText({ permission, locked }: { permission: PermissionDefiniti
           </span>
         )}
       </span>
-      <span className={`d-block ${styles.desc}`}>
-        {permission.description}
-        {permission.description && " "}
-        <code className={styles.code}>{permission.code}</code>
-      </span>
+      {permission.description && <span className={`d-block ${styles.desc}`}>{permission.description}</span>}
     </span>
   );
 }

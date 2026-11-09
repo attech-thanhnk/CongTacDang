@@ -175,7 +175,7 @@ export function LoginScreenSettings({ settings, canManage, onSaved }: Props) {
             <div className={styles.meta}>
               {imageUrl ? (
                 <>
-                  {settings.loginBackgroundFileName ?? "Ảnh nền"}
+                  Ảnh nền
                   {size && <span className="text-secondary"> · {size.width} × {size.height} px</span>}
                 </>
               ) : (

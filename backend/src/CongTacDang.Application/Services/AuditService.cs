@@ -23,7 +23,8 @@ public sealed record AuditLogQuery(
     string? EntityId = null,
     string? Action = null,
     int? Page = null,
-    int? PageSize = null);
+    int? PageSize = null,
+    string? ExcludeEntityType = null);
 
 public sealed record LoginEventQuery(
     Guid? UserId = null,
@@ -50,7 +51,7 @@ public class AuditService : IAuditService
         ArgumentNullException.ThrowIfNull(query);
         var (page, pageSize) = Paging.Normalize(query.Page, query.PageSize);
         var result = await _auditRepository.SearchAuditLogsAsync(new AuditLogCriteria(
-            page, pageSize, Clean(query.EntityType), Clean(query.EntityId), Clean(query.Action)), ct);
+            page, pageSize, Clean(query.EntityType), Clean(query.EntityId), Clean(query.Action), Clean(query.ExcludeEntityType)), ct);
 
         return new AuditLogPageDto
         {

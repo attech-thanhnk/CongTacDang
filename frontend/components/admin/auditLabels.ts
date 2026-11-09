@@ -49,7 +49,7 @@ const ENTITY_LABELS: Record<string, string> = {
 const ACTION_META: Record<string, { label: string; icon: string; tone: string }> = {
   Create: { label: "Tạo mới", icon: "bi-plus-lg", tone: "t-ok" },
   Update: { label: "Cập nhật", icon: "bi-pencil", tone: "t-info" },
-  Delete: { label: "Xóa mềm", icon: "bi-archive", tone: "t-bad" },
+  Delete: { label: "Đã xóa", icon: "bi-archive", tone: "t-bad" },
   Import: { label: "Nhập dữ liệu", icon: "bi-file-earmark-arrow-up", tone: "t-wait" },
   Approve: { label: "Phê duyệt", icon: "bi-check2-circle", tone: "t-ok" },
   AssignRoles: { label: "Phân công vai trò", icon: "bi-person-badge", tone: "t-wait" },

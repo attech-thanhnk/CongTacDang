@@ -78,6 +78,8 @@ Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm,
 
 Khi mọi việc đều có người, trang ghi **Mọi việc đều có người**.
 
+Chế độ **Toàn công ty** chỉ liệt kê người được gán ở phạm vi Toàn công ty; việc chưa gán ở phạm vi này mang nhãn **Chưa gán Toàn công ty**, không có nghĩa là kỳ thiếu người. Đủ người hay chưa xem ở liên kết **Kiểm tra người thực hiện của kỳ**.
+
 ## 6. Việc cần xử lý ở Tổng quan
 
 Khối **Quản trị cần xử lý** ở trang **Tổng quan** chỉ liệt kê mục có số khác 0:

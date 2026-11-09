@@ -70,6 +70,8 @@ function AuditPageContent() {
           entityType: filters.entityType || undefined,
           entityId: filters.entityId || undefined,
           action: filters.action || undefined,
+          // Phiên đăng nhập sinh rất nhiều dòng nên chỉ hiện khi chọn đúng loại đó.
+          excludeEntityType: filters.entityType ? undefined : "RefreshToken",
           page,
           pageSize,
         })
@@ -179,7 +181,7 @@ function AuditPageContent() {
                   {[
                     { label: "Tổng thao tác", value: data?.totalCount ?? 0, tone: "var(--info)" },
                     { label: "Lượt cập nhật", value: counts.Update ?? 0, tone: "var(--wait)", action: "Update" },
-                    { label: "Xóa mềm", value: counts.Delete ?? 0, tone: "var(--bad)", action: "Delete" },
+                    { label: "Đã xóa", value: counts.Delete ?? 0, tone: "var(--bad)", action: "Delete" },
                     { label: "Người thao tác", value: data?.actorCount ?? 0, tone: "var(--ok)" },
                   ].map((stat) =>
                     stat.action ? (

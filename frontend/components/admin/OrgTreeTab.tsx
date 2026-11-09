@@ -254,7 +254,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                 visible.map((item) => (
                   <tr key={item.id} style={{ opacity: item.isActive ? 1 : 0.6 }}>
                     <td className="ps-3">
-                      <div className="d-flex align-items-center" style={{ paddingLeft: search ? 0 : Math.min(item.depth, 4) * 16 }}>
+                      <div className="d-flex align-items-center" style={{ paddingLeft: search ? 0 : Math.min(item.depth, 4) * 24 }}>
                         {!search && item.childCount > 0 ? (
                           <button
                             type="button"
@@ -272,7 +272,7 @@ export function OrgTreeTab({ kind, unit, canManage, unitTypes }: OrgTreeTabProps
                       </div>
                       {search && item.parentName && <div className="small text-secondary">thuộc {item.parentName}</div>}
                       {/* Màn hẹp ẩn cột Mã nên hiện mã dưới tên. */}
-                      <div className="d-md-none small" style={{ paddingLeft: (search ? 0 : Math.min(item.depth, 4) * 16) + 18 }}>
+                      <div className="d-md-none small" style={{ paddingLeft: (search ? 0 : Math.min(item.depth, 4) * 24) + 18 }}>
                         <code>{item.code}</code>
                       </div>
                     </td>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { usePeriod } from "@/contexts/PeriodContext";
 import { Card, CardBody, PageHeader } from "@/components/common";
 import { RowActions } from "@/components/common/RowActions";
 import { NoAccess } from "@/components/admin/NoAccess";
@@ -56,6 +57,8 @@ function PerformersContent() {
   const canAssign = hasPermissionIn("system.assignments.manage", "Global");
   const canViewUsers = hasPermission("system.users.read");
   const canManageRoles = hasPermissionIn("system.roles.manage", "Global");
+  const canManagePeriods = hasPermission("period.manage");
+  const { period } = usePeriod();
 
   const departmentId = searchParams.get("departmentId") ?? "";
   const partyCellId = searchParams.get("partyCellId") ?? "";
@@ -256,7 +259,19 @@ function PerformersContent() {
               )}
               {data && !waitingForUnit && (
                 <div className="col-12 col-md-auto ms-md-auto d-flex flex-wrap align-items-center gap-2 pb-1">
-                  {missing > 0 ? (
+                  {data.scopeType === "Global" ? (
+                    // Toàn công ty chỉ xét bản gán phạm vi Toàn công ty; đủ người hay không do kiểm tra của kỳ quyết định.
+                    <>
+                      {missing > 0 && (
+                        <span className="status-badge tone-neutral">{missing} việc chưa gán ở phạm vi Toàn công ty</span>
+                      )}
+                      {canManagePeriods && period && (
+                        <Link href={`/periods/${period.id}`} className="small">
+                          Kiểm tra người thực hiện của kỳ
+                        </Link>
+                      )}
+                    </>
+                  ) : missing > 0 ? (
                     <span className="status-badge tone-danger">{missing} việc chưa có người</span>
                   ) : (
                     <span className="status-badge tone-success">Mọi việc đều có người</span>
@@ -287,6 +302,7 @@ function PerformersContent() {
                   job={job}
                   focused={jobKey(job) === focusKey}
                   canAdd={data.scopeActive}
+                  globalScope={data.scopeType === "Global"}
                   canViewUsers={canViewUsers}
                   onAdd={() => setAdding(job)}
                   onRemove={(person) => handleRemove(job, person)}
@@ -418,6 +434,7 @@ function JobCard({
   job,
   focused,
   canAdd,
+  globalScope,
   canViewUsers,
   onAdd,
   onRemove,
@@ -426,13 +443,14 @@ function JobCard({
   job: PerformerJob;
   focused: boolean;
   canAdd: boolean;
+  globalScope: boolean;
   canViewUsers: boolean;
   onAdd: () => void;
   onRemove: (person: Performer) => void;
   onViewUser: (person: Performer) => void;
 }) {
   const empty = job.people.length === 0;
-  const missing = empty && job.inUse;
+  const missing = empty && job.inUse && !globalScope;
   return (
     <div id={`job-${jobKey(job)}`} className={`card shadow-sm ${missing ? "border-danger" : "border-0"} ${job.inUse ? "" : "opacity-50"} ${focused ? "border-primary border-2" : ""}`}>
       <div className="card-body py-2">
@@ -441,6 +459,7 @@ function JobCard({
             <div className="fw-semibold">
               {job.stepName}
               {missing && <span className="status-badge tone-danger ms-2">Chưa có người</span>}
+              {empty && job.inUse && globalScope && <span className="status-badge tone-neutral ms-2">Chưa gán Toàn công ty</span>}
               {!job.inUse && <span className="status-badge tone-neutral ms-2">Kỳ hiện tại không dùng</span>}
             </div>
             <div className="small text-secondary">

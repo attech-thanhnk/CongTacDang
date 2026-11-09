@@ -263,12 +263,12 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
           </div>
           {isEdit ? (
             <div className="col-12 form-text mt-1">
-              Chức vụ và cấp quyết định xếp loại sửa ở thẻ &quot;Chức vụ&quot;.
+              Chức vụ và thẩm quyền sửa ở thẻ &quot;Chức vụ&quot;.
             </div>
           ) : (
             <>
               <div className="col-12 col-md-6">
-                <label className="form-label">Cấp quyết định xếp loại</label>
+                <label className="form-label">Thẩm quyền</label>
                 <select
                   className="form-select form-select-sm"
                   value={form.approvalAuthority}

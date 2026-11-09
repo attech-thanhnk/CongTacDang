@@ -37,7 +37,7 @@ Một người **không** xét duyệt, lập hoặc xác nhận được trên 
 | Chi bộ xác nhận phiếu tự chấm | Chi bộ | Chi bộ xác nhận phiếu tự chấm | Mở hồ sơ, nút "Xác nhận" (hoặc "Trả lại phiếu tự chấm") | Chờ đề xuất tập thể |
 | Đề xuất của tập thể lãnh đạo (diện Bí thư/Phó bí thư Chi bộ là nhân viên không có bước này) | Thư ký hội nghị | Ghi nhận đề xuất của tập thể lãnh đạo | Mở hồ sơ, nút "Ghi nhận đề xuất" (nên lập biên bản ở menu "Đánh giá tập thể" trước) | Chờ thẩm định |
 | Thẩm định | Cơ quan thẩm định | Thẩm định | Mở hồ sơ, nút "Ghi nhận thẩm định" (hoặc "Trả lại để chủ hồ sơ sửa") | Chờ nhận xét của cấp trực tiếp sử dụng |
-| Nhận xét của cấp trực tiếp sử dụng | Cấp trực tiếp sử dụng (Giám đốc, Chủ tịch). Diện nhân viên: Lãnh đạo đơn vị | Nhận xét của cấp trực tiếp sử dụng (diện nhân viên: Lãnh đạo đơn vị đề xuất) | Mở hồ sơ, nút "Ghi nhận nhận xét" | Chờ quyết định |
+| Nhận xét của cấp trực tiếp sử dụng | Cấp trực tiếp sử dụng (Giám đốc, Chủ tịch). Diện nhân viên: Lãnh đạo đơn vị | Cấp trực tiếp sử dụng: duyệt danh mục, nhận xét (diện nhân viên: Lãnh đạo đơn vị đề xuất) | Mở hồ sơ, nút "Ghi nhận nhận xét" | Chờ quyết định |
 | Quyết định mức xếp loại | Văn phòng Đảng ủy | Ghi nhận quyết định của Đảng ủy cơ sở. Bước do cấp trên làm: Ghi nhận kết quả của cấp trên | Mở hồ sơ, nút "Ghi nhận quyết định" (hoặc "Ghi nhận kết quả") | Chờ công bố |
 | Công bố và lưu trữ kết quả | Văn phòng Đảng ủy | Công bố và lưu trữ kết quả | Mở hồ sơ, nút "Công bố" | Đã công bố (khóa hồ sơ) |
 
@@ -47,12 +47,12 @@ Với bước do **cấp trên thực hiện** (ví dụ Diện BTV Đảng ủy
 
 | Việc | Người thực hiện (vai trò mặc định) | Quyền cần có | Làm ở đâu | Kết quả |
 |---|---|---|---|---|
-| Yêu cầu xác nhận số liệu (Mẫu 03) | Cơ quan thẩm định | Yêu cầu đối soát chuyên ngành (Mẫu 03) | Mở hồ sơ, khối "Xác nhận số liệu", nút "Yêu cầu xác nhận" | Phiếu "Chờ lập phiếu"; nút "Thẩm định" bị khóa tới khi phiếu xong hoặc bị hủy |
-| Lập phiếu xác nhận số liệu (Mẫu 03) | Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành | Menu "Xác nhận số liệu", mở phiếu, "Lưu kết quả", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
-| Xác nhận phiếu số liệu (Mẫu 03) | Cơ quan chuyên môn (người khác người lập) | Xác nhận phiếu đối soát chuyên ngành | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại" ở menu ⋯) | Phiếu "Đã xác nhận" |
-| Lập biên bản họp thống nhất (Mẫu 20) | Cơ quan thẩm định | Lập biên bản họp thống nhất (Mẫu 20) | Menu "Duyệt kết quả", thẻ "Họp thống nhất", nút "Lập biên bản", "Lưu" | Biên bản "Đang soạn" |
+| Yêu cầu xác nhận số liệu (Mẫu 03) | Cơ quan thẩm định | Yêu cầu xác nhận số liệu | Mở hồ sơ, khối "Xác nhận số liệu", nút "Yêu cầu xác nhận" | Phiếu "Chờ lập phiếu"; nút "Thẩm định" bị khóa tới khi phiếu xong hoặc bị hủy |
+| Lập phiếu xác nhận số liệu (Mẫu 03) | Cơ quan chuyên môn | Lập phiếu xác nhận số liệu | Menu "Xác nhận số liệu", mở phiếu, "Lưu kết quả", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
+| Xác nhận phiếu số liệu (Mẫu 03) | Cơ quan chuyên môn (người khác người lập) | Xác nhận phiếu xác nhận số liệu | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại" ở menu ⋯) | Phiếu "Đã xác nhận" |
+| Lập biên bản họp thống nhất (Mẫu 20) | Cơ quan thẩm định | Lập biên bản họp thống nhất | Menu "Duyệt kết quả", thẻ "Họp thống nhất", nút "Lập biên bản", "Lưu" | Biên bản "Đang soạn" |
 | Chốt biên bản họp thống nhất (Mẫu 20) | Văn phòng Đảng ủy (người khác người lập) | Chốt biên bản họp thống nhất | Mở biên bản, nút "Chốt biên bản" | Biên bản "Đã chốt"; kết quả họp thống nhất áp vào hồ sơ |
-| Lập phiếu kiểm tra (Mẫu 19) | Cơ quan thẩm định | Lập phiếu kiểm tra (Mẫu 19) | Menu "Duyệt kết quả", thẻ "Kiểm tra", nút "Lập phiếu", "Lưu", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
+| Lập phiếu kiểm tra (Mẫu 19) | Cơ quan thẩm định | Lập phiếu kiểm tra | Menu "Duyệt kết quả", thẻ "Kiểm tra", nút "Lập phiếu", "Lưu", "Gửi xác nhận" | Phiếu "Chờ xác nhận" |
 | Xác nhận phiếu kiểm tra (Mẫu 19) | Văn phòng Đảng ủy (người khác người lập) | Xác nhận phiếu kiểm tra | Mở phiếu, nút "Xác nhận" (hoặc "Trả lại", "Mở lại" ở menu ⋯) | Phiếu "Đã xác nhận"; cổng thông qua nếu kết luận "Đủ điều kiện trình phê duyệt" |
 
 Mức độ bắt buộc của từng cổng đặt theo **diện quyết định** của kỳ (Bắt buộc / Chỉ ghi nhận / Tắt; xác nhận số liệu Tùy chọn / Tắt). Khi chưa chỉnh, họp thống nhất và kiểm tra là **Bắt buộc** với diện có bước Quyết định làm trong hệ thống, và **Chỉ ghi nhận** với diện do cấp trên quyết định. Cách chỉnh: [mục 3, bước 10](#3-danh-sách-việc-khi-đưa-vào-sử-dụng).
@@ -89,7 +89,7 @@ Một **phân công** gồm: người, vai trò, phạm vi (Toàn công ty / Đ�
 | Cấp trực tiếp sử dụng | Xem hồ sơ; nhận xét, đề xuất mức; xuất báo cáo; duyệt kế hoạch 30-60-90 ngày | Nhận xét ở bước 7, duyệt kế hoạch khắc phục | Giám đốc, Chủ tịch (và người thay thế); Toàn công ty | 1 người; thêm người dự phòng nếu có |
 | Cấp ủy viên | Xem hồ sơ, biên bản; xuất báo cáo | Theo dõi, không có bước bắt buộc | Các Đảng ủy viên cần xem; Toàn công ty | Không bắt buộc |
 | Văn phòng Đảng ủy | Xem hồ sơ; ghi nhận quyết định; ghi nhận kết quả của cấp trên; công bố; mở lại hồ sơ; xử lý kiến nghị; chốt biên bản họp thống nhất; xác nhận phiếu kiểm tra; xác nhận phiếu đối soát do cơ quan ngoài hệ thống; xuất báo cáo; lập biên bản hội nghị | Ghi nhận quyết định, công bố, chốt Mẫu 20, xác nhận Mẫu 19, xác nhận Mẫu 03 của cơ quan ngoài hệ thống | Cán bộ Văn phòng Đảng ủy; Toàn công ty | 2 người |
-| Cơ quan chuyên môn | Lập phiếu đối soát chuyên ngành; xác nhận phiếu đối soát chuyên ngành | Lập và xác nhận phiếu Mẫu 03 gửi tới đơn vị mình | Cán bộ các phòng, đơn vị chuyên môn của ATTECH được yêu cầu đối soát (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán); phạm vi Đơn vị chính quyền là **đơn vị đối soát** của từng phòng, đơn vị | 2 người mỗi đơn vị đối soát (người lập khác người xác nhận) |
+| Cơ quan chuyên môn | Lập phiếu xác nhận số liệu; xác nhận phiếu xác nhận số liệu | Lập và xác nhận phiếu Mẫu 03 gửi tới đơn vị mình | Cán bộ các phòng, đơn vị chuyên môn của ATTECH được yêu cầu đối soát (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán); phạm vi Đơn vị chính quyền là **đơn vị đối soát** của từng phòng, đơn vị | 2 người mỗi đơn vị đối soát (người lập khác người xác nhận) |
 | Quản trị hệ thống | Quản trị tài khoản, vai trò, phân công, nhật ký, thông tin đơn vị, biểu mẫu Word, nhập dữ liệu; quản lý danh mục | Khai báo và vận hành kỹ thuật; **không** xem nội dung đánh giá | Cán bộ CNTT; Toàn công ty | 2 người |
 
 Vai trò "Cơ quan chuyên môn" không có quyền xem hồ sơ đánh giá: người giữ vai trò chỉ thấy các phiếu xác nhận số liệu gửi tới đơn vị mình (menu "Xác nhận số liệu").

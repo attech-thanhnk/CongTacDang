@@ -69,15 +69,15 @@ public static class DataSeeder
         // Tên theo thuật ngữ gốc (thuat-ngu.md mục 4); quyền mặc định là đề xuất, chờ nghiệp vụ xác nhận.
         new(RoleCodes.Evaluatee, "Người được đánh giá", "Tự chấm, xem kết quả đã công bố, gửi kiến nghị về kết quả của mình.",
             new[] { PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationResultsView, PermissionCodes.EvaluationAppealSubmit }),
-        new(RoleCodes.DepartmentLeader, "Lãnh đạo đơn vị", "Trưởng đơn vị gửi danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày (Mẫu 17) cho cán bộ của đơn vị.",
+        new(RoleCodes.DepartmentLeader, "Lãnh đạo đơn vị", "Trưởng đơn vị gửi danh mục sản phẩm, đề xuất mức, lập kế hoạch 30-60-90 ngày cho cán bộ của đơn vị.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksForward, PermissionCodes.EvaluationTasksApprove, PermissionCodes.EvaluationUnitReview, PermissionCodes.EvaluationImprovementManage, PermissionCodes.EvaluationOpinionRecord }),
         new(RoleCodes.CollectiveSecretary, "Thư ký hội nghị", "Ghi nhận đề xuất của tập thể lãnh đạo, lập biên bản hội nghị.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage, PermissionCodes.EvaluationOpinionRecord }),
-        new(RoleCodes.DeputyInCharge, "Phó Giám đốc phụ trách", "Phó Giám đốc phụ trách phòng, đơn vị: xem hồ sơ và ghi ý kiến trước khi Giám đốc phê duyệt danh mục và nhận xét; gán theo đơn vị phụ trách.",
+        new(RoleCodes.DeputyInCharge, "Phó Giám đốc phụ trách", "Xem hồ sơ và ghi ý kiến trước khi Giám đốc duyệt danh mục và nhận xét.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationOpinionRecord }),
         new(RoleCodes.CellCommittee, "Chi bộ", "Chi ủy, Bí thư Chi bộ: xác nhận phiếu tự chấm, lập hồ sơ tập thể của Chi bộ.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationCellConfirm, PermissionCodes.CollectiveManage, PermissionCodes.MeetingRead }),
-        new(RoleCodes.Appraisal, "Cơ quan thẩm định", "Rà soát, trình duyệt danh mục sản phẩm; mở kỳ và thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
+        new(RoleCodes.Appraisal, "Cơ quan thẩm định", "Rà soát danh mục, thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
@@ -85,11 +85,11 @@ public static class DataSeeder
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
             }),
-        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức; duyệt kế hoạch 30-60-90 ngày (Mẫu 17) do người quản lý trực tiếp lập.",
+        new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức, duyệt kế hoạch 30-60-90 ngày.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementApprove }),
         new(RoleCodes.PartyCommitteeMember, "Cấp ủy viên", "Cấp ủy viên Đảng ủy: xem hồ sơ, biên bản, báo cáo.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.MeetingRead, PermissionCodes.ReportExport }),
-        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy", "Quyết định, công bố: ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị; xác nhận phiếu đối soát do cơ quan ngoài hệ thống (người yêu cầu nhập thay).",
+        new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị, xác nhận phiếu.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
@@ -98,10 +98,9 @@ public static class DataSeeder
                 PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationCalibrationConclude,
                 PermissionCodes.EvaluationCrosscheckConfirm
             }),
-        new(RoleCodes.ExpertAgency, "Cơ quan chuyên môn", "Phòng, đơn vị chuyên môn của ATTECH (ví dụ Phòng Kỹ thuật - An toàn - Chất lượng, Phòng Tài chính - Kế toán): lập và xác nhận Phiếu đối soát dữ liệu chuyên ngành (Mẫu 03) gửi tới đơn vị mình; gán theo đơn vị của từng phòng, đơn vị.",
+        new(RoleCodes.ExpertAgency, "Cơ quan chuyên môn", "Phòng, đơn vị chuyên môn: lập và xác nhận phiếu xác nhận số liệu gửi tới đơn vị mình.",
             new[] { PermissionCodes.EvaluationCrosscheckRespond, PermissionCodes.EvaluationCrosscheckConfirm }),
-        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị kỹ thuật: tài khoản, vai trò, gán vai trò, nhật ký, danh mục, thông tin đơn vị, file mẫu biểu mẫu Word. "
-            + "Không xem nội dung đánh giá (Mẫu 18).",
+        new(RoleCodes.Administrator, "Quản trị hệ thống", "Quản trị tài khoản, vai trò, danh mục, thông tin đơn vị, file mẫu; không xem nội dung đánh giá.",
             AdministratorPermissionCodes, IsProtected: true)
     };
 

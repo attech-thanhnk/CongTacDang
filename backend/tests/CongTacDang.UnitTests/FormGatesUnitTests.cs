@@ -32,9 +32,9 @@ public sealed class FormGatesUnitTests
             Assert.Contains(code, PermissionCodes.FormPermissions);
         }
         Assert.Equal(NewCodes.Length, PermissionCodes.FormPermissions.Count);
-        Assert.Equal("Yêu cầu đối soát chuyên ngành (Mẫu 03)", PermissionCodes.DisplayName(PermissionCodes.EvaluationCrosscheckRequest));
-        Assert.Equal("Lập biên bản họp thống nhất (Mẫu 20)", PermissionCodes.DisplayName(PermissionCodes.EvaluationCalibrationManage));
-        Assert.Equal("Lập phiếu kiểm tra (Mẫu 19)", PermissionCodes.DisplayName(PermissionCodes.EvaluationControlPerform));
+        Assert.Equal("Yêu cầu xác nhận số liệu", PermissionCodes.DisplayName(PermissionCodes.EvaluationCrosscheckRequest));
+        Assert.Equal("Lập biên bản họp thống nhất", PermissionCodes.DisplayName(PermissionCodes.EvaluationCalibrationManage));
+        Assert.Equal("Lập phiếu kiểm tra", PermissionCodes.DisplayName(PermissionCodes.EvaluationControlPerform));
     }
 
     [Fact]
