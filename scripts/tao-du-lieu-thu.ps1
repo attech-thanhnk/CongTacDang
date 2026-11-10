@@ -12,7 +12,7 @@
   Mỗi bước dùng tài khoản đầu tiên trong -TaiKhoan có nút thao tác trên hồ sơ (theo API actions).
   Kỳ đã có sẵn trên máy chủ (không tạo kỳ, không thêm người, không đánh dấu Chưa xếp loại; hỏi mật khẩu khi chạy, mọi tài khoản dùng chung):
     powershell -File scripts/tao-du-lieu-thu.ps1 -KyCoSan -ApiUrl http://192.168.22.149:3001 -Nam 2027 -Quy 1 -GiaiDoan tu-cham -GiuLai trung.nb,dao.nta
-  -TaoKy: chưa có kỳ của -Nam/-Quy thì tạo, thêm mọi cán bộ giữ chức vụ thuộc diện đánh giá, mở kỳ rồi đẩy như -KyCoSan; đã có kỳ thì dừng.
+  -TaoKy: chưa có kỳ của -Nam/-Quy thì tạo, thêm mọi cán bộ giữ chức vụ thuộc diện đánh giá, mở kỳ rồi đẩy như -KyCoSan; đã có kỳ thì dùng kỳ đó.
     powershell -File scripts/tao-du-lieu-thu.ps1 -TaoKy -ApiUrl http://192.168.22.149:3001 -Nam 2027 -Quy 1 -GiaiDoan dang-ky
   -GiuLai: hồ sơ để nguyên, tự thao tác trên giao diện.
   -LamSach làm rỗng các bảng vận hành (kỳ, hồ sơ, biên bản, phiếu, nhật ký) của CSDL thử qua docker; tài khoản, danh mục giữ nguyên.
@@ -908,8 +908,11 @@ $manager = Get-Session $ManagerUser
 $GiuLai = @($GiuLai | ForEach-Object { $_ -split '[,;\s]+' } | Where-Object { $_ })
 $targetIndex = if ($GiaiDoan -eq 'xong') { $Steps.Count } else { [array]::IndexOf($Steps, $StageStep[$GiaiDoan]) }
 $period = Find-Period $manager
+if ($TaoKy -and $period) {
+    Write-Host "Đã có kỳ `"$($period.name)`", dùng kỳ này." -ForegroundColor DarkYellow
+    $TaoKy = $false; $KyCoSan = $true
+}
 if ($TaoKy) {
-    if ($period) { Fail "Đã có kỳ `"$($period.name)`" cho Quý $Quy/$Nam, không tạo thêm. Bỏ chọn tạo kỳ mới để đẩy tiếp kỳ này." }
     $period = New-Period $manager
     Write-Host "   Mã kỳ: $($period.id)"
     Write-Step 'Đặt lại hạn các bước (không bước nào quá hạn so với hôm nay)'

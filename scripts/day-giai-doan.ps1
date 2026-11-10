@@ -87,9 +87,9 @@ $form.Controls.Add($chkScenario)
 
 # Không lưu lựa chọn này: chỉ tự tích khi chưa có kỳ đang chạy
 $chkCreate = New-Object System.Windows.Forms.CheckBox
-$chkCreate.Text = 'Tạo kỳ mới nếu chưa có (đã có kỳ của năm/quý này thì dừng)'
+$chkCreate.Text = 'Tạo kỳ mới nếu chưa có (đã có kỳ của năm/quý này thì dùng kỳ đó)'
 $chkCreate.Location = New-Object System.Drawing.Point(200, 150); $chkCreate.AutoSize = $true
-$chkCreate.Add_CheckedChanged({ if ($chkCreate.Checked) { $cboStage.SelectedIndex = 0 } else { Select-NextStage } })
+$chkCreate.Add_CheckedChanged({ if (-not $chkCreate.Checked) { Select-NextStage } })
 $form.Controls.Add($chkCreate)
 if (-not $saved['kyId']) { $chkCreate.Checked = $true }
 
