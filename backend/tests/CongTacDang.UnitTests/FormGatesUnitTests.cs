@@ -62,8 +62,11 @@ public sealed class FormGatesUnitTests
             Assert.Equal(internalDecision ? GateMode.Required : GateMode.Recorded, profile.GateModeOf(WorkflowGates.Calibration));
             Assert.Equal(GateMode.Recorded, profile.GateModeOf(WorkflowGates.Control));
             Assert.Equal(GateMode.Optional, profile.GateModeOf(WorkflowGates.Crosscheck));
+            // Biên bản họp bắt buộc khi bước 3a làm trong hệ thống.
+            var internalCollective = profile.Mode(WorkflowStep.B3A_COLLECTIVE) == StepMode.Internal;
+            Assert.Equal(internalCollective ? GateMode.Required : GateMode.Off, profile.GateModeOf(WorkflowGates.Minutes));
         }
-        Assert.Contains("\"gates\":{\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Required\"},\"CONTROL\":{\"mode\":\"Recorded\"}}", settings.ToJson());
+        Assert.Contains("\"gates\":{\"MINUTES\":{\"mode\":\"Required\"},\"CROSSCHECK\":{\"mode\":\"Optional\"},\"CALIBRATION\":{\"mode\":\"Required\"},\"CONTROL\":{\"mode\":\"Recorded\"}}", settings.ToJson());
     }
 
     [Fact]

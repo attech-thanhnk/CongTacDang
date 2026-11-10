@@ -592,23 +592,32 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             var grade = RequireGrade(request.ProposedGrade, unitLeader
                 ? "Hãy chọn mức xếp loại do Trưởng đơn vị đề xuất."
                 : "Hãy chọn mức xếp loại do tập thể lãnh đạo đề xuất.");
-            // Trưởng đơn vị đề xuất trên ý kiến các Phó, không họp bỏ phiếu nên không có biên bản, kiểm phiếu.
-            if (unitLeader && (request.MeetingId.HasValue || request.Votes != null))
-                throw new ValidationException("Ghi nhận đề xuất của Trưởng đơn vị không thành công: diện quyết định của hồ sơ "
-                    + "không họp bỏ phiếu, hãy bỏ chọn biên bản hội nghị và kết quả kiểm phiếu.");
-            var summary = unitLeader ? null : await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
-            // Biên bản có kết quả kiểm phiếu của hồ sơ: mức ghi nhận phải là mức được biểu quyết quá bán.
-            if (summary is { } tally && CollectiveVoteRules.Validate(grade, tally.Tally, tally.PresentCount) is { } voteError)
-                throw new ValidationException(voteError);
+            var minutes = ctx.Profile.GateModeOf(WorkflowGates.Minutes);
+            var summary = minutes == GateMode.Off && request.MeetingId is null && request.Votes is null
+                ? null
+                : await AttachVotesAsync(ctx.Record, request.MeetingId, request.Votes, WorkflowStep.B3A_COLLECTIVE, ct);
+            if (minutes == GateMode.Required && summary is not { Tally.Total: > 0 })
+                throw new ValidationException((unitLeader ? "Ghi nhận đề xuất của Trưởng đơn vị" : "Ghi nhận đề xuất của tập thể lãnh đạo")
+                    + " không thành công: chưa có biên bản họp tập thể lãnh đạo (Mẫu 12/13) ghi kết quả kiểm phiếu của hồ sơ này. "
+                    + "Hãy chọn biên bản họp của đơn vị và nhập kết quả kiểm phiếu.");
 
             var comment = Trim(request.Comment, MaxCommentLength, "Nhận xét");
+            // Tập thể: mức ghi nhận phải là mức được biểu quyết quá bán. Trưởng đơn vị căn cứ kết quả họp, đề xuất khác thì ghi lý do.
+            if (summary is { } tally && CollectiveVoteRules.Validate(grade, tally.Tally, tally.PresentCount) is { } voteError)
+            {
+                if (!unitLeader)
+                    throw new ValidationException(voteError);
+                if (comment == null)
+                    throw new ValidationException("Ghi nhận đề xuất của Trưởng đơn vị không thành công: mức đề xuất khác kết quả họp tập thể. "
+                        + voteError + " Hãy ghi lý do vào ô \"Lý do, nhận xét\".");
+            }
             if (ctx.Criteria is { } criteria && GradeProposalRules.HasScore(ctx.Record))
                 GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3A_COLLECTIVE, grade, ctx.Record.TotalSelfScore,
                     GradeProposalRules.ExceedRatio(ctx.Record, criteria), comment, "\"Nhận xét\"", unitLeader);
 
             ctx.Record.CollectiveProposedGrade = grade;
             ctx.Record.CollectiveComment = comment;
-            ctx.Record.CollectiveMeetingId = unitLeader ? null : request.MeetingId;
+            ctx.Record.CollectiveMeetingId = request.MeetingId;
             ctx.Record.CollectiveRecordedById = ctx.ActorId;
             ctx.Record.CollectiveRecordedByName = ctx.ActorName;
             ctx.Record.CollectiveRecordedAt = ctx.Now;

@@ -89,6 +89,7 @@ Cột "Tên mặc định hiện hành" là tên các vai trò mặc định man
 | `PHO_GIAM_DOC_PHU_TRACH` | (mới) | Phó Giám đốc phụ trách | Phó Giám đốc phụ trách |
 | `CHI_UY_CHI_BO` | Chi ủy / Bí thư Chi bộ | Chi bộ (xác nhận của Chi bộ) | Chi bộ |
 | `CO_QUAN_THAM_DINH` | Phòng TCCB-LĐ (mở kỳ, thẩm định) | Thẩm định; TCCB; cơ quan thẩm định | Cơ quan thẩm định |
+| `CAN_BO_GIUP_VIEC` | Nhân viên Phòng TCCB-LĐ, bộ phận Công tác Đảng được phân công (cả thư ký họp tập thể cấp Công ty) | Chuyên viên TCCB; nhân viên nhân sự; nhân viên công tác Đảng | Cán bộ giúp việc đánh giá |
 | `CAP_TRUC_TIEP_SU_DUNG` | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | Cấp trực tiếp sử dụng cán bộ | Cấp trực tiếp sử dụng |
 | `CAP_UY_VIEN` | Cấp ủy viên Đảng ủy | Cấp ủy viên | Cấp ủy viên |
 | `VAN_PHONG_DANG_UY` | Văn phòng Đảng ủy (quyết định, công bố) | BTV Đảng ủy (quyết định) | Văn phòng Đảng ủy |
@@ -123,6 +124,7 @@ Tên và mô tả quyền, mô tả vai trò không kèm số mẫu hay số bư
 
 | Cổng (tên cũ trong tài liệu gốc) | Biểu mẫu (tài liệu gốc) | Tên trên giao diện | Chế độ | Mã |
 |---|---|---|---|---|
+| Biên bản họp tập thể | Mẫu 12/13 — Biên bản hội nghị, biên bản kiểm phiếu của tập thể lãnh đạo (bước 3a) | Biên bản họp tập thể | Bắt buộc / Chỉ ghi nhận / Tắt | `MINUTES` |
 | Hiệu chuẩn | Mẫu 20 — Biên bản hiệu chuẩn kết quả đánh giá ("trước khi phê duyệt") | Họp thống nhất | Bắt buộc / Chỉ ghi nhận / Tắt | `CALIBRATION` |
 | Kiểm soát | Mẫu 19 — Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán ("trước khi trình phê duyệt") | Kiểm tra trước quyết định | Bắt buộc / Chỉ ghi nhận / Tắt | `CONTROL` |
 | Đối soát | Mẫu 03 — Phiếu ý kiến chuyên môn độc lập / đối soát dữ liệu chuyên ngành ("khi cần") | Xác nhận số liệu | Tùy chọn / Tắt | `CROSSCHECK` |

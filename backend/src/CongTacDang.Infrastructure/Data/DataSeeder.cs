@@ -51,6 +51,7 @@ public static class DataSeeder
         public const string CollectiveSecretary = "THU_KY_TAP_THE";
         public const string CellCommittee = "CHI_UY_CHI_BO";
         public const string Appraisal = "CO_QUAN_THAM_DINH";
+        public const string AppraisalStaff = "CAN_BO_GIUP_VIEC";
         public const string DirectSupervisor = "CAP_TRUC_TIEP_SU_DUNG";
         public const string PartyCommitteeMember = "CAP_UY_VIEN";
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
@@ -84,6 +85,16 @@ public static class DataSeeder
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
+            }),
+        // Nhân viên nhân sự và công tác Đảng được phân công: làm phần chuyên môn, thư ký họp tập thể; không quản lý kỳ và bộ tiêu chí.
+        new(RoleCodes.AppraisalStaff, "Cán bộ giúp việc đánh giá", "Xem hồ sơ, biên bản, kết quả; rà soát danh mục, thẩm định, lập biên bản hội nghị, ghi nhận đề xuất tập thể, lập biên bản họp thống nhất, phiếu kiểm tra; không quản lý kỳ, bộ tiêu chí.",
+            new[]
+            {
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise,
+                PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage,
+                PermissionCodes.EvaluationResultsView, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
+                PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage,
+                PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationOpinionRecord
             }),
         new(RoleCodes.DirectSupervisor, "Cấp trực tiếp sử dụng", "Giám đốc, Chủ tịch: duyệt danh mục sản phẩm, nhận xét, đề xuất mức, duyệt kế hoạch 30-60-90 ngày.",
             new[] { PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDirectorReview, PermissionCodes.ReportExport, PermissionCodes.EvaluationImprovementApprove }),
@@ -501,6 +512,8 @@ public static class DataSeeder
         new("Bí thư Chi đoàn", PositionSide.MassOrganization, null, null, true),
         new("Đảng viên", PositionSide.Party, null, null, false),
         new("Chuyên viên", PositionSide.Administrative, null, null, false),
+        new("Nhân viên Nhân sự", PositionSide.Administrative, null, null, false),
+        new("Nhân viên công tác Đảng, đoàn thể và thi đua", PositionSide.Administrative, null, null, false),
         new("Nhân viên", PositionSide.Administrative, null, null, false)
     };
 

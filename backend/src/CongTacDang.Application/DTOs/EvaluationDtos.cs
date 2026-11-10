@@ -180,8 +180,10 @@ public class EvaluationRecordDto
     public DateTime? CellConfirmedAt { get; set; }
 
     // B3a
-    /// <summary>Bước 3a do Trưởng đơn vị đề xuất (không họp, không biên bản, không kiểm phiếu) theo diện quyết định của hồ sơ.</summary>
+    /// <summary>Bước 3a do Trưởng đơn vị đề xuất căn cứ kết quả họp tập thể (được đề xuất khác khi ghi lý do).</summary>
     public bool UnitLeaderProposal { get; set; }
+    /// <summary>Cổng biên bản họp tập thể ở bước 3a: <c>Required</c> / <c>Recorded</c> / <c>Off</c>.</summary>
+    public string CollectiveMinutesMode { get; set; } = string.Empty;
     public string CollectiveProposedGrade { get; set; } = string.Empty;
     public string? CollectiveComment { get; set; }
     public Guid? CollectiveMeetingId { get; set; }

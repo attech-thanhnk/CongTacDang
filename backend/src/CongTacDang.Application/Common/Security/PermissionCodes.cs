@@ -187,7 +187,7 @@ public static class PermissionCodes
         new(EvaluationCollectiveRecord, "Ghi nhận đề xuất của tập thể lãnh đạo", "evaluation", "Ghi kết quả kiểm phiếu đề xuất của tập thể lãnh đạo, không ghi phiếu từng người.", true),
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá.", true),
         new(EvaluationDirectorReview, "Cấp trực tiếp sử dụng: duyệt danh mục, nhận xét", "evaluation", "Duyệt danh mục sản phẩm và nhận xét, đề xuất mức của cấp trực tiếp sử dụng cán bộ.", true),
-        new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng đơn vị đề xuất mức xếp loại trên cơ sở ý kiến các Phó, không họp bỏ phiếu.", true),
+        new(EvaluationUnitReview, "Lãnh đạo đơn vị đề xuất", "evaluation", "Trưởng đơn vị đề xuất mức xếp loại sau họp lãnh đạo đơn vị; khác kết quả kiểm phiếu thì ghi lý do.", true),
         new(EvaluationDecide, "Ghi nhận quyết định của Đảng ủy cơ sở", "evaluation", "Ghi nhận quyết định xếp loại của Đảng ủy cơ sở.", true),
         new(EvaluationExternalRecord, "Ghi nhận kết quả của cấp trên", "evaluation", "Ghi nhận kết quả của bước do cấp trên hoặc cơ quan ngoài hệ thống thực hiện.", true),
         new(EvaluationPublish, "Công bố và lưu trữ kết quả", "evaluation", "Công bố và khóa kết quả đánh giá.", true),

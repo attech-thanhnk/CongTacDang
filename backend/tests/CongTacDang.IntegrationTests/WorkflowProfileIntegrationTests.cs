@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -167,11 +168,9 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.DoesNotContain((await Data(w.DirectorC, $"/api/evaluations/work-queue?periodId={periodId}")).GetProperty("groups").EnumerateArray(),
             g => g.GetProperty("step").GetString() == "B3A_COLLECTIVE");
 
-        // Không họp bỏ phiếu: gửi biên bản hoặc kết quả kiểm phiếu bị từ chối.
-        var withMeeting = await PostAsync(w.Lead1C, id, "collective",
-            new { proposedGrade = "HoanThanhTot", meetingId = Guid.NewGuid() }, await VersionAsync(w, id));
-        Assert.Equal(HttpStatusCode.BadRequest, withMeeting.StatusCode);
-        Assert.Contains("không thành công", await MessageAsync(withMeeting));
+        // Biên bản không tồn tại, hoặc kết quả kiểm phiếu không gắn biên bản: từ chối.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.Lead1C, id, "collective",
+            new { proposedGrade = "HoanThanhTot", meetingId = Guid.NewGuid() }, await VersionAsync(w, id))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await PostAsync(w.Lead1C, id, "collective", new
         {
             proposedGrade = "HoanThanhTot",
@@ -203,6 +202,44 @@ public sealed class WorkflowProfileIntegrationTests
         var b3a = Assert.Single(history.EnumerateArray(), h => h.GetProperty("step").GetString() == "B3A_COLLECTIVE");
         Assert.Equal("Trưởng đơn vị đề xuất", b3a.GetProperty("stepName").GetString());
         Assert.DoesNotContain(history.EnumerateArray(), h => h.GetProperty("step").GetString() == "B3C_DIRECTOR");
+    }
+
+    [SkippableFact]
+    public async Task G2a_MinutesRequired_UnitLeaderNeedsVotes_MayDifferWithReason()
+    {
+        var w = await WorldAsync();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await PeriodGates.SetModeAsync(w.ManagerC, periodId, WorkflowGates.Minutes, GateMode.Required);
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { w.Staff.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, w.Staff.Id);
+        Assert.Equal("Required", (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("collectiveMinutesMode").GetString());
+
+        await StepAsync(w.StaffC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
+        await StepAsync(w.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+
+        // Chưa có biên bản kiểm phiếu → chặn.
+        var noMinutes = await PostAsync(w.Lead1C, id, "collective", new { proposedGrade = "HoanThanhTot", comment = "Đề xuất" }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, noMinutes.StatusCode);
+        Assert.Contains("chưa có biên bản họp", await MessageAsync(noMinutes));
+
+        // Thư ký đơn vị lập biên bản; phiếu đa số Hoàn thành tốt.
+        var meetingId = (await Data(await w.SecretaryC.PostAsJsonAsync("/api/evaluations/meetings", new
+        {
+            periodId, departmentId = w.Dept1, stage = "B3A_COLLECTIVE", formCode = "M12", meetingType = "Họp lãnh đạo đơn vị",
+            invitedCount = 3, presentCount = 3
+        }))).GetProperty("id").GetGuid();
+        var votes = new { votesExcellent = 0, votesGood = 3, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0 };
+
+        // Trưởng đơn vị đề xuất khác kết quả kiểm phiếu: thiếu lý do → chặn; có lý do → ghi nhận.
+        var noReason = await PostAsync(w.Lead1C, id, "collective", new { proposedGrade = "HoanThanh", meetingId, votes }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
+        Assert.Contains("Lý do", await MessageAsync(noReason));
+        var proposed = await StepAsync(w.Lead1C, id, "collective",
+            new { proposedGrade = "HoanThanh", comment = "Chưa hoàn thành chỉ tiêu trọng tâm của đơn vị", meetingId, votes }, "AwaitingAppraisal");
+        Assert.Equal("HoanThanh", proposed.GetProperty("collectiveProposedGrade").GetString());
+        Assert.Equal(meetingId, proposed.GetProperty("collectiveMeetingId").GetGuid());
     }
 
     [SkippableFact]
@@ -830,7 +867,7 @@ public sealed class WorkflowProfileIntegrationTests
         public TestUser Director = null!, Staff = null!, Staff3 = null!, Other = null!;
         public HttpClient OwnerDirectorC = null!, StaffC = null!, ManagerC = null!, CellSecC = null!, SecretaryC = null!;
         public HttpClient Lead1C = null!, Lead2C = null!, DirectorC = null!, OfficeC = null!, AdminC = null!;
-        public Guid Lead3Assignment;
+        public Guid Lead3Assignment, Dept1;
         public string Dept3Name = string.Empty;
         public string Lead1Name = string.Empty, Lead2Name = string.Empty;
 
@@ -851,6 +888,7 @@ public sealed class WorkflowProfileIntegrationTests
                 await db.SaveChangesAsync();
                 (d1, d2, d3, c1, c3) = (dept1.Id, dept2.Id, dept3.Id, cell1.Id, cell3.Id);
             });
+            w.Dept1 = d1;
 
             async Task<Guid> Role(string code) => await factory.GetRoleIdAsync(code);
             var evaluatee = await Role("NGUOI_DUOC_DANH_GIA");

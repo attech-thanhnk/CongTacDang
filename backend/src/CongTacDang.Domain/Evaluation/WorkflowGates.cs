@@ -29,6 +29,9 @@ public sealed class GateSetting
 /// <summary>Mã cổng và chế độ cho phép của từng cổng.</summary>
 public static class WorkflowGates
 {
+    /// <summary>Biên bản họp tập thể lãnh đạo (Mẫu 12/13) có kết quả kiểm phiếu của hồ sơ, xét ở bước 3a.</summary>
+    public const string Minutes = "MINUTES";
+
     /// <summary>Đối soát chuyên ngành (Mẫu 03).</summary>
     public const string Crosscheck = "CROSSCHECK";
 
@@ -38,25 +41,30 @@ public static class WorkflowGates
     /// <summary>Kiểm soát trước phê duyệt (Mẫu 19).</summary>
     public const string Control = "CONTROL";
 
-    public static readonly IReadOnlyList<string> Ordered = new[] { Crosscheck, Calibration, Control };
+    public static readonly IReadOnlyList<string> Ordered = new[] { Minutes, Crosscheck, Calibration, Control };
 
     public static string DisplayName(string gate) => gate switch
     {
+        Minutes => "Biên bản họp tập thể",
         Crosscheck => "Xác nhận số liệu",
         Calibration => "Họp thống nhất",
         Control => "Kiểm tra trước quyết định",
         _ => gate
     };
 
-    public static bool IsKnown(string? gate) => gate != null && (gate == Crosscheck || gate == Calibration || gate == Control);
+    public static bool IsKnown(string? gate) => gate != null && (gate == Minutes || gate == Crosscheck || gate == Calibration || gate == Control);
 
-    /// <summary>Đối soát chỉ Optional/Off; hiệu chuẩn và kiểm soát chỉ Required/Recorded/Off.</summary>
+    /// <summary>Đối soát chỉ Optional/Off; các cổng khác chỉ Required/Recorded/Off.</summary>
     public static bool IsAllowed(string gate, GateMode mode) => gate == Crosscheck
         ? mode is GateMode.Optional or GateMode.Off
         : mode is GateMode.Required or GateMode.Recorded or GateMode.Off;
 
-    /// <summary>Hiệu chuẩn, kiểm soát: Required khi bước quyết định làm trong hệ thống, Recorded khi cấp trên thực hiện.</summary>
-    public static GateMode DefaultMode(string gate, StepMode decisionMode) => gate == Crosscheck
-        ? GateMode.Optional
-        : decisionMode == StepMode.Internal ? GateMode.Required : GateMode.Recorded;
+    /// <summary>Hiệu chuẩn, kiểm soát: Required khi bước quyết định làm trong hệ thống, Recorded khi cấp trên thực hiện.
+    /// Biên bản họp: Required khi bước 3a làm trong hệ thống, còn lại Off.</summary>
+    public static GateMode DefaultMode(string gate, StepMode decisionMode, StepMode collectiveMode = StepMode.Internal) => gate switch
+    {
+        Crosscheck => GateMode.Optional,
+        Minutes => collectiveMode == StepMode.Internal ? GateMode.Required : GateMode.Off,
+        _ => decisionMode == StepMode.Internal ? GateMode.Required : GateMode.Recorded
+    };
 }

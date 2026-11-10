@@ -256,6 +256,7 @@ public static class EvaluationMapping
             CellConfirmedAt = r.CellConfirmedAt,
 
             UnitLeaderProposal = profile.IsUnitLeaderProposal(),
+            CollectiveMinutesMode = profile.GateModeOf(WorkflowGates.Minutes).ToString(),
             CollectiveProposedGrade = GradeCode(r.CollectiveProposedGrade),
             CollectiveComment = r.CollectiveComment,
             CollectiveMeetingId = r.CollectiveMeetingId,

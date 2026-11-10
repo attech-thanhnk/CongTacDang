@@ -545,11 +545,14 @@ function recordGradeWarnings(record: EvaluationRecordDto, grade: string): string
   return gradeConditionWarnings(record.tasks.filter((t) => !t.changeStatus), grade, record.excellentMinExceedRatio);
 }
 
-/** Ghi nhận đề xuất tập thể hoặc Trưởng đơn vị (B3a) hoặc quyết định (B4); kết quả kiểm phiếu (tùy chọn) gắn với biên bản. */
+/** Ghi nhận đề xuất tập thể hoặc Trưởng đơn vị (B3a) hoặc quyết định (B4); kết quả kiểm phiếu gắn với biên bản. */
 function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; stage: "B3A_COLLECTIVE" | "B4_DECISION"; submitText: string; extra?: React.ReactNode; onSubmit: (p: Record<string, unknown>) => void }) {
   const isDecision = stage === "B4_DECISION";
-  // Trưởng đơn vị đề xuất trên ý kiến các Phó, không họp nên không chọn biên bản, kiểm phiếu.
+  // Trưởng đơn vị đề xuất sau cuộc họp: được chọn mức khác kết quả kiểm phiếu nhưng phải ghi lý do.
   const unitLeader = !isDecision && record.unitLeaderProposal;
+  const minutesMode = isDecision ? "Recorded" : record.collectiveMinutesMode ?? "Off";
+  const minutesRequired = minutesMode === "Required";
+  const showMeetings = isDecision || !unitLeader || minutesMode !== "Off";
   const [grade, setGrade] = useState(
     isDecision
       ? initialGrade(latestProposedGrade(record))
@@ -572,20 +575,29 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
   const [meetingId, setMeetingId] = useState("");
   const [withVotes, setWithVotes] = useState(false);
   const [votes, setVotes] = useState<VoteTallyDto>(EMPTY_VOTES);
+  const [minutesError, setMinutesError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (unitLeader) return;
+    if (!showMeetings) return;
     evaluationService
       .getMeetings(record.periodId)
-      .then((list) => setMeetings(list.filter((m) => !m.stage || m.stage === stage)))
+      .then((list) => {
+        const usable = list.filter((m) => !m.stage || m.stage === stage);
+        setMeetings(usable);
+        // Biên bản đã có kết quả kiểm phiếu của hồ sơ → chọn sẵn.
+        const own = usable.find((m) => m.voteSummaries?.some((v) => v.recordId === record.id));
+        if (own) setMeetingId((current) => current || own.id);
+      })
       .catch(() => setMeetings([]));
-  }, [record.periodId, stage, unitLeader]);
+  }, [record.periodId, record.id, stage, showMeetings]);
 
+  const withVotesEffective = minutesRequired || withVotes;
   const selectedMeeting = meetings.find((m) => m.id === meetingId);
   const totalVotes = votes.votesExcellent + votes.votesGood + votes.votesSatisfactory + votes.votesUnsatisfactory + votes.votesNotRated + votes.invalidVotes;
-  // Kiểm phiếu đã có: mức ghi nhận của tập thể phải là mức đạt quá nửa số có mặt (máy chủ kiểm lại).
-  const voteResult = !isDecision && meetingId && withVotes ? votePassedGrade(votes, selectedMeeting?.presentCount ?? 0) : null;
+  // Kiểm phiếu đã có: mức của tập thể phải là mức đạt quá nửa số có mặt; Trưởng đơn vị được khác nếu ghi lý do (máy chủ kiểm lại).
+  const voteResult = !isDecision && meetingId && withVotesEffective ? votePassedGrade(votes, selectedMeeting?.presentCount ?? 0) : null;
   const voteMismatch = !!voteResult && voteResult.grade !== grade;
+  const leaderDiffers = unitLeader && voteMismatch;
   const scoreForCheck = isDecision ? (parseDecimal(finalScore) ?? record.reviewedScore ?? record.totalSelfScore) : record.totalSelfScore;
   const check = proposalCheck(record, criteria, grade, scoreForCheck);
   const reason = isDecision ? explanation : comment;
@@ -611,9 +623,18 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
       document.getElementById(`${stage}-reason`)?.focus();
       return;
     }
-    const payload: Record<string, unknown> = unitLeader
-      ? { meetingId: null, votes: null }
-      : { meetingId: meetingId || null, votes: withVotes && meetingId ? votes : null };
+    if (leaderDiffers && !reason.trim()) {
+      setReasonError("Mức đề xuất khác kết quả kiểm phiếu: hãy ghi lý do.");
+      document.getElementById(`${stage}-reason`)?.focus();
+      return;
+    }
+    if (minutesRequired && (!meetingId || totalVotes === 0)) {
+      setMinutesError("Chọn biên bản họp và nhập kết quả kiểm phiếu của hồ sơ này.");
+      return;
+    }
+    const payload: Record<string, unknown> = showMeetings
+      ? { meetingId: meetingId || null, votes: withVotesEffective && meetingId ? votes : null }
+      : { meetingId: null, votes: null };
     if (isDecision) {
       Object.assign(payload, {
         finalGrade: grade,
@@ -630,8 +651,10 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
     onSubmit(payload);
   };
 
-  const setVote = (key: keyof VoteTallyDto, value: string) =>
+  const setVote = (key: keyof VoteTallyDto, value: string) => {
     setVotes({ ...votes, [key]: key === "notes" ? value : Math.max(0, Number(value) || 0) });
+    setMinutesError(null);
+  };
 
   return (
     <form onSubmit={submit} className="row g-2">
@@ -650,29 +673,37 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
           )}
         </>
       ) : (
-        <ReasonField id={`${stage}-reason`} label={unitLeader ? "Nhận xét, ý kiến của các Phó" : "Nhận xét của tập thể"} value={comment} required={!!check?.required} error={reasonError}
+        <ReasonField id={`${stage}-reason`} label={unitLeader ? (leaderDiffers ? "Lý do đề xuất khác kết quả kiểm phiếu" : "Lý do, nhận xét của Trưởng đơn vị") : "Nhận xét của tập thể"}
+          value={comment} required={!!check?.required || leaderDiffers} error={reasonError}
           onChange={(v) => { setComment(v); setReasonError(null); }} />
       )}
-      {!unitLeader && (
+      {showMeetings && (
       <div className="col-md-8">
-        <label className="form-label small">Biên bản hội nghị (Mẫu 12/13)</label>
-        <select className="form-select form-select-sm" value={meetingId} onChange={(e) => setMeetingId(e.target.value)}>
-          <option value="">— Không gắn biên bản —</option>
+        <label className="form-label small" htmlFor={`${stage}-meeting`}>Biên bản hội nghị (Mẫu 12/13){minutesRequired ? " *" : ""}</label>
+        <select id={`${stage}-meeting`} className="form-select form-select-sm" value={meetingId} required={minutesRequired}
+          onChange={(e) => { setMeetingId(e.target.value); setMinutesError(null); }}>
+          <option value="">{minutesRequired ? "— Chọn biên bản —" : "— Không gắn biên bản —"}</option>
           {meetings.map((m) => (
             <option key={m.id} value={m.id}>
               {m.formCode} · {m.departmentName || m.partyCellName || "Cấp Công ty"} · có mặt {m.presentCount}
             </option>
           ))}
         </select>
+        {minutesRequired && meetings.length === 0 && (
+          <div className="small text-danger mt-1">Chưa có biên bản họp ở bước này. Thư ký lập biên bản (Mẫu 12/13) trước, sau đó mới ghi nhận được.</div>
+        )}
+        {minutesError && <div className="small text-danger mt-1" role="alert">{minutesError}</div>}
       </div>
       )}
       {meetingId && (
         <div className="col-12">
+          {!minutesRequired && (
           <div className="form-check">
             <input id={`${stage}-votes`} className="form-check-input" type="checkbox" checked={withVotes} onChange={(e) => setWithVotes(e.target.checked)} />
             <label className="form-check-label small" htmlFor={`${stage}-votes`}>Ghi kết quả kiểm phiếu của hồ sơ này</label>
           </div>
-          {withVotes && (
+          )}
+          {withVotesEffective && (
             <div className="row g-1 mt-1">
               {([
                 ["votesExcellent", "Xuất sắc"],
@@ -694,7 +725,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
                 <div className={`col-12 small ${voteResult.grade && !voteMismatch ? "text-success" : "text-danger"}`} role="status">
                   {voteResult.grade
                     ? `Theo kết quả kiểm phiếu: ${GRADE_LABELS[voteResult.grade as RankedGrade]} (${voteResult.votes}/${voteResult.basis} phiếu, cộng dồn từ mức cao).`
-                      + (voteMismatch ? " Mức đang chọn khác kết quả kiểm phiếu." : "")
+                      + (voteMismatch ? (unitLeader ? " Mức đang chọn khác kết quả kiểm phiếu: ghi lý do ở trên." : " Mức đang chọn khác kết quả kiểm phiếu.") : "")
                     : `Không mức nào đạt quá nửa (${voteResult.basis}): hãy kiểm tra lại số phiếu.`}
                 </div>
               )}
@@ -702,7 +733,7 @@ function ProposalForm({ record, criteria, busy, stage, submitText, extra, onSubm
           )}
         </div>
       )}
-      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || (!!voteResult && (!voteResult.grade || voteMismatch))}>{submitText}</button></FormFoot>
+      <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || (minutesRequired && meetings.length === 0) || (!!voteResult && (!voteResult.grade || (voteMismatch && !unitLeader)))}>{submitText}</button></FormFoot>
     </form>
   );
 }

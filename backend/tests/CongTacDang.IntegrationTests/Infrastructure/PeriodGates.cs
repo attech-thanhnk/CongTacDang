@@ -7,7 +7,7 @@ using Xunit;
 
 namespace CongTacDang.IntegrationTests.Infrastructure;
 
-/// <summary>Kịch bản không kiểm thử cổng hiệu chuẩn / kiểm soát tắt hai cổng này để đi thẳng tới quyết định.</summary>
+/// <summary>Kịch bản không kiểm thử cổng biên bản họp / hiệu chuẩn / kiểm soát tắt các cổng này để đi thẳng tới quyết định.</summary>
 public static class PeriodGates
 {
     /// <summary>Cài đặt kỳ mặc định, mọi diện quyết định tắt hai cổng; cho kỳ dựng thẳng vào CSDL.</summary>
@@ -20,7 +20,22 @@ public static class PeriodGates
     }
 
     /// <summary>Tắt cổng (mặc định cả hai) của mọi diện quyết định qua API; chỉ làm được khi kỳ còn dự thảo.</summary>
-    public static async Task DisableAsync(HttpClient manager, Guid periodId, params string[] gates)
+    public static Task DisableAsync(HttpClient manager, Guid periodId, params string[] gates) =>
+        UpdateAsync(manager, periodId, settings => DisableIn(settings, gates));
+
+    /// <summary>Đặt chế độ một cổng cho mọi diện quyết định qua API; chỉ làm được khi kỳ còn dự thảo.</summary>
+    public static Task SetModeAsync(HttpClient manager, Guid periodId, string gate, GateMode mode) =>
+        UpdateAsync(manager, periodId, settings =>
+        {
+            foreach (var profile in settings["profiles"]!.AsArray())
+            {
+                var gates = profile!["gates"]?.AsObject() ?? new JsonObject();
+                gates[gate] = new JsonObject { ["mode"] = mode.ToString() };
+                profile.AsObject()["gates"] = gates;
+            }
+        });
+
+    private static async Task UpdateAsync(HttpClient manager, Guid periodId, Action<JsonObject> change)
     {
         var get = await manager.GetAsync($"/api/evaluations/periods/{periodId}");
         var text = await get.Content.ReadAsStringAsync();
@@ -28,7 +43,7 @@ public static class PeriodGates
         using var json = JsonDocument.Parse(text);
         var data = json.RootElement.GetProperty("data");
         var settings = JsonNode.Parse(data.GetProperty("settings").GetRawText())!.AsObject();
-        DisableIn(settings, gates);
+        change(settings);
         var put = await manager.PutAsJsonAsync($"/api/evaluations/periods/{periodId}",
             new { version = data.GetProperty("version").GetUInt32(), settings });
         Assert.True(put.IsSuccessStatusCode, await put.Content.ReadAsStringAsync());
@@ -37,7 +52,7 @@ public static class PeriodGates
     /// <summary>Sửa trực tiếp nút cài đặt kỳ đã đọc sẵn.</summary>
     public static void DisableIn(JsonObject settings, params string[] only)
     {
-        var targets = only.Length == 0 ? new[] { WorkflowGates.Calibration, WorkflowGates.Control } : only;
+        var targets = only.Length == 0 ? DefaultTargets : only;
         foreach (var profile in settings["profiles"]!.AsArray())
         {
             var gates = profile!["gates"]?.AsObject() ?? new JsonObject();
@@ -47,9 +62,12 @@ public static class PeriodGates
         }
     }
 
+    /// <summary>Kịch bản không lập biên bản họp, hiệu chuẩn, kiểm soát thì tắt cả ba cổng.</summary>
+    private static readonly string[] DefaultTargets = { WorkflowGates.Minutes, WorkflowGates.Calibration, WorkflowGates.Control };
+
     private static void TurnOff(WorkflowProfile profile)
     {
-        profile.Gates[WorkflowGates.Calibration] = new GateSetting { Mode = GateMode.Off };
-        profile.Gates[WorkflowGates.Control] = new GateSetting { Mode = GateMode.Off };
+        foreach (var gate in DefaultTargets)
+            profile.Gates[gate] = new GateSetting { Mode = GateMode.Off };
     }
 }

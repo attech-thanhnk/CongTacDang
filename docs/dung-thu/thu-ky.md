@@ -1,6 +1,6 @@
 # Hướng dẫn cho thư ký hội nghị
 
-Dành cho thư ký hội nghị tập thể lãnh đạo (thư ký phòng, thư ký của Văn phòng cho hội nghị cấp Công ty). Hệ thống không bỏ phiếu điện tử: hội nghị họp và bỏ phiếu kín như thường lệ, thư ký ghi lại biên bản và kết quả vào hệ thống.
+Dành cho thư ký hội nghị tập thể lãnh đạo: thư ký phòng, trung tâm; với hội nghị cấp Công ty, thư ký là cán bộ Phòng TCCB-LĐ hoặc cán bộ công tác Đảng ở Văn phòng được phân công (vai trò **Cán bộ giúp việc đánh giá**). Hệ thống không bỏ phiếu điện tử: hội nghị họp và bỏ phiếu kín như thường lệ, thư ký ghi lại biên bản và kết quả vào hệ thống.
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 
@@ -9,6 +9,8 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 ## Cần biết trước
 
 - Thứ tự: in phiếu kín trắng (Mẫu 11) → họp, kiểm phiếu → lập biên bản (Mẫu 12 hoặc 13) → ghi đề xuất vào từng hồ sơ.
+- Lập biên bản trước rồi mới ghi đề xuất: khi ô **Biên bản hội nghị (Mẫu 12/13)** trên hồ sơ có dấu \*, chưa có biên bản của đơn vị thì không ghi đề xuất được.
+- Hội nghị có xét cả cán bộ là Bí thư chi bộ kiêm lãnh đạo bộ phận (ví dụ Đài trưởng kiêm Bí thư chi bộ): vẫn kiểm phiếu người đó trong cùng hội nghị, cùng biên bản. Đề xuất của người đó do Trưởng đơn vị ghi (ví dụ Trưởng trung tâm Bảo đảm kỹ thuật), không phải việc của bạn.
 - Hồ sơ chờ bạn ở **Việc cần xử lý**, nhóm **Đề xuất của tập thể lãnh đạo**.
 - Bạn không ghi đề xuất trên hồ sơ của chính mình; hồ sơ đó do thư ký khác hoặc cấp trên ghi.
 
@@ -29,7 +31,7 @@ Cách 2: menu **Đánh giá tập thể** → thẻ **Biên bản hội nghị**
 2. Phần **Thông tin hội nghị**:
    - **Biểu mẫu**: **Mẫu 12 — Biên bản hội nghị** hoặc **Mẫu 13 — Biên bản kiểm phiếu**.
    - **Hội nghị**: **Tập thể lãnh đạo, quản lý (đề xuất)**.
-   - **Đơn vị tổ chức**: chọn Phòng / đơn vị của hội nghị.
+   - **Đơn vị tổ chức**: chọn **Phòng / đơn vị** rồi chọn đơn vị của hội nghị; hội nghị cấp Công ty chọn **Cấp Công ty**. Biên bản chỉ dùng được cho hồ sơ của cán bộ thuộc đơn vị đã chọn.
    - **Bắt đầu**, **Kết thúc**, **Địa điểm**.
 3. Phần **Thành phần**: **Triệu tập**, **Có mặt** (ô **Vắng mặt** tự tính), **Lý do vắng mặt**, **Chủ trì hội nghị**, **Thư ký hội nghị** kèm chức vụ; người dự khác thì thêm ở **Cán bộ, đảng viên khác được cử tham dự**.
 4. Phần **Nội dung**: **Diễn biến hội nghị**, **Kết quả hội nghị**.
@@ -52,8 +54,8 @@ Cách 2: menu **Đánh giá tập thể** → thẻ **Biên bản hội nghị**
 2. Trong khung **Ghi nhận đề xuất của tập thể**:
    - chọn **Mức tập thể đề xuất**;
    - ghi **Nhận xét của tập thể**;
-   - ô **Biên bản hội nghị (Mẫu 12/13)**: chọn biên bản vừa lập;
-   - tích **Ghi kết quả kiểm phiếu của hồ sơ này**, nhập số phiếu ở các ô **Xuất sắc**, **Tốt**, **Hoàn thành**, **Không hoàn thành**, **Chưa xếp loại**, **Không hợp lệ**.
+   - ô **Biên bản hội nghị (Mẫu 12/13) \***: chọn biên bản vừa lập (biên bản Mẫu 13 đã nhập số phiếu của người này thì ô được chọn sẵn);
+   - nhập số phiếu của hồ sơ này ở các ô **Xuất sắc**, **Tốt**, **Hoàn thành**, **Không hoàn thành**, **Chưa xếp loại**, **Không hợp lệ**. Ô biên bản không có dấu \* thì có thể không gắn biên bản; muốn ghi số phiếu thì tích **Ghi kết quả kiểm phiếu của hồ sơ này**.
 3. Dòng dưới các ô cho biết **Tổng phiếu … / số có mặt …** và mức theo kết quả kiểm phiếu. Mức bạn chọn phải khớp mức đó.
 4. Bấm **Ghi nhận đề xuất** → **Đồng ý**.
 
@@ -61,4 +63,9 @@ Cách 2: menu **Đánh giá tập thể** → thẻ **Biên bản hội nghị**
 
 **Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ. Làm lần lượt cho từng hồ sơ còn lại trong nhóm.
 
-**Lỗi thường gặp:** báo tổng số phiếu vượt số người có mặt thì kiểm lại số phiếu hoặc ô **Có mặt** trong biên bản.
+**Lỗi thường gặp:**
+
+- Nút **Ghi nhận đề xuất** bị khóa, dưới ô biên bản ghi "Chưa có biên bản họp ở bước này": lập biên bản trước (mục 2) với **Hội nghị** là **Tập thể lãnh đạo, quản lý (đề xuất)**, rồi mở lại hồ sơ.
+- Báo "Chọn biên bản họp và nhập kết quả kiểm phiếu của hồ sơ này": chọn biên bản và nhập số phiếu rồi bấm lại.
+- Báo ghi nhận đề xuất không thành công vì chưa có biên bản ghi kết quả kiểm phiếu của hồ sơ: biên bản đã chọn không thuộc đơn vị của cán bộ hoặc chưa có số phiếu. Chọn đúng biên bản của đơn vị và nhập số phiếu.
+- Báo tổng số phiếu vượt số người có mặt: kiểm lại số phiếu hoặc ô **Có mặt** trong biên bản.

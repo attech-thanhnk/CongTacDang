@@ -3,7 +3,7 @@
 Dành cho Trưởng phòng, Trưởng trung tâm và tương đương. Việc của bạn trên hồ sơ của cán bộ trong đơn vị:
 
 - gửi danh mục sản phẩm của cán bộ lên Phòng TCCB-LĐ (mục 2);
-- đề xuất mức cho người là Bí thư/Phó Bí thư chi bộ đồng thời là nhân viên đơn vị (mục 3);
+- đề xuất mức cho người là Bí thư/Phó Bí thư chi bộ đồng thời là nhân viên đơn vị, sau khi tập thể lãnh đạo họp, kiểm phiếu (mục 3);
 - lập kế hoạch khắc phục 30-60-90 ngày cho người xếp loại thấp (mục 4).
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
@@ -44,16 +44,22 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ## 3. Trưởng đơn vị đề xuất mức
 
-**Khi nào:** với cán bộ là Bí thư hoặc Phó Bí thư chi bộ đồng thời là nhân viên của đơn vị (ví dụ Đội trưởng). Bước này thay cho họp tập thể bỏ phiếu: bạn đề xuất mức sau khi lấy ý kiến các Phó.
+**Khi nào:** với cán bộ là Bí thư hoặc Phó Bí thư chi bộ đồng thời là nhân viên của đơn vị (ví dụ Đài trưởng kiêm Bí thư chi bộ). Tập thể lãnh đạo đơn vị họp, kiểm phiếu người đó cùng hội nghị và cùng biên bản với các cán bộ khác; sau đó bạn (ví dụ Trưởng trung tâm Bảo đảm kỹ thuật) đề xuất mức.
+
+**Trước khi làm:** thư ký hội nghị đã lập biên bản (Mẫu 12/13) của đơn vị, xem [Hướng dẫn cho thư ký hội nghị](thu-ky.md).
 
 1. **Việc cần xử lý** → nhóm **Trưởng đơn vị đề xuất** → dòng cán bộ → bấm **Đề xuất**.
 2. Xem phiếu tự chấm và xác nhận của Chi bộ ở các khối bên dưới.
-3. Chọn **Mức Trưởng đơn vị đề xuất**; ghi **Nhận xét, ý kiến của các Phó**.
-4. Bấm **Ghi nhận đề xuất** → **Đồng ý**.
+3. Chọn **Mức Trưởng đơn vị đề xuất**.
+4. Ô **Biên bản hội nghị (Mẫu 12/13) \***: chọn biên bản của đơn vị; nhập số phiếu của hồ sơ này ở các ô **Xuất sắc**, **Tốt**, **Hoàn thành**, **Không hoàn thành**, **Chưa xếp loại**, **Không hợp lệ**. Dòng dưới các ô cho biết mức theo kết quả kiểm phiếu.
+5. Ghi **Lý do, nhận xét của Trưởng đơn vị**. Mức bạn chọn khác kết quả kiểm phiếu thì ô đổi thành **Lý do đề xuất khác kết quả kiểm phiếu** và bắt buộc ghi.
+6. Bấm **Ghi nhận đề xuất** → **Đồng ý**.
 
 ![Trưởng đơn vị đề xuất mức](anh/lanh-dao-09-truong-don-vi-de-xuat.png)
 
-**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ.
+**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ. Trên hồ sơ, phần đề xuất ghi mức và **Lý do, nhận xét của Trưởng đơn vị**.
+
+**Nút Ghi nhận đề xuất bị khóa:** dưới ô biên bản ghi "Chưa có biên bản họp ở bước này" thì nhờ thư ký lập biên bản trước. Ô biên bản không có dấu \* thì không bắt buộc gắn biên bản.
 
 ## 4. Lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 

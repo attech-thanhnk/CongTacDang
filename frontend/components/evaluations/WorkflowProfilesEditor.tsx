@@ -102,7 +102,7 @@ export function WorkflowProfilesEditor({ settings, onChange, editable, deadlines
 
   const gateMode = (gate: GateCode): GateMode => {
     const set = profile?.gates?.[gate]?.mode;
-    return set && GATE_ALLOWED_MODES[gate].includes(set) ? set : defaultGateMode(gate, profile?.steps.B4_DECISION?.mode ?? "Internal");
+    return set && GATE_ALLOWED_MODES[gate].includes(set) ? set : defaultGateMode(gate, profile?.steps.B4_DECISION?.mode ?? "Internal", profile?.steps.B3A_COLLECTIVE?.mode ?? "Internal");
   };
 
   const setGate = (gate: GateCode, mode: GateMode) => {

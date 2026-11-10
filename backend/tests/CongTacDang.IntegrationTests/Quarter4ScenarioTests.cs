@@ -178,12 +178,13 @@ public sealed class Quarter4ScenarioTests
             new { proposedGrade = "HoanThanhXuatSac", meetingId = meetingKt, votes = Votes(4, 1) }, "AwaitingAppraisal");
         await Step(w.SecTc, id[w.Ptp.Id], "collective",
             new { proposedGrade = "HoanThanhTot", comment = "Theo kết quả biểu quyết", meetingId = meetingTc, votes = Votes(0, 4) }, "AwaitingAppraisal");
-        // Bí thư Chi bộ là nhân viên: Trưởng phòng đề xuất trên ý kiến các Phó (thư ký hội nghị, Giám đốc không làm thay), không gắn biên bản.
+        // Bí thư Chi bộ là nhân viên: Trưởng phòng đề xuất (thư ký hội nghị, Giám đốc không làm thay); kịch bản tắt cổng biên bản họp.
         await AssertActions(w.SecKt, id[w.Bt.Id]);
         await AssertActions(w.Gd.Client, id[w.Bt.Id]);
         await AssertActions(w.Tp.Client, id[w.Bt.Id], "RecordCollectiveProposal");
+        // Kết quả kiểm phiếu không gắn biên bản → 400.
         Assert.Equal(HttpStatusCode.BadRequest, (await Post(w.Tp.Client, id[w.Bt.Id], "collective",
-            new { proposedGrade = "HoanThanhTot", meetingId = meetingKt }, w.Tccb)).StatusCode);
+            new { proposedGrade = "HoanThanhTot", votes = Votes(0, 4) }, w.Tccb)).StatusCode);
         await Step(w.Tp.Client, id[w.Bt.Id], "collective",
             new { proposedGrade = "HoanThanhTot", comment = "Trưởng phòng đề xuất trên ý kiến các Phó trưởng phòng" }, "AwaitingAppraisal");
         // Diện cấp trên: B3b do Ban TCĐU thực hiện → chờ ghi nhận thẩm định; Phó Giám đốc không có thẩm định → chờ Chủ tịch.

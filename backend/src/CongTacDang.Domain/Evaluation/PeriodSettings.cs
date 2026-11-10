@@ -93,7 +93,7 @@ public sealed class WorkflowProfile
     public GateMode GateModeOf(string gate) =>
         Gates != null && Gates.TryGetValue(gate, out var setting) && setting != null
             ? setting.Mode
-            : WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION));
+            : WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION), Mode(WorkflowStep.B3A_COLLECTIVE));
 
     /// <summary>Thiếu thì trả mặc định: nội bộ, quyền mặc định (bước thêm sau: không áp dụng).</summary>
     public ProfileStepSetting Step(WorkflowStep step) =>
@@ -129,8 +129,8 @@ public sealed class WorkflowProfile
 
     public DateOnly? Deadline(WorkflowStep step) => Step(step).Deadline;
 
-    /// <summary>Bước 3a làm trong hệ thống bằng quyền <c>evaluation.unit.review</c>: Trưởng đơn vị đề xuất mức trên ý kiến
-    /// các Phó, không họp tập thể bỏ phiếu.</summary>
+    /// <summary>Bước 3a làm trong hệ thống bằng quyền <c>evaluation.unit.review</c>: Trưởng đơn vị đề xuất mức căn cứ kết quả
+    /// họp tập thể lãnh đạo đơn vị; được đề xuất khác kết quả bỏ phiếu khi ghi lý do.</summary>
     public bool IsUnitLeaderProposal() =>
         Mode(WorkflowStep.B3A_COLLECTIVE) == StepMode.Internal
         && string.Equals(PermissionFor(WorkflowStep.B3A_COLLECTIVE), WorkflowPermissions.UnitReview, StringComparison.Ordinal);
@@ -196,7 +196,7 @@ public sealed class WorkflowProfile
         foreach (var gate in WorkflowGates.Ordered)
         {
             if (!gates.ContainsKey(gate))
-                gates[gate] = new GateSetting { Mode = WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION)) };
+                gates[gate] = new GateSetting { Mode = WorkflowGates.DefaultMode(gate, Mode(WorkflowStep.B4_DECISION), Mode(WorkflowStep.B3A_COLLECTIVE)) };
         }
         Gates = gates;
         return this;

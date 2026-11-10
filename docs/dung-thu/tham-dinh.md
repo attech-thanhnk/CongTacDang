@@ -1,6 +1,13 @@
 # Hướng dẫn cho Phòng TCCB-LĐ
 
-Dành cho cán bộ Phòng Tổ chức cán bộ - Lao động: quản lý kỳ đánh giá, rà soát danh mục, thẩm định, lập biên bản họp thống nhất (Mẫu 20) và phiếu kiểm tra (Mẫu 19).
+Dành cho cán bộ Phòng Tổ chức cán bộ - Lao động: quản lý kỳ đánh giá, rà soát danh mục, thẩm định, lập biên bản họp thống nhất (Mẫu 20) và phiếu kiểm tra (Mẫu 19). Cán bộ công tác Đảng ở Văn phòng được phân công giúp việc đánh giá cũng dùng hướng dẫn này.
+
+Việc của bạn tùy vai trò được gán:
+
+| Vai trò | Ai | Làm được |
+|---|---|---|
+| **Cơ quan thẩm định** | Lãnh đạo Phòng TCCB-LĐ | Mọi phần dưới đây, gồm lập, mở, khóa, đóng kỳ (Phần A, F) |
+| **Cán bộ giúp việc đánh giá** | Nhân viên Phòng TCCB-LĐ (Nhân viên Nhân sự), cán bộ công tác Đảng ở Văn phòng (Nhân viên công tác Đảng, đoàn thể và thi đua) được Trưởng phòng phân công | Rà soát danh mục (Phần B), thẩm định (Phần C), biên bản họp thống nhất (Phần D), phiếu kiểm tra (Phần E), theo dõi tiến độ; làm thư ký hội nghị tập thể lãnh đạo cấp Công ty theo [Hướng dẫn cho thư ký hội nghị](thu-ky.md); xem mọi hồ sơ, biên bản, kết quả và xuất báo cáo. Không lập, mở, khóa, đóng kỳ, không sửa bộ tiêu chí |
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 
@@ -43,12 +50,13 @@ Thêm nhầm: **⋯** ở dòng → **Bỏ khỏi kỳ**.
 
 1. Thẻ **Diện quyết định**: mỗi diện có hạn của từng bước, hệ thống tự điền khi tạo kỳ.
 2. Sửa hạn nếu lịch khác → bấm **Lưu**. Bấm **Tính lại thời hạn** để tính lại theo quy tắc.
+3. Phần **Cổng trước quyết định** của mỗi diện, ô **Biên bản họp tập thể**: để **Bắt buộc** (mặc định) thì thư ký phải lập biên bản hội nghị (Mẫu 12/13) và nhập số phiếu trước khi ghi đề xuất của tập thể hoặc của Trưởng đơn vị; **Chỉ ghi nhận** thì gắn biên bản tùy ý; **Tắt** thì không dùng biên bản ở bước này. Chỉ đổi được khi kỳ còn **Dự thảo**.
 
 ![Thẻ Diện quyết định](anh/tham-dinh-06-dien-quyet-dinh.png)
 
 ### A4. Kiểm tra và mở kỳ
 
-1. Khối **Chuẩn bị mở kỳ**: mọi dòng phải có dấu tích xanh, gồm cả **Mọi bước đều có người thực hiện**. Còn bước chưa có người thì nhờ Quản trị phân công.
+1. Khối **Chuẩn bị mở kỳ**: mọi dòng phải có dấu tích xanh, gồm cả **Mọi bước đều có người thực hiện**. Còn bước chưa có người thì nhờ Quản trị phân công. Cảnh báo hồ sơ sẽ kẹt ở bước đề xuất của tập thể vì cổng **Biên bản họp tập thể** bắt buộc mà không ai lập được biên bản cho đơn vị đó: nhờ Quản trị gán thư ký hội nghị cho đơn vị, hoặc đổi chế độ cổng của diện quyết định (mục A3).
 2. Bấm **Mở kỳ** ở đầu trang → hộp **Mở kỳ đánh giá** → **Mở kỳ**.
 
 ![Chuẩn bị mở kỳ](anh/tham-dinh-07-mo-ky.png)

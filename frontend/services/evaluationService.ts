@@ -72,10 +72,11 @@ export interface GateSetting {
   mode: GateMode;
 }
 
-export const GATE_CODES = ["CROSSCHECK", "CALIBRATION", "CONTROL"] as const;
+export const GATE_CODES = ["MINUTES", "CROSSCHECK", "CALIBRATION", "CONTROL"] as const;
 export type GateCode = (typeof GATE_CODES)[number];
 
 export const GATE_NAMES: Record<GateCode, string> = {
+  MINUTES: "Biên bản họp tập thể",
   CROSSCHECK: "Xác nhận số liệu",
   CALIBRATION: "Họp thống nhất",
   CONTROL: "Kiểm tra trước quyết định",
@@ -88,16 +89,18 @@ export const GATE_MODE_LABELS: Record<GateMode, string> = {
   Optional: "Tùy chọn",
 };
 
-/** Đối soát chỉ Tùy chọn / Tắt; hiệu chuẩn và kiểm soát chỉ Bắt buộc / Chỉ ghi nhận / Tắt (giống máy chủ). */
+/** Đối soát chỉ Tùy chọn / Tắt; các cổng khác chỉ Bắt buộc / Chỉ ghi nhận / Tắt (giống máy chủ). */
 export const GATE_ALLOWED_MODES: Record<GateCode, GateMode[]> = {
+  MINUTES: ["Required", "Recorded", "Off"],
   CROSSCHECK: ["Optional", "Off"],
   CALIBRATION: ["Required", "Recorded", "Off"],
   CONTROL: ["Required", "Recorded", "Off"],
 };
 
-/** Chế độ mặc định khi cổng chưa cấu hình: theo chế độ bước quyết định. */
-export function defaultGateMode(gate: GateCode, decisionMode: StepMode): GateMode {
+/** Chế độ mặc định khi cổng chưa cấu hình: biên bản theo bước 3a, các cổng khác theo bước quyết định. */
+export function defaultGateMode(gate: GateCode, decisionMode: StepMode, collectiveMode: StepMode = "Internal"): GateMode {
   if (gate === "CROSSCHECK") return "Optional";
+  if (gate === "MINUTES") return collectiveMode === "Internal" ? "Required" : "Off";
   return decisionMode === "Internal" ? "Required" : "Recorded";
 }
 
@@ -327,8 +330,10 @@ export interface EvaluationRecordDto {
   cellConfirmedByName?: string | null;
   cellConfirmedAt?: string | null;
 
-  /** Bước 3a do Trưởng đơn vị đề xuất (không họp, không biên bản, không kiểm phiếu) theo diện quyết định của hồ sơ. */
+  /** Bước 3a do Trưởng đơn vị đề xuất theo diện quyết định của hồ sơ; được khác kết quả kiểm phiếu nếu ghi lý do. */
   unitLeaderProposal: boolean;
+  /** Cổng biên bản họp tập thể ở bước 3a: Bắt buộc thì phải gắn biên bản có kết quả kiểm phiếu của hồ sơ. */
+  collectiveMinutesMode: GateMode;
   collectiveProposedGrade: string;
   collectiveComment?: string | null;
   collectiveMeetingId?: string | null;

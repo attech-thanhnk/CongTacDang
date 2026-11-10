@@ -59,6 +59,13 @@ Người dùng không nhớ mật khẩu thì đặt lại mật khẩu (mục 2
 - Sửa thời hạn: bấm **Sửa thời hạn, ghi chú** ở dòng phân công → **Lưu**.
 - Thôi giao: **Kết thúc phân công** → **Kết thúc**. Gán nhầm: **Gỡ phân công** → **Gỡ**.
 
+**Cán bộ giúp việc đánh giá:** gán cho nhân viên Phòng TCCB-LĐ (chức vụ **Nhân viên Nhân sự**) và cán bộ công tác Đảng ở Văn phòng (chức vụ **Nhân viên công tác Đảng, đoàn thể và thi đua**) mà Trưởng phòng phân công giúp việc đánh giá.
+
+1. Kiểm tra thẻ **Chức vụ** của tài khoản đã có đúng chức vụ trên.
+2. Thẻ **Vai trò & phạm vi** → **Phân công vai trò** → **Vai trò**: **Cán bộ giúp việc đánh giá**; **Loại phạm vi**: **Toàn công ty**; **Ghi chú**: văn bản hoặc người phân công → **Phân công**.
+3. Người đó làm được rà soát danh mục, thẩm định, thư ký hội nghị tập thể lãnh đạo cấp Công ty, biên bản họp thống nhất, phiếu kiểm tra, xem hồ sơ, kết quả và xuất báo cáo; không quản lý kỳ, bộ tiêu chí.
+4. Hết phân công (chuyển việc, thôi giao): **Kết thúc phân công** ngay ở dòng vai trò này.
+
 ## 5. Xem người thực hiện các bước
 
 Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm, và ai đang được giao.
@@ -77,6 +84,8 @@ Dùng để kiểm tra mỗi việc ở một đơn vị đã có người làm,
 **Bỏ người khỏi một việc:** nút **⋯** cạnh tên người đó → **Gỡ khỏi việc này** → **Gỡ**. Chỉ gỡ được người được gán tại chính đơn vị đang xem.
 
 Khi mọi việc đều có người, trang ghi **Mọi việc đều có người**.
+
+Mỗi đơn vị tổ chức hội nghị tập thể lãnh đạo cần ít nhất một người lập được biên bản hội nghị (thư ký phòng, trung tâm; cấp Công ty là **Cán bộ giúp việc đánh giá**). Thiếu thì Phòng TCCB-LĐ thấy cảnh báo khi chuẩn bị mở kỳ: gán vai trò **Thư ký hội nghị** cho người được cử ở đơn vị đó.
 
 Chế độ **Toàn công ty** chỉ liệt kê người được gán ở phạm vi Toàn công ty; việc chưa gán ở phạm vi này mang nhãn **Chưa gán Toàn công ty**, không có nghĩa là kỳ thiếu người. Đủ người hay chưa xem ở liên kết **Kiểm tra người thực hiện của kỳ**.
 

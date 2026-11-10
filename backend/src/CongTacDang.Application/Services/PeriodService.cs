@@ -472,7 +472,17 @@ public sealed class PeriodService : IPeriodService
             return list;
         }).ToList();
 
+        // Biên bản họp tập thể bắt buộc ở bước 3a: phải có người lập được biên bản trong phạm vi hồ sơ (kể cả chủ hồ sơ).
+        var minutesIndex = WorkflowSteps.IndexOf(WorkflowStep.B3A_COLLECTIVE);
+        var minutesChecks = records.Where(r => !r.IsMarkedNotRated()
+                && (WorkflowSteps.StepOf(r.Status) is not { } step || WorkflowSteps.IndexOf(step) <= minutesIndex))
+            .Select(r => (Record: r, Profile: EvaluationMapping.ProfileOf(settings, r)))
+            .Where(x => x.Profile.Mode(WorkflowStep.B3A_COLLECTIVE) == StepMode.Internal
+                && x.Profile.GateModeOf(WorkflowGates.Minutes) == GateMode.Required)
+            .ToList();
+
         var codes = pending.Select(x => x.permission).Concat(gateChecks.SelectMany(g => new[] { g.Prepare, g.Approve }))
+            .Concat(minutesChecks.Count > 0 ? new[] { PermissionCodes.MeetingManage } : Array.Empty<string>())
             .Where(c => c != PermissionCodes.EvaluationSelf).Distinct().ToList();
         var candidateIds = codes.Count == 0
             ? new List<Guid>()
@@ -581,6 +591,37 @@ public sealed class PeriodService : IPeriodService
                 Message = $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt trước bước \"{WorkflowSteps.DisplayName(WorkflowStep.B4_DECISION)}\" vì cổng \"{gateName}\" bắt buộc "
                     + $"nhưng không có hai tài khoản đang hoạt động khác nhau (ngoài chủ hồ sơ) để lập và xác nhận; thiếu quyền \"{permissionName}\" trong phạm vi {ScopeText(record)}. "
                     + "Hãy gán vai trò có quyền này hoặc đổi chế độ cổng của diện quyết định."
+            });
+        }
+
+        foreach (var (record, profile) in minutesChecks)
+        {
+            var target = AccessTarget.ForRecord(record);
+            if (candidateIds.Append(record.MemberId).Distinct()
+                    .Any(u => effective.TryGetValue(u, out var p) && AuthorizationGuard.Evaluate(p, PermissionCodes.MeetingManage, target)))
+                continue;
+            var permissionName = PermissionCodes.DisplayName(PermissionCodes.MeetingManage);
+            var fullName = record.Member?.FullName ?? string.Empty;
+            result.Issues.Add(new ReadinessIssueDto
+            {
+                RecordId = record.Id,
+                MemberId = record.MemberId,
+                FullName = fullName,
+                WorkflowProfileCode = profile.Code,
+                WorkflowProfileName = profile.Name,
+                Step = WorkflowSteps.Code(WorkflowStep.B3A_COLLECTIVE),
+                StepName = profile.StepDisplayName(WorkflowStep.B3A_COLLECTIVE),
+                Mode = profile.Mode(WorkflowStep.B3A_COLLECTIVE).ToString(),
+                Permission = PermissionCodes.MeetingManage,
+                PermissionName = permissionName,
+                RoleNames = roleNames.GetValueOrDefault(PermissionCodes.MeetingManage) ?? new List<string>(),
+                Scope = ScopeText(record),
+                ScopeName = ScopeName(record),
+                DepartmentId = record.DepartmentId,
+                PartyCellId = record.PartyCellId,
+                Message = $"Hồ sơ của {fullName} ({profile.Name}) sẽ kẹt ở bước \"{profile.StepDisplayName(WorkflowStep.B3A_COLLECTIVE)}\" vì cổng "
+                    + $"\"{WorkflowGates.DisplayName(WorkflowGates.Minutes)}\" bắt buộc nhưng không có tài khoản đang hoạt động nào có quyền "
+                    + $"\"{permissionName}\" trong phạm vi {ScopeText(record)} để lập biên bản. Hãy gán vai trò có quyền này hoặc đổi chế độ cổng của diện quyết định."
             });
         }
 

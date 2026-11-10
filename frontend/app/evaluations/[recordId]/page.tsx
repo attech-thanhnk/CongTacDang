@@ -698,7 +698,7 @@ function RecordData({ record, reviewing }: { record: EvaluationRecordDto; review
           <Fields
             items={[
               ["Mức đề xuất", hasGrade(record.collectiveProposedGrade) ? <GradeBadge grade={record.collectiveProposedGrade} /> : null],
-              [record.unitLeaderProposal ? "Nhận xét, ý kiến của các Phó" : "Nhận xét", record.collectiveComment],
+              [record.unitLeaderProposal ? "Lý do, nhận xét của Trưởng đơn vị" : "Nhận xét", record.collectiveComment],
               ...externalItems("B3A_COLLECTIVE"),
             ]}
           />

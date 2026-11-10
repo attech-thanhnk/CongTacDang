@@ -2,7 +2,7 @@
 
 Dành cho cán bộ Văn phòng được giao: chốt biên bản họp thống nhất, xác nhận phiếu kiểm tra, ghi quyết định, ghi nhận kết quả của cấp trên, công bố, xử lý kiến nghị, xuất báo cáo và biểu mẫu.
 
-Việc thư ký hội nghị cấp Công ty: xem [Hướng dẫn cho thư ký hội nghị](thu-ky.md).
+Cán bộ công tác Đảng được phân công giúp việc đánh giá (thư ký hội nghị cấp Công ty, rà soát, thẩm định): xem [Hướng dẫn cho thư ký hội nghị](thu-ky.md) và [Hướng dẫn cho Phòng TCCB-LĐ](tham-dinh.md).
 
 Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx`.
 
