@@ -35,12 +35,12 @@ const statusRank = (status: string) => {
 const isOverdue = (p: PeriodParticipantDto) => (p.daysOverdue ?? 0) > 0;
 const isDueSoon = (p: PeriodParticipantDto) => p.daysLeft != null && p.daysLeft <= DUE_SOON_DAYS;
 
-/** Thứ tự ưu tiên đôn đốc: quá hạn lâu nhất → sắp đến hạn gần nhất → còn hạn → không có hạn → đã công bố. */
+/** Chỉ đưa lên đầu hồ sơ quá hạn (lâu nhất trước) và sắp đến hạn; còn lại giữ thứ tự chức vụ. */
 const urgency = (p: PeriodParticipantDto): number => {
-  if (!p.currentStep) return 1_000_000;
-  if (p.daysOverdue != null) return -p.daysOverdue;
-  if (p.daysLeft != null) return p.daysLeft;
-  return 100_000;
+  if (!p.currentStep) return 1_000;
+  if (isOverdue(p)) return -(p.daysOverdue ?? 0);
+  if (isDueSoon(p)) return p.daysLeft ?? 0;
+  return 1_000;
 };
 
 interface Props {
@@ -91,7 +91,7 @@ export function PeriodProgressSection({ participants }: Props) {
   const rows = useMemo(() => {
     const list = base.filter((p) =>
       (!status || p.status === status) && (urgent === "" || (urgent === "overdue" ? isOverdue(p) : isDueSoon(p))));
-    // Cùng mức khẩn giữ thứ tự chức danh do máy chủ trả về.
+    // Cùng mức khẩn giữ thứ tự chức vụ do máy chủ trả về (lãnh đạo Công ty, rồi từng đơn vị).
     return [...list].sort((a, b) => urgency(a) - urgency(b));
   }, [base, status, urgent]);
   const paging = usePagination(rows, { storageKey: "period.progress", resetKeys: [department, cell, status, urgent] });
