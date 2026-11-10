@@ -15,7 +15,7 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 | can-bo-05-dang-ky.png | Khung Nộp danh mục sản phẩm còn trống | `trung.nb` | dang-ky |
 | can-bo-06-dang-ky-nhap.png | Đang nhập sản phẩm, chân khung có Tổng trọng số | `trung.nb` | dang-ky (tay) |
 | can-bo-08-dang-ky-xac-nhan.png | Hộp xác nhận Nộp danh mục | `trung.nb` | dang-ky (tay) |
-| can-bo-09-dang-ky-xong.png | Sau khi nộp: thanh tiến trình ở Trưởng đơn vị gửi danh mục | `trung.nb` | dang-ky (tay) |
+| can-bo-09-dang-ky-xong.png | Sau khi nộp: thanh tiến trình ở Gửi danh mục sản phẩm | `trung.nb` | dang-ky (tay) |
 | can-bo-11-dieu-chinh-nhap.png | Đề nghị điều chỉnh việc đang nhập | `trung.nb` | tu-cham, danh mục đã duyệt (tay) |
 | can-bo-12-dieu-chinh-trong-so.png | Bảng Trọng số sau điều chỉnh, Lý do, Gửi đề nghị | `trung.nb` | như trên |
 | can-bo-13-dieu-chinh-da-gui.png | Đề nghị đã gửi, nhãn Chờ duyệt | `trung.nb` | như trên |
@@ -33,7 +33,7 @@ Cột "Giai đoạn": giai đoạn của `tao-du-lieu-thu.ps1` mà hồ sơ đan
 
 | Tệp ảnh | Màn hình | Tài khoản | Giai đoạn |
 |---|---|---|---|
-| lanh-dao-01-viec-can-xu-ly.png | Việc cần xử lý, nhóm Trưởng đơn vị gửi danh mục | `duy.lm` | dang-ky, `trung.nb` đã nộp danh mục (tay) |
+| lanh-dao-01-viec-can-xu-ly.png | Việc cần xử lý, nhóm Gửi danh mục sản phẩm | `duy.lm` | dang-ky, `trung.nb` đã nộp danh mục (tay) |
 | lanh-dao-02-gui-danh-muc.png | Khung Gửi danh mục đã ghi ý kiến | `duy.lm` | như trên |
 | lanh-dao-03-tra-lai.png | Hộp Trả lại danh mục | `duy.lm` | như trên |
 | lanh-dao-09-truong-don-vi-de-xuat.png | Khung Trưởng đơn vị đề xuất đã nhập | `tuan.nm` | tap-the (hồ sơ `cuong.nt`) |

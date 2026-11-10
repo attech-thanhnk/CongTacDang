@@ -42,7 +42,7 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 # Bước mới chưa có trong bảng nhận hạn của bước đứng sau nó (script báo để bổ sung).
 $LichBuoc = [ordered]@{
     'B1_REGISTER'     = @{ Ngay = 2;  Ten = 'Đăng ký sản phẩm' }
-    'B1_UNIT_SUBMIT'  = @{ Ngay = 2;  Ten = 'Trưởng đơn vị gửi danh mục' }
+    'B1_UNIT_SUBMIT'  = @{ Ngay = 2;  Ten = 'Gửi danh mục sản phẩm' }
     'B1_HR_REVIEW'    = @{ Ngay = 3;  Ten = 'Rà soát, trình duyệt danh mục' }
     'B1_APPROVE'      = @{ Ngay = 3;  Ten = 'Duyệt danh mục' }
     'B2_SELF_SCORE'   = @{ Ngay = 4;  Ten = 'Tự chấm' }

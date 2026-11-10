@@ -26,9 +26,9 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ## 2. Gửi danh mục sản phẩm
 
-**Khi nào:** khi cán bộ trong đơn vị nộp danh mục sản phẩm; hạn ở bước **Trưởng đơn vị gửi danh mục**. Danh mục của chính bạn không qua bước này.
+**Khi nào:** khi cán bộ trong đơn vị nộp danh mục sản phẩm; hạn ở bước **Gửi danh mục sản phẩm**. Danh mục của chính bạn không qua bước này.
 
-1. **Việc cần xử lý** → nhóm **Trưởng đơn vị gửi danh mục** → dòng cán bộ → bấm **Gửi**.
+1. **Việc cần xử lý** → nhóm **Gửi danh mục sản phẩm** → dòng cán bộ → bấm **Gửi**.
 2. Xem danh mục ở khối **Danh mục sản phẩm (Mẫu 01)** bên dưới.
 3. Ở khung **Gửi danh mục**, ghi **Ý kiến** (nếu có) → bấm **Gửi** → **Đồng ý**.
 

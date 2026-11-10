@@ -60,7 +60,7 @@ public sealed class TaskListSignoffIntegrationTests
         Assert.Contains(history.EnumerateArray(), h => h.GetProperty("step").GetString() == "B1_UNIT_SUBMIT"
             && h.GetProperty("action").GetString() == "Complete"
             && h.GetProperty("actorName").GetString() == "Hệ thống"
-            && h.GetProperty("comment").GetString()!.Contains("Bỏ qua bước Trưởng đơn vị gửi"));
+            && h.GetProperty("comment").GetString()!.Contains("Bỏ qua bước gửi danh mục"));
         await w.StepAsync(w.Reviewer.Client, duy, "tasks/review", new { comment = "" }, "AwaitingTaskApproval");
         await w.StepAsync(w.Director.Client, duy, "tasks/approve", new { }, "AwaitingSelfScore");
         var headMau01 = await DocxTextAsync(w.Reviewer.Client, $"/api/reports/docx/mau-01/{duy}");

@@ -64,7 +64,7 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 ![Xác nhận nộp danh mục](anh/can-bo-08-dang-ky-xac-nhan.png)
 
-**Xong thì thấy:** thanh tiến trình chuyển sang **Trưởng đơn vị gửi danh mục** (bạn là trưởng đơn vị thì sang thẳng **Rà soát, trình duyệt danh mục**). Danh mục đi tiếp: Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt (danh mục của Phó Giám đốc do Chủ tịch duyệt). Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
+**Xong thì thấy:** thanh tiến trình chuyển sang **Gửi danh mục sản phẩm** (bạn là trưởng đơn vị thì sang thẳng **Rà soát, trình duyệt danh mục**). Danh mục đi tiếp: Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt (danh mục của Phó Giám đốc do Chủ tịch duyệt). Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
 
 ![Đã nộp danh mục](anh/can-bo-09-dang-ky-xong.png)
 

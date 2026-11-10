@@ -45,7 +45,7 @@ Hồ sơ đánh giá đang ở trạng thái "Chờ …" của bước kế ti�
 | Bước (tài liệu gốc) | Tên trong tài liệu gốc | Tên trên giao diện (bước) | Trạng thái chờ bước đó | Mã bước / trạng thái |
 |---|---|---|---|---|
 | 1 | Giao, nhận và phê duyệt sản phẩm/nhiệm vụ chuyên môn đầu kỳ | Đăng ký sản phẩm | Chờ đăng ký sản phẩm | `B1_REGISTER` / `AwaitingRegistration` |
-| 1 | (gửi danh mục) | Trưởng đơn vị gửi danh mục | Chờ gửi danh mục | `B1_UNIT_SUBMIT` / `AwaitingUnitSubmit` |
+| 1 | (gửi danh mục) | Gửi danh mục sản phẩm | Chờ gửi danh mục | `B1_UNIT_SUBMIT` / `AwaitingUnitSubmit` |
 | 1 | (rà soát, trình) | Rà soát, trình duyệt danh mục | Chờ rà soát, trình duyệt | `B1_HR_REVIEW` / `AwaitingTaskReview` |
 | 1 | (phê duyệt) | Duyệt danh mục sản phẩm | Chờ duyệt danh mục | `B1_APPROVE` / `AwaitingTaskApproval` |
 | 2 | Cá nhân tự chấm điểm, đánh giá và đề xuất mức xếp loại | Tự chấm điểm, đề xuất mức | Chờ tự chấm | `B2_SELF_SCORE` / `AwaitingSelfScore` |

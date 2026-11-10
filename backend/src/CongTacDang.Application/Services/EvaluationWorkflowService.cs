@@ -178,7 +178,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.TasksForwardedByName = ctx.ActorName;
             ctx.Record.TasksForwardedAt = ctx.Now;
             ctx.Record.TasksForwardComment = Trim(request.Comment, MaxCommentLength, "Ý kiến");
-            return Task.FromResult<string?>("Trưởng đơn vị gửi danh mục sản phẩm.");
+            return Task.FromResult<string?>("Gửi danh mục sản phẩm.");
         }, ct);
 
     /// <inheritdoc />
@@ -1669,7 +1669,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
     public const string UnitSubmitSkippedActor = "Hệ thống";
 
-    public const string UnitSubmitSkippedComment = "Bỏ qua bước Trưởng đơn vị gửi: chủ hồ sơ là Trưởng đơn vị.";
+    public const string UnitSubmitSkippedComment = "Bỏ qua bước gửi danh mục: chủ hồ sơ là Trưởng đơn vị.";
 
     /// <summary>Null với hành động không phải trả lại / mở lại.</summary>
     private static WorkflowStep? BackwardTarget(WorkflowActionDefinition action, WorkflowStep? reopenTarget) => action.Kind switch

@@ -221,7 +221,7 @@ public static class WorkflowSteps
     public static string DisplayName(WorkflowStep step) => step switch
     {
         WorkflowStep.B1_REGISTER => "Đăng ký sản phẩm",
-        WorkflowStep.B1_UNIT_SUBMIT => "Trưởng đơn vị gửi danh mục",
+        WorkflowStep.B1_UNIT_SUBMIT => "Gửi danh mục sản phẩm",
         WorkflowStep.B1_HR_REVIEW => "Rà soát, trình duyệt danh mục",
         WorkflowStep.B1_APPROVE => "Duyệt danh mục sản phẩm",
         WorkflowStep.B2_SELF_SCORE => "Tự chấm điểm, đề xuất mức",
