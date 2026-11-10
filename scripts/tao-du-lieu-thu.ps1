@@ -921,7 +921,7 @@ if ($TaoKy) {
     $period = Find-Period $manager
 }
 if ($KyCoSan) {
-    if (-not $period) { Fail "Không tìm thấy kỳ Quý $Quy/$Nam." }
+    if (-not $period) { Fail "Không tìm thấy kỳ Quý $Quy/$Nam. Muốn tạo kỳ mới thì tích ô Tạo kỳ mới nếu chưa có (hoặc dùng -TaoKy)." }
     if ($period.status -ne 'Open') { Fail "Kỳ `"$($period.name)`" đang ở trạng thái $($period.statusDisplayName), cần đang mở." }
     $all = @(Get-Participants $manager $period.id)
     if ($all.Count -eq 0) { Fail "Kỳ `"$($period.name)`" chưa có người được đánh giá." }

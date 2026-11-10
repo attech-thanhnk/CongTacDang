@@ -85,12 +85,13 @@ $chkScenario.Location = New-Object System.Drawing.Point(200, 122); $chkScenario.
 $chkScenario.Checked = [bool](Get-Saved 'tinhHuong' $true)
 $form.Controls.Add($chkScenario)
 
-# Không lưu lựa chọn này: mỗi lần mở cửa sổ đều tắt để không lỡ tạo kỳ
+# Không lưu lựa chọn này: chỉ tự tích khi chưa có kỳ đang chạy
 $chkCreate = New-Object System.Windows.Forms.CheckBox
 $chkCreate.Text = 'Tạo kỳ mới nếu chưa có (đã có kỳ của năm/quý này thì dừng)'
 $chkCreate.Location = New-Object System.Drawing.Point(200, 150); $chkCreate.AutoSize = $true
 $chkCreate.Add_CheckedChanged({ if ($chkCreate.Checked) { $cboStage.SelectedIndex = 0 } else { Select-NextStage } })
 $form.Controls.Add($chkCreate)
+if (-not $saved['kyId']) { $chkCreate.Checked = $true }
 
 New-Label 'Mức Hoàn thành (C) cho' 182
 $txtGradeC = New-TextBox (Get-Saved 'mucC' 'trung.nb') 182 300
@@ -208,7 +209,7 @@ $timer.Add_Tick({
         if ($script:RunPeriodId -and $script:RunPeriodId -ne $saved['kyId']) {
             $saved['kyId'] = $script:RunPeriodId; $saved['daXong'] = -1
             $saved['kyNam'] = $script:RunNam; $saved['kyQuy'] = $script:RunQuy
-        } elseif ($script:RunNoPeriod) { $saved['kyId'] = $null; $saved['daXong'] = -1 }
+        } elseif ($script:RunNoPeriod) { $saved['kyId'] = $null; $saved['daXong'] = -1; $chkCreate.Checked = $true }
         if ($code -eq 0) {
             $lblStatus.Text = "Xong lúc $(Get-Date -Format 'HH:mm')"; $lblStatus.ForeColor = [System.Drawing.Color]::DarkGreen
             if ($script:RunPeriodId) { $saved['daXong'] = $script:StageIndex }
