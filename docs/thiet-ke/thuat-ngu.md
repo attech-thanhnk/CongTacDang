@@ -89,7 +89,8 @@ Cột "Tên mặc định hiện hành" là tên các vai trò mặc định man
 | `PHO_GIAM_DOC_PHU_TRACH` | (mới) | Phó Giám đốc phụ trách | Phó Giám đốc phụ trách |
 | `CHI_UY_CHI_BO` | Chi ủy / Bí thư Chi bộ | Chi bộ (xác nhận của Chi bộ) | Chi bộ |
 | `CO_QUAN_THAM_DINH` | Phòng TCCB-LĐ (mở kỳ, thẩm định) | Thẩm định; TCCB; cơ quan thẩm định | Cơ quan thẩm định |
-| `CAN_BO_GIUP_VIEC` | Nhân viên Phòng TCCB-LĐ, bộ phận Công tác Đảng được phân công (cả thư ký họp tập thể cấp Công ty) | Chuyên viên TCCB; nhân viên nhân sự; nhân viên công tác Đảng | Cán bộ giúp việc đánh giá |
+| `CAN_BO_GIUP_VIEC` | Nhân viên Phòng TCCB-LĐ được phân công (cả thư ký họp tập thể cấp Công ty) | Chuyên viên TCCB; nhân viên nhân sự | Cán bộ giúp việc đánh giá |
+| `CAN_BO_GIUP_VIEC_DANG_UY` | Nhân viên công tác Đảng ở Văn phòng Công ty được phân công; không rà soát danh mục | Nhân viên công tác Đảng | Cán bộ giúp việc Đảng ủy |
 | `CAP_TRUC_TIEP_SU_DUNG` | Cấp trực tiếp sử dụng (Giám đốc/Chủ tịch) | Cấp trực tiếp sử dụng cán bộ | Cấp trực tiếp sử dụng |
 | `CAP_UY_VIEN` | Cấp ủy viên Đảng ủy | Cấp ủy viên | Cấp ủy viên |
 | `VAN_PHONG_DANG_UY` | Văn phòng Đảng ủy (quyết định, công bố) | BTV Đảng ủy (quyết định) | Văn phòng Đảng ủy |

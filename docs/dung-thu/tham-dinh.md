@@ -7,7 +7,8 @@ Việc của bạn tùy vai trò được gán:
 | Vai trò | Ai | Làm được |
 |---|---|---|
 | **Cơ quan thẩm định** | Lãnh đạo Phòng TCCB-LĐ | Mọi phần dưới đây, gồm lập, mở, khóa, đóng kỳ (Phần A, F) |
-| **Cán bộ giúp việc đánh giá** | Nhân viên Phòng TCCB-LĐ (Nhân viên Nhân sự), cán bộ công tác Đảng ở Văn phòng (Nhân viên công tác Đảng, đoàn thể và thi đua) được Trưởng phòng phân công | Rà soát danh mục (Phần B), thẩm định (Phần C), biên bản họp thống nhất (Phần D), phiếu kiểm tra (Phần E), theo dõi tiến độ; làm thư ký hội nghị tập thể lãnh đạo cấp Công ty theo [Hướng dẫn cho thư ký hội nghị](thu-ky.md); xem mọi hồ sơ, biên bản, kết quả và xuất báo cáo. Không lập, mở, khóa, đóng kỳ, không sửa bộ tiêu chí |
+| **Cán bộ giúp việc đánh giá** | Nhân viên Phòng TCCB-LĐ (Nhân viên Nhân sự) được Trưởng phòng phân công | Rà soát danh mục (Phần B), thẩm định (Phần C), biên bản họp thống nhất (Phần D), phiếu kiểm tra (Phần E), theo dõi tiến độ; làm thư ký hội nghị tập thể lãnh đạo cấp Công ty theo [Hướng dẫn cho thư ký hội nghị](thu-ky.md); xem mọi hồ sơ, biên bản, kết quả và xuất báo cáo. Không lập, mở, khóa, đóng kỳ, không sửa bộ tiêu chí |
+| **Cán bộ giúp việc Đảng ủy** | Nhân viên công tác Đảng ở Văn phòng Công ty (Nhân viên công tác Đảng, đoàn thể và thi đua) được phân công | Như dòng trên nhưng không rà soát danh mục (Phần B là việc của Phòng TCCB-LĐ); phối hợp thẩm định; giúp cấp ủy lập hồ sơ tập thể Mẫu 06, 07, 08 |
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 

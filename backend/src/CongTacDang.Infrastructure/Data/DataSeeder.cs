@@ -52,6 +52,7 @@ public static class DataSeeder
         public const string CellCommittee = "CHI_UY_CHI_BO";
         public const string Appraisal = "CO_QUAN_THAM_DINH";
         public const string AppraisalStaff = "CAN_BO_GIUP_VIEC";
+        public const string PartyOfficeStaff = "CAN_BO_GIUP_VIEC_DANG_UY";
         public const string DirectSupervisor = "CAP_TRUC_TIEP_SU_DUNG";
         public const string PartyCommitteeMember = "CAP_UY_VIEN";
         public const string PartyOffice = "VAN_PHONG_DANG_UY";
@@ -86,11 +87,21 @@ public static class DataSeeder
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
             }),
-        // Nhân viên nhân sự và công tác Đảng được phân công: làm phần chuyên môn, thư ký họp tập thể; không quản lý kỳ và bộ tiêu chí.
+        // Nhân viên Phòng TCCB-LĐ được phân công: rà soát danh mục, thẩm định, thư ký họp tập thể; không quản lý kỳ và bộ tiêu chí.
         new(RoleCodes.AppraisalStaff, "Cán bộ giúp việc đánh giá", "Xem hồ sơ, biên bản, kết quả; rà soát danh mục, thẩm định, lập biên bản hội nghị, ghi nhận đề xuất tập thể, lập biên bản họp thống nhất, phiếu kiểm tra; không quản lý kỳ, bộ tiêu chí.",
             new[]
             {
                 PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise,
+                PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage,
+                PermissionCodes.EvaluationResultsView, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
+                PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage,
+                PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationOpinionRecord
+            }),
+        // Nhân viên công tác Đảng (Văn phòng Công ty): bước 1 là việc của TCCB-LĐ nên không rà soát danh mục; giúp cấp ủy lập Mẫu 06, 07, 08.
+        new(RoleCodes.PartyOfficeStaff, "Cán bộ giúp việc Đảng ủy", "Xem hồ sơ, biên bản, kết quả; lập hồ sơ tập thể (Mẫu 06, 07, 08), phối hợp thẩm định, lập biên bản hội nghị, ghi nhận đề xuất tập thể, lập biên bản họp thống nhất, phiếu kiểm tra; không rà soát danh mục.",
+            new[]
+            {
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.CollectiveManage,
                 PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage,
                 PermissionCodes.EvaluationResultsView, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage,

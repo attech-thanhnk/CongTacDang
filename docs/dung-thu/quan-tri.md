@@ -59,7 +59,7 @@ Người dùng không nhớ mật khẩu thì đặt lại mật khẩu (mục 2
 - Sửa thời hạn: bấm **Sửa thời hạn, ghi chú** ở dòng phân công → **Lưu**.
 - Thôi giao: **Kết thúc phân công** → **Kết thúc**. Gán nhầm: **Gỡ phân công** → **Gỡ**.
 
-**Cán bộ giúp việc đánh giá:** gán cho nhân viên Phòng TCCB-LĐ (chức vụ **Nhân viên Nhân sự**) và cán bộ công tác Đảng ở Văn phòng (chức vụ **Nhân viên công tác Đảng, đoàn thể và thi đua**) mà Trưởng phòng phân công giúp việc đánh giá.
+**Cán bộ giúp việc đánh giá:** gán cho nhân viên Phòng TCCB-LĐ (chức vụ **Nhân viên Nhân sự**) mà Trưởng phòng phân công giúp việc đánh giá. Cán bộ công tác Đảng ở Văn phòng (chức vụ **Nhân viên công tác Đảng, đoàn thể và thi đua**) thì gán vai trò **Cán bộ giúp việc Đảng ủy** theo cùng các bước: làm được như dưới đây trừ rà soát danh mục, thêm lập hồ sơ tập thể Mẫu 06, 07, 08.
 
 1. Kiểm tra thẻ **Chức vụ** của tài khoản đã có đúng chức vụ trên.
 2. Thẻ **Vai trò & phạm vi** → **Phân công vai trò** → **Vai trò**: **Cán bộ giúp việc đánh giá**; **Loại phạm vi**: **Toàn công ty**; **Ghi chú**: văn bản hoặc người phân công → **Phân công**.

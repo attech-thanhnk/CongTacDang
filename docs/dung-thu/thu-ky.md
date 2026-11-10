@@ -1,6 +1,6 @@
 # Hướng dẫn cho thư ký hội nghị
 
-Dành cho thư ký hội nghị tập thể lãnh đạo: thư ký phòng, trung tâm; với hội nghị cấp Công ty, thư ký là cán bộ Phòng TCCB-LĐ hoặc cán bộ công tác Đảng ở Văn phòng được phân công (vai trò **Cán bộ giúp việc đánh giá**). Hệ thống không bỏ phiếu điện tử: hội nghị họp và bỏ phiếu kín như thường lệ, thư ký ghi lại biên bản và kết quả vào hệ thống.
+Dành cho thư ký hội nghị tập thể lãnh đạo: thư ký phòng, trung tâm; với hội nghị cấp Công ty, thư ký là cán bộ Phòng TCCB-LĐ hoặc cán bộ công tác Đảng ở Văn phòng được phân công (vai trò **Cán bộ giúp việc đánh giá** hoặc **Cán bộ giúp việc Đảng ủy**). Hệ thống không bỏ phiếu điện tử: hội nghị họp và bỏ phiếu kín như thường lệ, thư ký ghi lại biên bản và kết quả vào hệ thống.
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 
