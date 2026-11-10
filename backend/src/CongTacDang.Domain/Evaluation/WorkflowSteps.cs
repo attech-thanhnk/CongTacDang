@@ -237,7 +237,7 @@ public static class WorkflowSteps
     public static string StatusDisplayName(RecordStatus status) => status switch
     {
         RecordStatus.AwaitingRegistration => "Chờ đăng ký sản phẩm",
-        RecordStatus.AwaitingUnitSubmit => "Chờ Trưởng đơn vị gửi",
+        RecordStatus.AwaitingUnitSubmit => "Chờ gửi danh mục",
         RecordStatus.AwaitingTaskReview => "Chờ rà soát, trình duyệt",
         RecordStatus.AwaitingTaskApproval => "Chờ duyệt danh mục",
         RecordStatus.AwaitingSelfScore => "Chờ tự chấm",

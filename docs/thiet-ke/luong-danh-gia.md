@@ -47,7 +47,7 @@ Trạng thái = **bước đang chờ** (thay enum `RecordStatus` hiện tại):
 | Trạng thái | Nghĩa |
 |---|---|
 | `AwaitingRegistration` | Chờ cá nhân đăng ký sản phẩm |
-| `AwaitingUnitSubmit` | Chờ Trưởng đơn vị gửi |
+| `AwaitingUnitSubmit` | Chờ gửi danh mục |
 | `AwaitingTaskReview` | Chờ rà soát, trình duyệt |
 | `AwaitingTaskApproval` | Chờ duyệt danh mục |
 | `AwaitingSelfScore` | Chờ tự chấm |
