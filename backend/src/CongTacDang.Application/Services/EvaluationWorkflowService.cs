@@ -275,7 +275,7 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
 
         // Cùng mã quyền với API actions.
         var permission = WorkflowActions.PermissionFor(revokeAction, profile);
-        if (IsConflictOfInterest(revokeAction, record))
+        if (IsConflictOfInterest(revokeAction, record, profile))
             throw new ForbiddenException("Người được đánh giá không được thu hồi duyệt trên hồ sơ của chính mình.");
         _guard.Ensure(permission, AccessTarget.ForRecord(record));
 
@@ -1322,8 +1322,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private bool CanPerform(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record) =>
         (action.Kind != WorkflowAction.RevokeTaskApproval || CanRevokeTaskApproval(record, profile))
         && (action.Kind != WorkflowAction.RevokeTaskApproval || record.TasksApprovedById == _currentUser.UserId)
-        && !IsConflictOfInterest(action, record)
-        && _guard.Can(WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record));
+        && !IsConflictOfInterest(action, record, profile)
+        && _guard.Can(WorkflowActions.PermissionFor(action, profile), ActionTarget(action, record, profile));
 
     /// <summary>Hoàn thành/trả lại ở bước nội bộ không phải của chủ hồ sơ: việc chỉ giao cho người có phạm vi gần hồ sơ nhất.</summary>
     private static bool UsesNearestRule(WorkflowActionDefinition action, WorkflowProfile profile) =>
@@ -1334,6 +1334,9 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     private async Task<bool> IsNearestPerformerAsync(WorkflowActionDefinition action, WorkflowProfile profile, EvaluationRecord record, CancellationToken ct)
     {
         if (_stepPerformers == null || !UsesNearestRule(action, profile) || _currentUser.UserId is not { } userId)
+            return true;
+        // Chủ hồ sơ chép biên bản của buổi họp mình dự: quyền và phạm vi đã kiểm riêng.
+        if (record.MemberId == userId && IsMinutesTranscription(action, profile))
             return true;
         return await _stepPerformers.IsPerformerAsync(userId, WorkflowActions.PermissionFor(action, profile), AccessTarget.ForRecord(record), ct);
     }
@@ -1348,9 +1351,22 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     /// <summary>
     /// Mọi bước không phải của chủ hồ sơ không áp dụng trên hồ sơ của chính mình, kể cả khi quyền bước cấu hình bằng mã khác mặc định.
     /// </summary>
-    private bool IsConflictOfInterest(WorkflowActionDefinition action, EvaluationRecord record) =>
+    private bool IsConflictOfInterest(WorkflowActionDefinition action, EvaluationRecord record, WorkflowProfile profile) =>
         (action.Kind == WorkflowAction.Reopen || !WorkflowSteps.OwnerSteps.Contains(action.Step))
+        && !IsMinutesTranscription(action, profile)
         && _currentUser.UserId is { } userId && record.MemberId == userId;
+
+    /// <summary>Nhập theo biên bản: bỏ chủ hồ sơ khỏi đối tượng kiểm tra để guard không chặn xung đột lợi ích; quyền và phạm vi vẫn kiểm.</summary>
+    private static AccessTarget ActionTarget(WorkflowActionDefinition action, EvaluationRecord record, WorkflowProfile profile) =>
+        IsMinutesTranscription(action, profile) ? AccessTarget.ForRecord(record) with { OwnerId = null } : AccessTarget.ForRecord(record);
+
+    /// <summary>Ghi nhận đề xuất tập thể khi biên bản bắt buộc: mức lấy theo kiểm phiếu, người nhập chỉ chép biên bản nên được nhập cả hồ sơ của mình.</summary>
+    private static bool IsMinutesTranscription(WorkflowActionDefinition action, WorkflowProfile profile) =>
+        action.Kind == WorkflowAction.Complete
+        && action.Step == WorkflowStep.B3A_COLLECTIVE
+        && profile.Mode(WorkflowStep.B3A_COLLECTIVE) == StepMode.Internal
+        && profile.GateModeOf(WorkflowGates.Minutes) == GateMode.Required
+        && !profile.IsUnitLeaderProposal();
 
     private IEnumerable<RecordActionDto> AvailableActions(EvaluationRecord record, PeriodSettings settings, DateOnly today, IReadOnlyList<GateOutcome> gates, string? crosscheckBlock = null)
     {
@@ -1516,12 +1532,12 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             throw new ConflictException(modeBlock);
 
         var permission = WorkflowActions.PermissionFor(action, profile);
-        if (IsConflictOfInterest(action, record))
+        if (IsConflictOfInterest(action, record, profile))
         {
             throw new ForbiddenException(
                 $"Bạn không được thực hiện \"{PermissionCodes.DisplayName(permission)}\" trên hồ sơ của chính mình (xung đột lợi ích).");
         }
-        _guard.Ensure(permission, AccessTarget.ForRecord(record));
+        _guard.Ensure(permission, ActionTarget(action, record, profile));
 
         if (record.Version != request.Version.Value)
             throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");

@@ -757,6 +757,129 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(listed.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
     }
 
+    /// <summary>Biên bản bắt buộc: chủ hồ sơ là Thư ký tập thể chép kết quả kiểm phiếu vào hồ sơ của mình; bước khác vẫn xung đột lợi ích.</summary>
+    [SkippableFact]
+    public async Task G12_MinutesRequired_OwnerSecretary_RecordsOwnCollective_MustMatchVotes()
+    {
+        var w = await WorldAsync();
+        var u = await OwnUnitAsync("THU_KY_TAP_THE", "CHI_UY_CHI_BO");
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await PeriodGates.SetModeAsync(w.ManagerC, periodId, WorkflowGates.Minutes, GateMode.Required);
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { u.Owner.Id } }));
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, u.Owner.Id);
+        Assert.Equal("co-so", (await Data(u.OwnerC, $"/api/evaluations/records/{id}")).GetProperty("workflowProfileCode").GetString());
+
+        await StepAsync(u.OwnerC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
+        // Bước khác trên hồ sơ của mình (Chi bộ xác nhận) vẫn bị chặn.
+        var ownConfirm = await PostAsync(u.OwnerC, id, "cell/confirm", new { }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.Forbidden, ownConfirm.StatusCode);
+        Assert.Contains("xung đột lợi ích", await MessageAsync(ownConfirm));
+        await StepAsync(u.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+
+        // Chủ hồ sơ thấy thao tác ghi nhận và việc cần xử lý của bước 3a.
+        Assert.Contains((await Data(u.OwnerC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray(),
+            a => a.GetProperty("action").GetString() == "RecordCollectiveProposal");
+        var queue = await Data(u.OwnerC, $"/api/evaluations/work-queue?periodId={periodId}");
+        Assert.Contains(queue.GetProperty("groups").EnumerateArray()
+            .Where(g => g.GetProperty("step").GetString() == "B3A_COLLECTIVE")
+            .SelectMany(g => g.GetProperty("items").EnumerateArray()), i => i.GetProperty("recordId").GetGuid() == id);
+
+        var meetingId = (await Data(await u.OwnerC.PostAsJsonAsync("/api/evaluations/meetings", new
+        {
+            periodId, departmentId = u.Dept, stage = "B3A_COLLECTIVE", formCode = "M12", meetingType = "Hội nghị tập thể lãnh đạo Phòng",
+            invitedCount = 3, presentCount = 3
+        }))).GetProperty("id").GetGuid();
+        var votes = new { votesExcellent = 0, votesGood = 3, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0 };
+
+        // Mức khác kết quả kiểm phiếu → vẫn từ chối.
+        var mismatch = await PostAsync(u.OwnerC, id, "collective",
+            new { proposedGrade = "HoanThanhXuatSac", comment = "Tự nâng mức", meetingId, votes }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.BadRequest, mismatch.StatusCode);
+        Assert.Contains("không khớp", await MessageAsync(mismatch));
+
+        var recorded = await StepAsync(u.OwnerC, id, "collective", new { proposedGrade = "HoanThanhTot", meetingId, votes }, "AwaitingAppraisal");
+        Assert.Equal("HoanThanhTot", recorded.GetProperty("collectiveProposedGrade").GetString());
+        Assert.Equal(meetingId, recorded.GetProperty("collectiveMeetingId").GetGuid());
+    }
+
+    /// <summary>Không bắt buộc biên bản: Thư ký tập thể không ghi nhận đề xuất trên hồ sơ của mình.</summary>
+    [SkippableFact]
+    public async Task G13_MinutesOff_OwnerSecretary_CannotRecordOwnCollective()
+    {
+        var w = await WorldAsync();
+        var u = await OwnUnitAsync("THU_KY_TAP_THE");
+        var periodId = await OpenPeriodAsync(w, u.Owner.Id);
+        var id = await RecordOfAsync(w, periodId, u.Owner.Id);
+        await StepAsync(u.OwnerC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
+        await StepAsync(u.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+
+        Assert.DoesNotContain((await Data(u.OwnerC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray(),
+            a => a.GetProperty("action").GetString() == "RecordCollectiveProposal");
+        var own = await PostAsync(u.OwnerC, id, "collective", new { proposedGrade = "HoanThanhTot" }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
+        Assert.Contains("xung đột lợi ích", await MessageAsync(own));
+    }
+
+    /// <summary>Diện Trưởng đơn vị đề xuất: biên bản bắt buộc vẫn không cho chủ hồ sơ tự đề xuất.</summary>
+    [SkippableFact]
+    public async Task G14_MinutesRequired_UnitLeaderProfile_OwnerLeaderCannotProposeOwn()
+    {
+        var w = await WorldAsync();
+        var u = await OwnUnitAsync("LANH_DAO_PHONG", "THU_KY_TAP_THE");
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await PeriodGates.SetModeAsync(w.ManagerC, periodId, WorkflowGates.Minutes, GateMode.Required);
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants",
+            new { memberIds = new[] { u.Owner.Id }, workflowProfileCode = "bi-thu-nhan-vien" }));
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, u.Owner.Id);
+        await StepAsync(u.OwnerC, id, "self-score/submit", new { generalScores = General, taskScores = await RegistrationTestData.RegisterAsync(_factory, id, 62.0 / 70) }, "AwaitingCellConfirm");
+        await StepAsync(u.CellSecC, id, "cell/confirm", new { }, "AwaitingCollective");
+
+        var meetingId = (await Data(await u.OwnerC.PostAsJsonAsync("/api/evaluations/meetings", new
+        {
+            periodId, departmentId = u.Dept, stage = "B3A_COLLECTIVE", formCode = "M12", meetingType = "Họp lãnh đạo đơn vị",
+            invitedCount = 3, presentCount = 3
+        }))).GetProperty("id").GetGuid();
+        var votes = new { votesExcellent = 0, votesGood = 3, votesSatisfactory = 0, votesUnsatisfactory = 0, votesNotRated = 0, invalidVotes = 0 };
+
+        Assert.DoesNotContain((await Data(u.OwnerC, $"/api/evaluations/records/{id}/actions")).GetProperty("actions").EnumerateArray(),
+            a => a.GetProperty("action").GetString() == "RecordCollectiveProposal");
+        var own = await PostAsync(u.OwnerC, id, "collective", new { proposedGrade = "HoanThanhTot", meetingId, votes }, await VersionAsync(w, id));
+        Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
+        Assert.Contains("xung đột lợi ích", await MessageAsync(own));
+    }
+
+    /// <summary>Phòng, Chi bộ riêng: chủ hồ sơ giữ thêm các vai trò cho trước (theo Phòng, hoặc Chi bộ với CHI_UY_CHI_BO) và một Chi ủy xác nhận.</summary>
+    private async Task<(TestUser Owner, HttpClient OwnerC, HttpClient CellSecC, Guid Dept)> OwnUnitAsync(params string[] ownerRoles)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        Guid dept = Guid.Empty, cell = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var d = new AdministrativeDepartment { Code = $"GT-P-{suffix}", Name = $"Phòng GT {suffix}" };
+            var c = new PartyCell { Code = $"GT-C-{suffix}", Name = $"Chi bộ GT {suffix}" };
+            db.AddRange(d, c);
+            await db.SaveChangesAsync();
+            (dept, cell) = (d.Id, c.Id);
+        });
+        var owner = await _factory.CreateUserAsync(dept, cell, ApprovalAuthority.CoSo, $"GT Cán bộ {suffix}");
+        await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+        foreach (var code in ownerRoles)
+        {
+            if (code == "CHI_UY_CHI_BO")
+                await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync(code), RoleScopeType.PartyCell, cell);
+            else
+                await _factory.AssignAsync(owner.Id, await _factory.GetRoleIdAsync(code), RoleScopeType.Department, dept);
+        }
+        var cellSec = await _factory.CreateUserAsync();
+        await _factory.AssignAsync(cellSec.Id, await _factory.GetRoleIdAsync("CHI_UY_CHI_BO"), RoleScopeType.PartyCell, cell);
+        return (owner,
+            await _factory.LoginAsAsync(owner.Username, owner.Password, distinctClientIp: true),
+            await _factory.LoginAsAsync(cellSec.Username, cellSec.Password, distinctClientIp: true),
+            dept);
+    }
+
     private async Task<World> WorldAsync()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);

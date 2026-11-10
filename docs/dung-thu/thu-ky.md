@@ -12,7 +12,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 - Lập biên bản trước rồi mới ghi đề xuất: khi ô **Biên bản hội nghị (Mẫu 12/13)** trên hồ sơ có dấu \*, chưa có biên bản của đơn vị thì không ghi đề xuất được.
 - Hội nghị có xét cả cán bộ là Bí thư chi bộ kiêm lãnh đạo bộ phận (ví dụ Đài trưởng kiêm Bí thư chi bộ): vẫn kiểm phiếu người đó trong cùng hội nghị, cùng biên bản. Đề xuất của người đó do Trưởng đơn vị ghi (ví dụ Trưởng trung tâm Bảo đảm kỹ thuật), không phải việc của bạn.
 - Hồ sơ chờ bạn ở **Việc cần xử lý**, nhóm **Đề xuất của tập thể lãnh đạo**.
-- Bạn không ghi đề xuất trên hồ sơ của chính mình; hồ sơ đó do thư ký khác hoặc cấp trên ghi.
+- Khi biên bản họp là bắt buộc, bạn được ghi cả hồ sơ của chính mình (ví dụ Phó Bí thư chi bộ làm thư ký và cũng được đánh giá): mức ghi nhận phải đúng kết quả kiểm phiếu trong biên bản. Riêng thao tác trả lại hồ sơ của chính mình vẫn bị chặn; hồ sơ diện Trưởng đơn vị đề xuất do Trưởng đơn vị ghi.
 
 ## 1. In phiếu kín trắng (Mẫu 11)
 
