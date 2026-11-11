@@ -18,6 +18,9 @@ public class PartyMemberProfile : IAuditableEntity, ISoftDeletable
     /// <summary>In trên Mẫu 09C.</summary>
     public DateOnly? DateOfBirth { get; set; }
 
+    /// <summary>Mã nhân viên theo quản lý nhân sự, in ở dòng "Mã số cán bộ" của Mẫu 01.</summary>
+    public string? EmployeeCode { get; set; }
+
     public string Email { get; set; } = string.Empty;
 
     public string PhoneNumber { get; set; } = string.Empty;

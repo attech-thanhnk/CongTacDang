@@ -50,7 +50,8 @@ public class TaskChangeFormsTests
                 request.TaskNameSnapshot = "Khắc phục sự cố mất điện";
                 request.Proposal = TaskChangeRules.ProposalToJson(new TaskChangeProposal
                 {
-                    TaskName = "Khắc phục sự cố mất điện", TargetOutput = "Khôi phục nguồn trong 24 giờ", Weight = 10, Deadline = new DateTime(2026, 9, 5)
+                    TaskName = "Khắc phục sự cố mất điện", TargetOutput = "Khôi phục nguồn trong 24 giờ", Weight = 10, Deadline = new DateTime(2026, 9, 5),
+                    Coordination = "Phòng Kỹ thuật, Đài Nội Bài"
                 });
                 request.Weights = TaskChangeRules.WeightsToJson(new Dictionary<Guid, double> { [tasks[0].Id] = 25, [tasks[1].Id] = 20, [tasks[2].Id] = 15 });
                 break;
@@ -154,6 +155,10 @@ public class TaskChangeFormsTests
         Assert.Contains("Trọng số: 30 điểm", data.ContentBefore);
         Assert.Null(data.ApproverSign);
         Assert.Equal("Nguyễn Văn A", data.RequesterSign);
+        // Chưa đính kèm → dòng chấm của template, không in chữ hướng dẫn trong ngoặc vuông.
+        Assert.Null(data.Evidence);
+        Assert.Equal("QD-12.pdf", Mau04Data.From(source, "QD-12.pdf").Evidence);
+        Assert.DoesNotContain("[Số văn bản", BodyText(Render(Mau04Data.TemplateFileName, source)));
     }
 
 
@@ -243,6 +248,7 @@ public class TaskChangeFormsTests
         Assert.Contains("Ngày 20 tháng 08 năm 2026", text);
         Assert.Contains("Khắc phục sự cố mất điện", text);
         Assert.Contains("Khôi phục nguồn trong 24 giờ", text);
+        Assert.Contains("Phòng Kỹ thuật, Đài Nội Bài", text);
         Assert.Contains("Ngày 05 tháng 09 năm 2026", text);
         Assert.Contains("☒ Điều chỉnh giảm trọng số các nhiệm vụ khác để gán trọng số mới: 10 điểm", text);
         Assert.Contains("☐ Thay thế nhiệm vụ số", text);

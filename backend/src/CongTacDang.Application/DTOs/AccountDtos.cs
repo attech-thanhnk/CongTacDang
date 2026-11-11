@@ -16,6 +16,9 @@ public class CreateAccountRequestDto
     /// <summary>"yyyy-MM-dd" (tùy chọn).</summary>
     public string? DateOfBirth { get; set; }
 
+    /// <summary>Mã số cán bộ (mã nhân viên), tùy chọn.</summary>
+    public string? EmployeeCode { get; set; }
+
     /// <summary>Tùy chọn; đúng định dạng nếu có.</summary>
     public string? Email { get; set; }
 
@@ -54,6 +57,9 @@ public class UpdateAccountRequestDto
     public string? DateOfBirth { get; set; }
 
     /// <summary>Chuỗi rỗng → xóa.</summary>
+    public string? EmployeeCode { get; set; }
+
+    /// <summary>Chuỗi rỗng → xóa.</summary>
     public string? Email { get; set; }
 
     /// <summary>Chuỗi rỗng → xóa.</summary>
@@ -85,6 +91,8 @@ public class AccountListItemDto
 
     /// <summary>JSON "yyyy-MM-dd"; null khi chưa nhập.</summary>
     public DateOnly? DateOfBirth { get; set; }
+
+    public string? EmployeeCode { get; set; }
 
     public string Email { get; set; } = string.Empty;
 

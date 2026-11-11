@@ -502,13 +502,14 @@ public class ImportTests
             Assert.NotNull(xl.Worksheet(ImportLimits.GuideSheetName));
             var data = xl.Worksheet(ImportLimits.DataSheetName);
             Assert.Equal("Tên đăng nhập *", data.Cell(1, 1).GetString());
-            Assert.Contains(data.DataValidations, v => v.Ranges.Any(r => r.FirstColumn().ColumnNumber() == 8)); // Đảng viên: danh sách Có/Không
+            Assert.Contains(data.DataValidations, v => v.Ranges.Any(r => r.FirstColumn().ColumnNumber() == 9)); // Đảng viên: danh sách Có/Không
 
             data.Cell(2, 1).SetValue("nguyen.van.a");
             data.Cell(2, 2).SetValue("Nguyễn Văn A");
             data.Cell(2, 3).SetValue(new DateTime(1980, 8, 15)); // ô kiểu ngày (người dùng đổi định dạng ô sang ngày)
             data.Cell(2, 3).Style.DateFormat.Format = "dd/mm/yyyy";
-            data.Cell(2, 5).SetValue(912345678);                 // ô kiểu số
+            data.Cell(2, 4).SetValue("ld7");
+            data.Cell(2, 6).SetValue(912345678);                 // ô kiểu số
             data.Cell(4, 1).SetValue("tran.b");                  // dòng 3 trống bị bỏ qua
             data.Cell(4, 2).SetValue("  Trần B  ");
             xl.SaveAs(filled);
@@ -519,6 +520,7 @@ public class ImportTests
         Assert.Equal(2, rows.Count);
         Assert.Equal(2, rows[0].RowNumber);
         Assert.Equal("15/08/1980", rows[0].Get("dateOfBirth"));
+        Assert.Equal("ld7", rows[0].Get("employeeCode"));
         Assert.Equal("912345678", rows[0].Get("phone"));
         Assert.Equal(4, rows[1].RowNumber);
         Assert.Equal("Trần B", rows[1].Get("fullName"));

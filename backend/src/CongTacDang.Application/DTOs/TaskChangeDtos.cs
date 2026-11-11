@@ -42,7 +42,7 @@ public class TaskChangeRequestDto
     public bool CanDecide { get; set; }
     /// <summary>Ghi theo văn bản phê duyệt của cấp trên (người duyệt là tên cơ quan).</summary>
     public bool ApprovedExternally { get; set; }
-    /// <summary>Văn bản phê duyệt của cấp trên đính kèm (nếu có).</summary>
+    /// <summary>Văn bản phê duyệt của cấp trên (ghi theo cấp trên) hoặc minh chứng người đề nghị đính kèm.</summary>
     public Guid? AttachmentId { get; set; }
 }
 
@@ -79,6 +79,8 @@ public class CreateTaskChangeRequestDto : WorkflowRequestDto
     public string? Reason { get; set; }
     /// <summary>Bắt buộc khi cấp trên duyệt danh mục ngoài hệ thống; diện duyệt trong hệ thống không nhận.</summary>
     public TaskChangeExternalApprovalDto? ExternalApproval { get; set; }
+    /// <summary>Tệp minh chứng kèm đề nghị điều chỉnh / chuyển tiếp / loại trừ (tùy chọn, đã tải lên chưa gắn).</summary>
+    public Guid? AttachmentId { get; set; }
 }
 
 /// <summary>Duyệt / không duyệt đề nghị: <see cref="Version"/> là phiên bản đề nghị đã đọc.</summary>

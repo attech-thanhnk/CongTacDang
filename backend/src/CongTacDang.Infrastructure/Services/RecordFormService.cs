@@ -169,9 +169,12 @@ public sealed class RecordFormService : IRecordFormService
         }
 
         var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).Administrative);
+        var attachmentName = request.AttachmentId is { } attachmentId
+            ? await _db.TaskAttachments.AsNoTracking().Where(a => a.Id == attachmentId).Select(a => a.OriginalFileName).FirstOrDefaultAsync(ct)
+            : null;
         var (templateFileName, data) = code == RecordFormCodes.Form05
             ? (Mau05Data.TemplateFileName, (object)Mau05Data.From(source))
-            : (Mau04Data.TemplateFileName, Mau04Data.From(source));
+            : (Mau04Data.TemplateFileName, Mau04Data.From(source, attachmentName));
         return await RenderAsync(templateFileName, data, await FileNameAsync(code, record, ct), format, ct);
     }
 

@@ -21,6 +21,7 @@ interface FormState {
   fullName: string;
   /** `yyyy-MM-dd`; "" = chưa nhập. */
   dateOfBirth: string;
+  employeeCode: string;
   email: string;
   phoneNumber: string;
   partyCardNumber: string;
@@ -39,6 +40,7 @@ function initialState(account?: AccountListItem): FormState {
     username: account?.username ?? "",
     fullName: account?.fullName ?? "",
     dateOfBirth: account?.dateOfBirth ?? "",
+    employeeCode: account?.employeeCode ?? "",
     email: account?.email ?? "",
     phoneNumber: account?.phoneNumber ?? "",
     partyCardNumber: account?.partyCardNumber ?? "",
@@ -129,6 +131,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
       onUpdate?.({
         fullName: form.fullName.trim(),
         dateOfBirth: form.dateOfBirth,
+        employeeCode: form.employeeCode.trim(),
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim(),
         partyCardNumber: form.partyCardNumber.trim(),
@@ -142,6 +145,7 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
         username: form.username.trim().toLowerCase(),
         fullName: form.fullName.trim(),
         dateOfBirth: form.dateOfBirth || undefined,
+        employeeCode: form.employeeCode.trim() || undefined,
         email: form.email.trim() || undefined,
         phoneNumber: form.phoneNumber.trim() || undefined,
         partyCardNumber: form.partyCardNumber.trim() || undefined,
@@ -205,6 +209,11 @@ export function AccountFormModal({ account, departments, partyCells, saving, onC
               max={maxBirthDate}
               onChange={(value) => set("dateOfBirth", value)}
             />
+          </div>
+          <div className="col-12 col-md-6">
+            <label className="form-label" htmlFor="account-employee-code">Mã số cán bộ</label>
+            <input id="account-employee-code" className="form-control form-control-sm" value={form.employeeCode} maxLength={20}
+              onChange={(e) => set("employeeCode", e.target.value)} />
           </div>
           <div className="col-12 col-md-6">
             <label className="form-label">Email</label>

@@ -46,18 +46,19 @@ public sealed class Mau16Data
     /// <summary>Đảng ủy cơ sở ở mục III.1 khi chưa nhập đề xuất.</summary>
     [TemplateField("BASE_COMMITTEE")] public string? BaseCommittee { get; init; }
 
-    /// <summary>Nơi nhận: "Các Chi ủy viên" (chi bộ) hoặc "Các Ủy viên BCH".</summary>
-    [TemplateField("MEMBERS_RECEIVER")] public string? MembersReceiver { get; init; }
+    /// <summary>Khối "Nơi nhận" (<see cref="DefaultReceivers"/>); chưa xác định nơi gửi → giữ chữ mẫu.</summary>
+    [TemplateField("RECEIVERS")] public string? Receivers { get; init; }
 
     /// <summary>"T/M ĐẢNG ỦY" / "T/M CHI BỘ".</summary>
     [TemplateField("SIGN_ON_BEHALF")] public string? SignOnBehalf { get; init; }
 
     /// <summary>
     /// Trường trống → nơi nhận, đảng ủy cơ sở lấy theo cấp tổ chức (<paramref name="recipient"/>, <paramref name="baseCommittee"/>);
+    /// người ký là Bí thư của tổ chức (<paramref name="secretary"/>);
     /// còn lại giữ chữ của biểu mẫu hoặc dòng chấm.
     /// </summary>
     public static Mau16Data From(EvaluationPeriod period, PartyHeader header, Form16DraftDto draft,
-        string? recipient = null, string? baseCommittee = null)
+        string? recipient = null, string? baseCommittee = null, string? secretary = null, bool baseLevel = false)
     {
         var c = draft.Content;
         string? Numbered(string number, string? text) => FormText.OrNull(text) is { } t ? number + ". " + t.Trim() : null;
@@ -80,12 +81,23 @@ public sealed class Mau16Data
             Proposal1 = Numbered("1", c.Proposal1),
             Proposal2 = Numbered("2", c.Proposal2),
             Proposal3 = Numbered("3", c.Proposal3),
-            SignerName = FormText.OrNull(c.SignerName),
+            SignerName = FormText.OrNull(c.SignerName) ?? FormText.OrNull(secretary?.Trim()),
             BaseCommittee = FormText.OrNull(baseCommittee?.Trim()),
-            MembersReceiver = header.Organization == null ? null
-                : header.Organization.StartsWith("CHI BỘ", System.StringComparison.Ordinal) ? "Các Chi ủy viên" : "Các Ủy viên BCH",
+            Receivers = DefaultReceivers(recipient, header.Organization, baseLevel),
             SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization)
         };
+    }
+
+    /// <summary>
+    /// Nơi nhận mặc định: cấp nhận báo cáo (<paramref name="recipient"/>), cấp ủy viên của tổ chức, lưu;
+    /// Đảng bộ cơ sở lưu tại Văn phòng Đảng ủy.
+    /// </summary>
+    public static string? DefaultReceivers(string? recipient, string? organization, bool baseLevel)
+    {
+        if (FormText.OrNull(recipient?.Trim()) is not { } to)
+            return null;
+        var members = organization?.StartsWith("CHI BỘ", System.StringComparison.Ordinal) == true ? "Các Chi ủy viên" : "Các Ủy viên BCH";
+        return $"- {to};\n- {members};\n- " + (baseLevel ? "Lưu Văn phòng Đảng ủy." : "Lưu.");
     }
 
     /// <summary>10 cột của một dòng; dòng cuối "Tổng cộng" không đánh số.</summary>

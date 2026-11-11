@@ -42,6 +42,7 @@ Như đơn vị chính quyền với các cột: **Mã tổ chức Đảng**, **
 | Tên đăng nhập | Có | `^[a-z0-9._-]{3,50}$`, chuẩn hóa chữ thường. Chưa có → **Tạo mới** tài khoản; đã có → **Cập nhật**; thuộc tài khoản đã xóa → lỗi |
 | Họ và tên | Có | ≤ 200 ký tự |
 | Ngày sinh | Không | `dd/MM/yyyy`; không ở tương lai, không quá 100 năm |
+| Mã số cán bộ | Không | Mã nhân viên theo quản lý nhân sự, tối đa 20 ký tự; in ở Mẫu 01. Ô trống giữ nguyên mã đã có |
 | Email | Không | Đúng định dạng |
 | Điện thoại | Không | ≤ 30 ký tự (cột để dạng chữ để giữ số 0 đầu) |
 | Mã đơn vị | Không | Mã đơn vị chính quyền có trong danh mục, đang hoạt động |

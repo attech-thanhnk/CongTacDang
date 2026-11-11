@@ -588,6 +588,9 @@ public static class DataSeeder
     private sealed record DefaultFormLayout(
         string Name, string Description, bool SingleLine, bool DateLine9D, string? EmptyPositionText, bool IsDefault, string[] Positions);
 
+    private const string DefaultStaffLayoutName = "Cán bộ phòng ban";
+    private const string StaffEmptyPositionText = "Không";
+
     /// <summary>Thứ tự = ưu tiên khi cán bộ giữ nhiều chức vụ gắn kiểu khác nhau.</summary>
     private static readonly DefaultFormLayout[] DefaultFormLayouts =
     {
@@ -595,8 +598,8 @@ public static class DataSeeder
             true, true, "không", false, new[] { "Bí thư Đảng ủy" }),
         new("Lãnh đạo Công ty", "Chức vụ một dòng trên Mẫu 9D; Mẫu 9D có dòng ngày; chức vụ trống ghi \"không\".",
             true, true, "không", false, new[] { "Chủ tịch Công ty", "Giám đốc", "Phó Giám đốc" }),
-        new("Cán bộ phòng ban", "Như biểu mẫu gốc: chức vụ 3 dòng.",
-            false, false, null, true, Array.Empty<string>())
+        new(DefaultStaffLayoutName, "Như biểu mẫu gốc: chức vụ 3 dòng; chức vụ đoàn thể trống ghi \"Không\".",
+            false, false, StaffEmptyPositionText, true, Array.Empty<string>())
     };
 
     /// <summary>Chỉ khi danh mục trống; không ghi đè cấu hình quản trị đã sửa.</summary>

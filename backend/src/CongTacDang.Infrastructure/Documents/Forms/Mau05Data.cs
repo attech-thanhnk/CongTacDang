@@ -35,7 +35,7 @@ public sealed class Mau05Data
     [TemplateField("OUTPUT")] public string? Output { get; init; }
     [TemplateField("DEADLINE")] public string? Deadline { get; init; }
 
-    /// <summary>Đơn vị / cá nhân phối hợp chưa lưu theo việc → giữ chữ mặc định.</summary>
+    /// <summary>Đơn vị / cá nhân phối hợp nhập khi ghi việc đột xuất; trống → giữ dòng chấm.</summary>
     [TemplateField("COORDINATION")] public string? Coordination { get; init; }
 
     /// <summary>☒ khi các việc khác bị giảm trọng số để nhường cho việc mới.</summary>
@@ -71,6 +71,7 @@ public sealed class Mau05Data
             TaskName = FormText.OrNull(proposal.TaskName ?? request.TaskNameSnapshot),
             Output = FormText.OrNull(proposal.TargetOutput),
             Deadline = TaskChangeFormSource.DeadlineLine(proposal.Deadline ?? created?.Deadline),
+            Coordination = FormText.OrNull(proposal.Coordination?.Trim()),
             BoxRebalance = reduced ? CheckedBox : null,
             NewWeight = reduced && proposal.Weight.HasValue ? TaskChangeFormSource.Weight(proposal.Weight.Value) : null,
             Assigner = source.ApproverSign,

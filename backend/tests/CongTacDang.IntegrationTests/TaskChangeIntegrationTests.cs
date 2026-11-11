@@ -49,13 +49,18 @@ public sealed class TaskChangeIntegrationTests
             weights = new Dictionary<Guid, double> { [ids[0]] = 25 }, reason = "Đổi chỉ tiêu theo chỉ đạo"
         });
         Assert.Equal(HttpStatusCode.BadRequest, wrongTotal.StatusCode);
+        // Minh chứng kèm đề nghị: tệp chủ hồ sơ vừa tải lên.
+        var evidenceId = (await Data(await UploadAsync(w.OwnerC))).GetProperty("id").GetGuid();
         var created = await Data(await CreateAsync(w, w.OwnerC, recordId, new
         {
             type = "Adjust", taskId = ids[0], proposal = new { taskName = "Sản phẩm 1 (điều chỉnh)", targetOutput = "Kết quả 1 mới" },
-            weights = new Dictionary<Guid, double> { [ids[0]] = 25, [ids[2]] = 25 }, reason = "Đổi chỉ tiêu theo chỉ đạo"
+            weights = new Dictionary<Guid, double> { [ids[0]] = 25, [ids[2]] = 25 }, reason = "Đổi chỉ tiêu theo chỉ đạo",
+            attachmentId = evidenceId
         }));
         var pending = created.GetProperty("requests")[0];
         Assert.Equal("Pending", pending.GetProperty("status").GetString());
+        Assert.Equal(evidenceId, pending.GetProperty("attachmentId").GetGuid());
+        Assert.False(pending.GetProperty("approvedExternally").GetBoolean());
         Assert.False(pending.GetProperty("canDecide").GetBoolean());
         Assert.Equal(HttpStatusCode.Conflict, (await CreateAsync(w, w.OwnerC, recordId, new
         {
@@ -88,7 +93,7 @@ public sealed class TaskChangeIntegrationTests
         var urgent = (await Data(await CreateAsync(w, w.LeadC, recordId, new
         {
             type = "Urgent",
-            proposal = new { taskName = "Xử lý sự cố đột xuất", targetOutput = "Khắc phục trong 10 ngày", axisCode = "T1", weight = 10.0 },
+            proposal = new { taskName = "Xử lý sự cố đột xuất", targetOutput = "Khắc phục trong 10 ngày", axisCode = "T1", weight = 10.0, coordination = "Phòng Kế hoạch" },
             weights = new Dictionary<Guid, double> { [ids[0]] = 15 }, reason = "Nhiệm vụ phát sinh theo chỉ đạo"
         }))).GetProperty("requests")[0];
         var urgentDecided = (await Data(await Decide(w.LeadC, recordId, urgent.GetProperty("id").GetGuid(), "approve", urgent.GetProperty("version").GetUInt32(), null)))
@@ -124,6 +129,7 @@ public sealed class TaskChangeIntegrationTests
         Assert.Contains("PHIẾU ĐỀ NGHỊ ĐIỀU CHỈNH, CHUYỂN TIẾP, LOẠI TRỪ", adjustText);
         Assert.Contains("Sản phẩm 1 (điều chỉnh)", adjustText);
         Assert.Contains("Đổi chỉ tiêu theo chỉ đạo", adjustText);
+        Assert.Contains("van-ban-phe-duyet.pdf", adjustText);
         // "Trước" là nội dung và trọng số lúc lập đề nghị, dù duyệt đã ghi đè việc.
         Assert.Contains("Mục tiêu: Kết quả 1", adjustText);
         Assert.Contains("Mục tiêu: Kết quả 1 mới", adjustText);
@@ -137,6 +143,7 @@ public sealed class TaskChangeIntegrationTests
         var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[1].GetProperty("requestId").GetGuid()}");
         Assert.Contains("Xử lý sự cố đột xuất", urgentText);
         Assert.Contains("Khắc phục trong 10 ngày", urgentText);
+        Assert.Contains("Phòng Kế hoạch", urgentText);
         // Duyệt trong hệ thống: ô cấp giao việc là tên người duyệt.
         Assert.Contains($"Cấp có thẩm quyền giao việc{urgentApprover}", urgentText);
         Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/05/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);

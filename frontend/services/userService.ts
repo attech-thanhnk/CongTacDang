@@ -24,6 +24,8 @@ export interface AccountListItem {
   fullName: string;
   /** Ngày sinh `yyyy-MM-dd`; null = chưa nhập. */
   dateOfBirth?: string | null;
+  /** Mã số cán bộ (mã nhân viên); null = chưa nhập. */
+  employeeCode?: string | null;
   email: string;
   phoneNumber: string;
   partyCardNumber?: string | null;
@@ -80,6 +82,7 @@ export interface CreateAccountPayload {
   fullName: string;
   /** Ngày sinh `yyyy-MM-dd`. */
   dateOfBirth?: string;
+  employeeCode?: string;
   email?: string;
   phoneNumber?: string;
   partyCardNumber?: string;
@@ -100,6 +103,8 @@ export interface UpdateAccountPayload {
   fullName?: string;
   /** Ngày sinh `yyyy-MM-dd`; chuỗi rỗng = xóa. */
   dateOfBirth?: string;
+  /** Chuỗi rỗng = xóa. */
+  employeeCode?: string;
   email?: string;
   phoneNumber?: string;
   partyCardNumber?: string;

@@ -44,6 +44,9 @@ public sealed class Mau02Data
     /// <summary>Ô "Cá nhân tự đánh giá": chủ hồ sơ khi đã nộp phiếu tự chấm.</summary>
     [TemplateField("SELF_NAME")] public string? SelfName { get; init; }
 
+    /// <summary>Ô "Cấp có thẩm quyền duyệt": người duyệt danh mục như Mẫu 01 (<see cref="Mau01Data.TaskApprover"/>).</summary>
+    [TemplateField("APPROVER_NAME")] public string? ApproverName { get; init; }
+
     /// <summary>Ô "Đại diện lãnh đạo đơn vị": Trưởng đơn vị đã gửi danh mục (cùng người ký Mẫu 01).</summary>
     [TemplateField("UNIT_LEADER_NAME")] public string? UnitLeaderName { get; init; }
 
@@ -64,6 +67,7 @@ public sealed class Mau02Data
             HasDepartment = Mau09Shared.HasDepartment(record),
             TotalWeight = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.Weight), 1) : null,
             SelfName = record.SelfScoredAt.HasValue ? FormText.OrNull(record.Member?.FullName) : null,
+            ApproverName = Mau01Data.TaskApprover(record),
             UnitLeaderName = record.TasksForwardedById != null ? FormText.OrNull(record.TasksForwardedByName) : null,
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using CongTacDang.Application.Accounts;
 using CongTacDang.Application.Common.Interfaces;
 using CongTacDang.Domain.Entities;
 
@@ -66,6 +67,7 @@ namespace CongTacDang.Infrastructure.Data
                 entity.Property(e => e.Username).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.FullName).HasMaxLength(200).IsRequired();
                 entity.Property(e => e.DateOfBirth).HasColumnType("date");
+                entity.Property(e => e.EmployeeCode).HasMaxLength(AccountRules.EmployeeCodeMaxLength);
                 entity.Property(e => e.Email).HasMaxLength(200);
                 entity.Property(e => e.MustChangePassword).HasDefaultValue(false);
                 entity.Property(e => e.FailedLoginCount).HasDefaultValue(0);

@@ -18,6 +18,12 @@ public sealed class Mau06Data
     /// <summary>Ô ký "T/M ĐẢNG ỦY" hoặc "T/M CHI BỘ" theo tổ chức lập báo cáo; không xác định → giữ chữ mặc định.</summary>
     [TemplateField("SIGN_ON_BEHALF")] public string? SignOnBehalf { get; init; }
 
+    /// <summary>Họ tên dưới ô ký Bí thư (Bí thư theo chức vụ của tổ chức); không có → để trống.</summary>
+    [TemplateField("SECRETARY_NAME")] public string? SecretaryName { get; init; }
+
+    /// <summary>Họ tên dưới ô ký Thủ trưởng đơn vị: người đứng đầu ghi trong báo cáo, chưa ghi thì người giữ chức vụ đứng đầu đơn vị chính quyền; không có → để trống.</summary>
+    [TemplateField("HEAD_SIGN_NAME")] public string? HeadSignName { get; init; }
+
     /// <summary>Lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
@@ -55,7 +61,8 @@ public sealed class Mau06Data
     [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
     [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
-    public static Mau06Data From(CollectiveEvaluationRecord record, PartyHeader header, IReadOnlyDictionary<string, string> sections)
+    public static Mau06Data From(CollectiveEvaluationRecord record, PartyHeader header, IReadOnlyDictionary<string, string> sections,
+        string? secretaryName = null, string? headName = null)
     {
         string? Text(string code) => sections.TryGetValue(code, out var text) ? FormText.OrNull(text?.Trim()) : null;
         int? Count(string code) =>
@@ -73,6 +80,9 @@ public sealed class Mau06Data
             PartyParent = PartyHeader.Lines(header.Parent),
             PartyOrganization = PartyHeader.Lines(header.Organization),
             SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization),
+            SecretaryName = FormText.OrNull(secretaryName?.Trim()),
+            // Người đứng đầu đã ghi ở mục thông tin của báo cáo, chưa ghi thì theo chức vụ.
+            HeadSignName = Text(Hd03FormCatalog.Form06HeadNameCode) ?? FormText.OrNull(headName?.Trim()),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             Quarter = CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = FormText.Year(record.Period.Year),

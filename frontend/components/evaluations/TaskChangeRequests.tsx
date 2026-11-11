@@ -150,6 +150,7 @@ function RequestItem({
     ["Vượt chuẩn", p.exceedCriteria],
     ["Minh chứng", p.evidenceSource],
     ["Xác nhận", p.confirmer],
+    ["Phối hợp", p.coordination],
   ];
   const shown = fields.filter(([, v]) => v !== null && v !== undefined && v !== "");
 
@@ -196,12 +197,26 @@ function RequestItem({
         </table>
       )}
       <div className="small" style={{ whiteSpace: "pre-wrap" }}><span className="text-secondary">Lý do: </span>{item.reason}</div>
+      {item.attachmentId && !item.approvedExternally && (
+        <div>
+          <button
+            type="button"
+            className="btn btn-link btn-sm p-0"
+            onClick={() => {
+              attachmentService.downloadById(item.attachmentId as string)
+                .catch((error: unknown) => toast.error(errorMessage(error, "Tải minh chứng không thành công.")));
+            }}
+          >
+            <i className="fa-solid fa-paperclip me-1" aria-hidden="true" />Minh chứng kèm theo
+          </button>
+        </div>
+      )}
       {item.decidedByName && (
         <div className="small border-start border-3 ps-2">
           <span className="fw-semibold">{item.decidedByName}</span>
           <span className="text-secondary"> · {formatDateTime(item.decidedAt)}</span>
           {item.decisionComment && <div style={{ whiteSpace: "pre-wrap" }}>{item.decisionComment}</div>}
-          {item.attachmentId && (
+          {item.attachmentId && item.approvedExternally && (
             <button
               type="button"
               className="btn btn-link btn-sm p-0"
@@ -265,13 +280,14 @@ function TaskChangeForm({
   onCancel: () => void;
   onSubmit: (body: {
     type: TaskChangeType; taskId?: string | null; proposal?: TaskChangeProposal; weights: Record<string, number>; reason: string;
-    externalApproval?: TaskChangeExternalApproval;
+    externalApproval?: TaskChangeExternalApproval; attachmentId?: string | null;
   }) => void;
 }) {
   const [authority, setAuthority] = useState(defaultAuthority);
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentDate, setDocumentDate] = useState("");
   const [attachment, setAttachment] = useState<{ id: string; fileName: string; fileSize?: number } | null>(null);
+  const [evidence, setEvidence] = useState<{ id: string; fileName: string; fileSize?: number } | null>(null);
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
   const axes = criteria?.content.axes ?? [];
@@ -340,12 +356,18 @@ function TaskChangeForm({
       externalApproval: external
         ? { authorityName: authority.trim(), documentNumber: documentNumber.trim(), documentDate, attachmentId: attachment?.id ?? null }
         : undefined,
+      attachmentId: !external && type !== "Urgent" ? evidence?.id ?? null : null,
     });
   };
 
   const uploadDocument = async (file: File) => {
     const created = await attachmentService.uploadAttachment(file, "CAPTREN", `Văn bản phê duyệt điều chỉnh việc — ${record.fullName}`.slice(0, 500));
     setAttachment({ id: created.id, fileName: created.fileName, fileSize: created.fileSize });
+  };
+
+  const uploadEvidence = async (file: File) => {
+    const created = await attachmentService.uploadAttachment(file, "MAU04", `Minh chứng đề nghị điều chỉnh việc — ${record.fullName}`.slice(0, 500));
+    setEvidence({ id: created.id, fileName: created.fileName, fileSize: created.fileSize });
   };
 
   const input = (key: keyof TaskChangeProposal, label: string, multiline = false) => (
@@ -413,6 +435,7 @@ function TaskChangeForm({
           {input("exceedCriteria", "Tiêu chí vượt chuẩn")}
           {input("evidenceSource", "Nguồn minh chứng")}
           {input("confirmer", "Thẩm quyền xác nhận")}
+          {type === "Urgent" && input("coordination", "Đơn vị / cá nhân phối hợp")}
         </div>
       )}
 
@@ -456,6 +479,23 @@ function TaskChangeForm({
         <label className="form-label small mb-1" htmlFor="tc-reason">Lý do / nguyên nhân</label>
         <textarea id="tc-reason" className="form-control form-control-sm" rows={3} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
       </div>
+
+      {!external && mode === "change" && (
+        <div>
+          <div className="form-label small mb-1">Hồ sơ, minh chứng kèm theo (tùy chọn)</div>
+          <AttachmentList
+            files={evidence ? [evidence] : []}
+            context="Minh chứng"
+            max={1}
+            emptyText={null}
+            addLabel="Đính kèm minh chứng"
+            confirmRemove={false}
+            onAdd={uploadEvidence}
+            onReplace={(_, file) => uploadEvidence(file)}
+            onRemove={() => setEvidence(null)}
+          />
+        </div>
+      )}
 
       {external && (
         <div className="row g-2">

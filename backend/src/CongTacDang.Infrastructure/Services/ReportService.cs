@@ -602,8 +602,42 @@ public partial class ReportService : IReportService
         var superior = CollectiveFormText.CommitteeInSentence(
             CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName));
         var recipient = IsPartyCommittee(cell, org) ? (superior == null ? null : "Ban Thường vụ " + superior) : baseCommittee;
-        var bytes = await RenderWordAsync(Mau16Data.TemplateFileName, Mau16Data.From(period, header, draft, recipient, baseCommittee));
+        var secretary = await PartySignerAsync(period, partyCellId);
+        var bytes = await RenderWordAsync(Mau16Data.TemplateFileName, Mau16Data.From(period, header, draft, recipient, baseCommittee, secretary, IsPartyCommittee(cell, org)));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("16", org.ShortName, cell, period, ".docx"), format);
+    }
+
+    /// <summary>Người giữ chức vụ đứng đầu bên Đảng của tổ chức tại thời điểm xét của kỳ; toàn Đảng bộ → tổ chức gốc. Người chính thức trước người được giao quyền.</summary>
+    /// <summary>Bí thư ký báo cáo tập thể (Mẫu 06–08): theo chức vụ của tổ chức Đảng của hồ sơ.</summary>
+    private Task<string?> CollectiveSecretaryAsync(CollectiveEvaluationRecord record) =>
+        record.PartyCellId.HasValue ? PartySecretaryNameAsync(record.Period, record.PartyCellId) : Task.FromResult<string?>(null);
+
+    /// <summary>Thủ trưởng đơn vị: người giữ chức vụ đứng đầu (chính quyền) của đơn vị tại thời điểm kỳ, ưu tiên cấp trưởng chính thức.</summary>
+    private async Task<string?> DepartmentHeadNameAsync(EvaluationPeriod period, Guid? departmentId)
+    {
+        if (departmentId == null)
+            return null;
+        var at = PositionDate(period);
+        return await _db.MemberPositions.AsNoTracking()
+            .Where(mp => mp.DepartmentId == departmentId && mp.Position != null && mp.Position.IsHead && mp.Position.Side == PositionSide.Administrative
+                && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.User != null)
+            .OrderBy(mp => mp.IsActing).ThenByDescending(mp => mp.ValidFrom)
+            .Select(mp => mp.User!.FullName)
+            .FirstOrDefaultAsync();
+    }
+
+    private async Task<string?> PartySecretaryNameAsync(EvaluationPeriod period, Guid? partyCellId)
+    {
+        var cellId = partyCellId ?? await RootPartyCellIdAsync();
+        if (cellId == null)
+            return null;
+        var at = PositionDate(period);
+        return await _db.MemberPositions.AsNoTracking()
+            .Where(mp => mp.PartyCellId == cellId && mp.Position != null && mp.Position.IsHead && mp.Position.Side == PositionSide.Party
+                && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.User != null)
+            .OrderBy(mp => mp.IsActing).ThenByDescending(mp => mp.ValidFrom)
+            .Select(mp => mp.User!.FullName)
+            .FirstOrDefaultAsync();
     }
 
     #endregion
@@ -678,14 +712,14 @@ public partial class ReportService : IReportService
             r.IsMarkedNotRated() ? r.NotRatedReason : null));
 
         var guideParty = CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName);
-        var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period.Id, decided), lines, guideParty);
+        var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period, decided), lines, guideParty);
         var bytes = await RenderWordAsync(MauQdData.TemplateFileName, data);
         return await ToResultAsync(bytes, DocxMimeType, ScopedFileName("Quyet dinh xep loai", org.ShortName, null, period, ".docx"), format);
     }
 
     /// <summary>Số, ngày quyết định (khi mọi hồ sơ ghi giống nhau) và hội nghị: biên bản được nhiều hồ sơ gắn nhất,
     /// không có thì hội nghị quyết định gần nhất cấp Đảng bộ.</summary>
-    private async Task<DecisionDocumentInfo> DecisionInfoAsync(Guid periodId, IReadOnlyCollection<EvaluationRecord> decided)
+    private async Task<DecisionDocumentInfo> DecisionInfoAsync(EvaluationPeriod period, IReadOnlyCollection<EvaluationRecord> decided)
     {
         static T? Single<T>(IEnumerable<T?> values) where T : struct
         {
@@ -697,20 +731,48 @@ public partial class ReportService : IReportService
         var number = numbers.Count == 1 ? numbers[0] : null;
         var date = Single(decided.Select(r => r.DecisionDocumentDate?.Date));
 
-        var meetingId = decided.Where(r => r.DecisionMeetingId.HasValue)
-            .GroupBy(r => r.DecisionMeetingId!.Value)
+        var meeting = await DecisionMeetingAsync(period.Id, decided.Select(r => r.DecisionMeetingId));
+        return new DecisionDocumentInfo(number, date, meeting?.StartedAt, await CommitteeSignerAsync(period, meeting));
+    }
+
+    /// <summary>Hội nghị quyết định cấp Đảng bộ: biên bản được nhiều hồ sơ gắn nhất, không có thì hội nghị quyết định gần nhất cấp Đảng bộ.</summary>
+    private async Task<EvaluationMeeting?> DecisionMeetingAsync(Guid periodId, IEnumerable<Guid?> recordMeetingIds)
+    {
+        var meetingId = recordMeetingIds.Where(id => id.HasValue)
+            .GroupBy(id => id!.Value)
             .OrderByDescending(g => g.Count())
             .Select(g => (Guid?)g.Key)
             .FirstOrDefault();
         var meetings = _db.EvaluationMeetings.AsNoTracking();
-        var meeting = meetingId.HasValue
+        return meetingId.HasValue
             ? await meetings.FirstOrDefaultAsync(m => m.Id == meetingId.Value)
             : await meetings
                 .Where(m => m.PeriodId == periodId && m.Stage == WorkflowStep.B4_DECISION && (m.PartyCellId == null || m.PartyCell!.ParentId == null))
                 .OrderByDescending(m => m.StartedAt)
                 .FirstOrDefaultAsync();
-        return new DecisionDocumentInfo(number, date, meeting?.StartedAt, meeting?.ChairName);
     }
+
+    /// <summary>
+    /// Người ký thay mặt Đảng ủy cơ sở (Quyết định, Mẫu 16 cấp Đảng bộ, ô duyệt Mẫu 10): chủ trì hội nghị quyết định,
+    /// chưa có thì Bí thư theo chức vụ của tổ chức gốc.
+    /// </summary>
+    private async Task<string?> CommitteeSignerAsync(EvaluationPeriod period, EvaluationMeeting? meeting) =>
+        FormText.OrNull(meeting?.ChairName?.Trim()) ?? await PartySecretaryNameAsync(period, null);
+
+    /// <summary>Người ký Mẫu 16 của tổ chức: cấp Đảng bộ cơ sở cùng người ký Quyết định, tổ chức trực thuộc là Bí thư theo chức vụ.</summary>
+    private async Task<string?> PartySignerAsync(EvaluationPeriod period, Guid? partyCellId)
+    {
+        if (partyCellId.HasValue && partyCellId != await RootPartyCellIdAsync())
+            return await PartySecretaryNameAsync(period, partyCellId);
+        var meetingIds = await _db.EvaluationRecords.AsNoTracking()
+            .Where(r => r.PeriodId == period.Id && r.ApprovalAuthority == ApprovalAuthority.CoSo)
+            .Select(r => r.DecisionMeetingId)
+            .ToListAsync();
+        return await CommitteeSignerAsync(period, await DecisionMeetingAsync(period.Id, meetingIds));
+    }
+
+    private Task<Guid?> RootPartyCellIdAsync() =>
+        _db.PartyCells.AsNoTracking().Where(c => c.ParentId == null).Select(c => (Guid?)c.Id).FirstOrDefaultAsync();
 
     #endregion
 
@@ -992,7 +1054,7 @@ public partial class ReportService : IReportService
     public async Task<ReportFileResult> ExportMau01DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = await RenderWordAsync(Mau01Data.TemplateFileName, Mau01Data.From(record, await AdminParentAsync(record)));
+        var bytes = await RenderWordAsync(Mau01Data.TemplateFileName, await Mau01DataAsync(record));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("01", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1006,13 +1068,40 @@ public partial class ReportService : IReportService
 
     private Task<string?> AdminParentAsync(EvaluationRecord record) => OrgHeaderLookup.AdminParentLineAsync(_db, record.Department);
 
+    /// <summary>
+    /// Ô "Cấp có thẩm quyền duyệt" Mẫu 10: Đảng ủy cơ sở quyết định → cùng người ký Quyết định;
+    /// cấp trên quyết định → tên cơ quan cấp trên (đã ghi nhận, chưa thì Ban Thường vụ Đảng ủy cấp trên theo cài đặt đơn vị).
+    /// </summary>
+    private async Task<string?> Mau10ApproverAsync(EvaluationRecord record)
+    {
+        if (Mau01Data.ExternalAuthority(record, WorkflowStep.B4_DECISION) is { } authority)
+            return authority;
+        if (record.ApprovalAuthority == ApprovalAuthority.CapTren)
+        {
+            var org = await _orgSettings.GetAsync();
+            var committee = CollectiveFormText.CommitteeInSentence(
+                CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName));
+            return committee == null ? null : "Ban Thường vụ " + committee;
+        }
+        return await CommitteeSignerAsync(record.Period, await DecisionMeetingAsync(record.PeriodId, new[] { record.DecisionMeetingId }));
+    }
+
+    private async Task<Mau01Data> Mau01DataAsync(EvaluationRecord record)
+    {
+        // Chức danh người quản lý trực tiếp lấy từ hồ sơ cán bộ của người đó.
+        var managerPosition = Mau01Data.DirectManager(record) is { } manager
+            ? await _db.PartyMemberProfiles.AsNoTracking().Where(p => p.Id == manager.Id).Select(p => p.PositionTitle).FirstOrDefaultAsync()
+            : null;
+        return Mau01Data.From(record, await AdminParentAsync(record), managerPosition);
+    }
+
     private async Task<ExcellenceConditionReport> ConditionsAsync(EvaluationRecord record) =>
         (await new ExcellenceConditionSource(_db).LoadAsync(record)).Report;
 
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record)));
+        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1024,9 +1113,9 @@ public partial class ReportService : IReportService
         var fields = OrganizationSettingsService.ToTemplateFields(org);
         var bytes = formCode switch
         {
-            RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(Mau01Data.From(record, await AdminParentAsync(record)), fields),
+            RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(await Mau01DataAsync(record), fields),
             RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks), await AdminParentAsync(record)), fields),
-            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record)), fields),
+            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record)), fields),
             _ => throw new ArgumentException($"Mẫu {formCode} không xuất Excel theo cách này.")
         };
         return new ReportFileResult
@@ -1229,7 +1318,7 @@ public partial class ReportService : IReportService
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var sections = CollectiveEvaluationService.DeserializeSections(record.Sections);
         var org = await _orgSettings.GetAsync();
-        var bytes = await RenderWordAsync(Mau06Data.TemplateFileName, Mau06Data.From(record, header, sections));
+        var bytes = await RenderWordAsync(Mau06Data.TemplateFileName, Mau06Data.From(record, header, sections, await CollectiveSecretaryAsync(record), await DepartmentHeadNameAsync(record.Period, record.DepartmentId)));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("06", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
@@ -1240,7 +1329,7 @@ public partial class ReportService : IReportService
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var sections = CollectiveEvaluationService.DeserializeSections(record.Sections);
         var org = await _orgSettings.GetAsync();
-        var bytes = await RenderWordAsync(Mau07Data.TemplateFileName, Mau07Data.From(record, header, sections));
+        var bytes = await RenderWordAsync(Mau07Data.TemplateFileName, Mau07Data.From(record, header, sections, await CollectiveSecretaryAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("07", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
@@ -1250,7 +1339,7 @@ public partial class ReportService : IReportService
         var record = await LoadCollectiveAsync(collectiveRecordId, CollectiveEvaluationForm.M08);
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var org = await _orgSettings.GetAsync();
-        var bytes = await RenderWordAsync(Mau08Data.TemplateFileName, Mau08Data.From(record, header));
+        var bytes = await RenderWordAsync(Mau08Data.TemplateFileName, Mau08Data.From(record, header, await CollectiveSecretaryAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("08", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 
@@ -1269,7 +1358,7 @@ public partial class ReportService : IReportService
         var record = await LoadCollectiveAsync(collectiveRecordId, CollectiveEvaluationForm.M08);
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var org = await _orgSettings.GetAsync();
-        var data = Mau08Data.From(record, header);
+        var data = Mau08Data.From(record, header, await CollectiveSecretaryAsync(record));
         var last = Form08Columns.Length;
 
         using var workbook = new XLWorkbook();
@@ -1316,6 +1405,13 @@ public partial class ReportService : IReportService
         ws.Row(row).Height = 90;
         row += 2;
         SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", CollectiveFormText.SignOnBehalf(header.Organization) ?? "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
+        if (data.SecretaryName != null)
+        {
+            // Họ tên dưới khối ký bên phải, chừa bốn dòng để ký như bản Word.
+            var signer = ws.Range(row + 5, 1 + last / 2, row + 5, last).Merge();
+            signer.FirstCell().Value = data.SecretaryName;
+            signer.Style.Font.SetBold(true).Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        }
 
         ws.Column(1).Width = 5;
         ws.Column(2).Width = 45;
@@ -1407,6 +1503,7 @@ public partial class ReportService : IReportService
             .Include(r => r.Department)
             .Include(r => r.PartyCell)
             .Include(r => r.Tasks)
+            .Include(r => r.ExternalResults)
             .FirstOrDefaultAsync(r => r.Id == recordId)
             ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đánh giá.");
     }

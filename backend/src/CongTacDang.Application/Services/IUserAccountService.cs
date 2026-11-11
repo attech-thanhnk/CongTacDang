@@ -57,6 +57,9 @@ public sealed record CreateAccountCommand(
 
     /// <summary>"yyyy-MM-dd"; trống → chưa nhập.</summary>
     public string? DateOfBirth { get; init; }
+
+    /// <summary>Trống → chưa nhập.</summary>
+    public string? EmployeeCode { get; init; }
 }
 
 /// <summary><see cref="TemporaryPassword"/> chỉ trả về một lần, không lưu dạng rõ.</summary>
@@ -80,6 +83,9 @@ public sealed record UpdateAccountCommand(
 
     /// <summary>"yyyy-MM-dd"; null → giữ nguyên, chuỗi rỗng → xóa.</summary>
     public string? DateOfBirth { get; init; }
+
+    /// <summary>Null → giữ nguyên, chuỗi rỗng → xóa.</summary>
+    public string? EmployeeCode { get; init; }
 }
 
 /// <param name="PageSize">Mặc định 20, tối đa 200.</param>

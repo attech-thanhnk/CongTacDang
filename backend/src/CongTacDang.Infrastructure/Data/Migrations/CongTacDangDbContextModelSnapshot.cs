@@ -2644,6 +2644,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("EmployeeCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int>("FailedLoginCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

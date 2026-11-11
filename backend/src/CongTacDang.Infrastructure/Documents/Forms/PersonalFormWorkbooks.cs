@@ -54,9 +54,9 @@ public static class PersonalFormWorkbooks
         TitleRow(ws, row++, last, "PHIẾU GIAO / ĐĂNG KÝ SẢN PHẨM, CÔNG VIỆC CHUYÊN MÔN HẰNG QUÝ", bold: true);
         TextRow(ws, row++, last, "(Dùng để thống nhất đầu ra, mốc quý, tiêu chuẩn và trọng số. Thông thường 03-07 sản phẩm/nhóm công việc; tổng trọng số cố định là 70 điểm.)", italic: true);
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
-        InfoRow(ws, row++, last, $"Họ và tên cán bộ: {data.FullName ?? Dots}", $"Mã số cán bộ: {Dots}");
+        InfoRow(ws, row++, last, $"Họ và tên cán bộ: {data.FullName ?? Dots}", $"Mã số cán bộ: {data.EmployeeCode ?? Dots}");
         InfoRow(ws, row++, last, $"Chức danh /Vị trí công tác: {data.Position ?? Dots}", $"Đơn vị công tác: {data.Department ?? Dots}");
-        InfoRow(ws, row++, last, $"Người quản lý trực tiếp: {Dots}", $"Chức vụ: {Dots}");
+        InfoRow(ws, row++, last, $"Người quản lý trực tiếp: {data.ManagerName ?? Dots}", $"Chức vụ: {data.ManagerPosition ?? Dots}");
         TextRow(ws, row++, last, "Khối chức danh áp dụng: ☐ Khối 1-Khai thác bay | ☐ Khối 2-Kỹ thuật CNS | ☐ Khối 3-An toàn/An ninh | ☐ Khối 4-Kế hoạch/Tài chính/Dự án | ☐ Khối 5-Công tác Đảng/TCCB/Đoàn thể | ☐ Khối 6-Văn phòng/Đối ngoại");
         TextRow(ws, row++, last, "(Ghi chú: Đăng ký từ 03 đến 07 sản phẩm/nhóm nhiệm vụ trọng tâm; Tổng trọng số cố định = 70 điểm; Hoàn thành trong 05 ngày làm việc đầu quý)", italic: true);
 
@@ -140,7 +140,7 @@ public static class PersonalFormWorkbooks
         TextRow(ws, row++, last, "Điểm sản phẩm (đ) = [Kết quả thực hiện sản phẩm (%) × Trọng số sản phẩm] / 100");
         row++;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("ĐẠI DIỆN LÃNH ĐẠO ĐƠN VỊ", SignNote), ("CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote));
-        SignNames(ws, row, last, null, data.UnitLeaderName, data.SelfName);
+        SignNames(ws, row, last, data.ApproverName, data.UnitLeaderName, data.SelfName);
 
         return Save(workbook, ws, head);
     }
@@ -362,7 +362,7 @@ public static class PersonalFormWorkbooks
             $"{data.CheckExcellent} Hoàn thành xuất sắc      {data.CheckGood} Hoàn thành tốt      {data.CheckDone} Hoàn thành nhiệm vụ      {data.CheckFailed} Không hoàn thành");
         row++;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("ĐẠI DIỆN CƠ QUAN THẨM ĐỊNH", SignNote));
-        SignNames(ws, row, last, null, data.SupervisorName, data.AppraiserName);
+        SignNames(ws, row, last, data.ApproverName, data.SupervisorName, data.AppraiserName);
 
         return Save(workbook, ws, head, landscape: false);
     }

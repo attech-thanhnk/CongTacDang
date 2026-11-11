@@ -94,7 +94,8 @@ public class UserController : ControllerBase
             PhoneNumber = request.PhoneNumber,
             ApprovalAuthorityReason = request.ApprovalAuthorityReason,
             WeightFrameCode = request.WeightFrameCode,
-            DateOfBirth = request.DateOfBirth
+            DateOfBirth = request.DateOfBirth,
+            EmployeeCode = request.EmployeeCode
         }, ct);
 
         return Ok(ApiResponse<CreatedAccount>.Ok(created,
@@ -113,7 +114,7 @@ public class UserController : ControllerBase
             request.PartyCardNumber,
             request.PositionTitle,
             request.DepartmentId,
-            request.PartyCellId) { WeightFrameCode = request.WeightFrameCode, DateOfBirth = request.DateOfBirth }, ct);
+            request.PartyCellId) { WeightFrameCode = request.WeightFrameCode, DateOfBirth = request.DateOfBirth, EmployeeCode = request.EmployeeCode }, ct);
         return Ok(ApiResponse<AccountListItemDto>.Ok(result, "Cập nhật tài khoản thành công."));
     }
 

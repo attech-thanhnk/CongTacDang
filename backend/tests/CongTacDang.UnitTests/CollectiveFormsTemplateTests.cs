@@ -138,6 +138,36 @@ public class CollectiveFormsTemplateTests
     }
 
     [Fact]
+    public void Mau06_07_08_SignNames_UnderSignatureBlocks()
+    {
+        var record = new CollectiveEvaluationRecord { Period = Period, Form = CollectiveEvaluationForm.M06, SubjectName = "Chi bộ Kỹ thuật" };
+        var noHead = new Dictionary<string, string>();
+
+        // Thủ trưởng: người đứng đầu ghi trong báo cáo, chưa ghi thì theo chức vụ.
+        var text06 = BodyText(Render(Mau06Data.TemplateFileName, Mau06Data.From(record, Header, noHead, "Trần Bí Thư", "Lê Thủ Trưởng")).Content);
+        Assert.Contains("THỦ TRƯỞNG ĐƠN VỊ\n(Ký, ghi rõ họ tên)\n\n\n\nLê Thủ Trưởng", text06);
+        Assert.Contains("BÍ THƯ\n(Ký, ghi rõ họ tên)\n\n\n\nTrần Bí Thư", text06);
+        Assert.Equal("Nguyễn Văn A",
+            Mau06Data.From(record, Header, new Dictionary<string, string> { ["H.NAME"] = "Nguyễn Văn A" }, null, "Lê Thủ Trưởng").HeadSignName);
+
+        Assert.Contains("Trần Bí Thư", BodyText(Render(Mau07Data.TemplateFileName, Mau07Data.From(record, Header, noHead, "Trần Bí Thư")).Content));
+        Assert.Contains("Trần Bí Thư", BodyText(Render(Mau08Data.TemplateFileName, Mau08Data.From(record, Header, "Trần Bí Thư")).Content));
+
+        // Không tìm được người: để trống như trước.
+        Assert.DoesNotContain("……", BodyText(Render(Mau08Data.TemplateFileName, Mau08Data.From(record, Header)).Content).Split("T/M")[^1]);
+    }
+
+    [Fact]
+    public void Mau16_DefaultReceivers_ByLevel()
+    {
+        Assert.Equal("- Ban Thường vụ Đảng ủy Tổng công ty B;\n- Các Ủy viên BCH;\n- Lưu Văn phòng Đảng ủy.",
+            Mau16Data.DefaultReceivers("Ban Thường vụ Đảng ủy Tổng công ty B", "ĐẢNG BỘ CÔNG TY A", baseLevel: true));
+        Assert.Equal("- Đảng ủy Công ty A;\n- Các Chi ủy viên;\n- Lưu.",
+            Mau16Data.DefaultReceivers("Đảng ủy Công ty A", "CHI BỘ KỸ THUẬT", baseLevel: false));
+        Assert.Null(Mau16Data.DefaultReceivers(null, "CHI BỘ KỸ THUẬT", baseLevel: false));
+    }
+
+    [Fact]
     public void Mau07_08_NeverSaved_UsesCreatedDate()
     {
         var record = new CollectiveEvaluationRecord
@@ -241,6 +271,12 @@ public class CollectiveFormsTemplateTests
         Assert.DoesNotContain("ĐẢNG BỘ CÔNG TY A đã", text);
         Assert.Contains("Hà Nội, ngày 26 tháng 09 năm 2026", text);
         Assert.Contains("ĐẢNG ỦY CÔNG TY A", text);
+
+        // Chưa ghi người ký → Bí thư của tổ chức; đã ghi trong bản nháp thì theo bản nháp.
+        var signed = BodyText(Render(Mau16Data.TemplateFileName, Mau16Data.From(Period, header, draft, secretary: "Lê Văn Bí Thư")).Content);
+        Assert.Contains("Lê Văn Bí Thư", signed);
+        draft.Content.SignerName = "Trần Văn Ký";
+        Assert.Equal("Trần Văn Ký", Mau16Data.From(Period, header, draft, secretary: "Lê Văn Bí Thư").SignerName);
     }
 
     [Fact]
@@ -297,7 +333,9 @@ public class CollectiveFormsTemplateTests
         Assert.Contains("Kính trình Ban Thường vụ Đảng ủy Tổng công ty B xem xét", text);
         Assert.Contains("Căn cứ Quy chế làm việc của Đảng ủy Công ty A nhiệm kỳ 2025-2030;", text);
         Assert.Contains("1. Kính đề nghị Đảng ủy Công ty A xem xét", text);
-        Assert.Contains("Các Ủy viên BCH,", text);
+        Assert.Contains("- Ban Thường vụ Đảng ủy Tổng công ty B;", text);
+        Assert.Contains("- Các Ủy viên BCH;", text);
+        Assert.DoesNotContain("Như trên", text);
         Assert.Contains("T/M ĐẢNG ỦY\n", text);
         Assert.DoesNotContain("(hoặc Đảng ủy cơ sở", text);
         Assert.DoesNotContain("Ghi chú: Tùy theo", text);

@@ -356,6 +356,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       items: [
         { label: "Tên đăng nhập", value: <code>{account.username}</code> },
         { label: "Ngày sinh", value: account.dateOfBirth ? formatDateOnly(account.dateOfBirth) : null },
+        { label: "Mã số cán bộ", value: account.employeeCode },
         { label: "Email", value: account.email },
         { label: "Số điện thoại", value: account.phoneNumber },
         { label: "Đăng nhập cuối", value: account.lastLoginAt ? formatDateTime(account.lastLoginAt) : "Chưa đăng nhập" },

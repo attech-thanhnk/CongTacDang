@@ -22,6 +22,8 @@ export interface TaskChangeProposal {
   exceedCriteria?: string | null;
   evidenceSource?: string | null;
   confirmer?: string | null;
+  /** Đơn vị / cá nhân phối hợp (việc đột xuất). */
+  coordination?: string | null;
   weight?: number | null;
 }
 
@@ -54,7 +56,7 @@ export interface TaskChangeRequestDto {
   canDecide: boolean;
   /** Ghi theo văn bản phê duyệt của cấp trên (người duyệt là tên cơ quan, ý kiến là số/ngày văn bản). */
   approvedExternally?: boolean;
-  /** Văn bản phê duyệt của cấp trên đính kèm. */
+  /** Văn bản phê duyệt của cấp trên, hoặc minh chứng người đề nghị đính kèm. */
   attachmentId?: string | null;
 }
 
@@ -82,6 +84,8 @@ export interface CreateTaskChangeRequest {
   reason: string;
   /** Bắt buộc khi cấp trên duyệt ngoài hệ thống; điều chỉnh được áp dụng ngay. */
   externalApproval?: TaskChangeExternalApproval;
+  /** Tệp minh chứng kèm đề nghị (đã tải lên), không dùng khi ghi theo cấp trên. */
+  attachmentId?: string | null;
 }
 
 export interface TaskChangeExternalApproval {

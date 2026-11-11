@@ -40,7 +40,7 @@ public sealed class Mau04Data
     /// <summary>Lý do, căn cứ chủ hồ sơ nhập khi gửi đề nghị.</summary>
     [TemplateField("REASON_DETAIL")] public string? ReasonDetail { get; init; }
 
-    /// <summary>Minh chứng kèm theo chưa lưu theo đề nghị → giữ chữ mặc định.</summary>
+    /// <summary>Tệp văn bản phê duyệt đã đính kèm đề nghị; không có → giữ dòng chấm để ghi tay.</summary>
     [TemplateField("EVIDENCE")] public string? Evidence { get; init; }
 
     [TemplateField("IMPACT")] public string? Impact { get; init; }
@@ -50,7 +50,7 @@ public sealed class Mau04Data
 
     [TemplateField("REQUESTER_SIGN")] public string? RequesterSign { get; init; }
 
-    public static Mau04Data From(TaskChangeFormSource source)
+    public static Mau04Data From(TaskChangeFormSource source, string? attachmentName = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         var record = source.Record;
@@ -78,6 +78,7 @@ public sealed class Mau04Data
             ContentBefore = Before(source, target),
             ContentAfter = After(source, fieldLines),
             ReasonDetail = FormText.OrNull(request.Reason),
+            Evidence = FormText.OrNull(attachmentName),
             Impact = ImpactText(source),
             ApproverSign = source.ApproverSign,
             RequesterSign = FormText.OrNull(request.RequestedByName)

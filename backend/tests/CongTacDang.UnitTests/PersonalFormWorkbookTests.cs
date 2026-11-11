@@ -43,19 +43,21 @@ public class PersonalFormWorkbookTests
         Assert.Equal(70, ws.Cell(total, 6).GetDouble());
         Assert.Contains("CÁ NHÂN ĐĂNG KÝ", Texts(ws));
 
-        // Họ tên dưới bốn ô ký; bước gửi chưa có người thực hiện thì để dòng chấm; đầu phiếu để ghi tay.
+        // Họ tên dưới bốn ô ký; bước gửi chưa có người thực hiện thì để dòng chấm.
         record.TasksApprovedById = Guid.NewGuid();
         record.TasksApprovedByName = "Nguyễn Văn Duyệt";
         record.TasksReviewedById = Guid.NewGuid();
         record.TasksReviewedByName = "Lê Thị Rà Soát";
-        using var approved = Open(PersonalFormWorkbooks.Mau01(Mau01Data.From(record), Org));
+        using var approved = Open(PersonalFormWorkbooks.Mau01(Mau01Data.From(record, null, "Giám đốc"), Org));
         var sheet = approved.Worksheet(1);
         var approval = Find(sheet, "CẤP CÓ THẨM QUYỀN PHÊ DUYỆT").Address;
         Assert.Equal("Nguyễn Văn Duyệt", sheet.Cell(approval.RowNumber + 5, approval.ColumnNumber).GetString());
         Assert.Equal("Lê Thị Rà Soát", sheet.Cell(approval.RowNumber + 5, Find(sheet, "CƠ QUAN TỔ CHỨC CÁN BỘ").Address.ColumnNumber).GetString());
         Assert.Equal("……", sheet.Cell(approval.RowNumber + 5, Find(sheet, "NGƯỜI TRỰC TIẾP SỬ DỤNG").Address.ColumnNumber).GetString());
         Assert.Equal(record.Member!.FullName, sheet.Cell(approval.RowNumber + 5, Find(sheet, "CÁ NHÂN ĐĂNG KÝ").Address.ColumnNumber).GetString());
-        Assert.Contains("Người quản lý trực tiếp: ……", Texts(sheet));
+        // Bước gửi tắt: người quản lý trực tiếp là người duyệt danh mục, kèm chức danh.
+        Assert.Contains("Người quản lý trực tiếp: Nguyễn Văn Duyệt", Texts(sheet));
+        Assert.Contains("Chức vụ: Giám đốc", Texts(sheet));
     }
 
     [Fact]

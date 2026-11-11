@@ -16,6 +16,9 @@ public sealed class Mau08Data
     /// <summary>Ô ký "T/M ĐẢNG ỦY" hoặc "T/M CHI BỘ" theo tổ chức lập báo cáo; không xác định → giữ chữ mặc định.</summary>
     [TemplateField("SIGN_ON_BEHALF")] public string? SignOnBehalf { get; init; }
 
+    /// <summary>Họ tên dưới ô ký Bí thư (Bí thư theo chức vụ của tổ chức); không có → để trống.</summary>
+    [TemplateField("SECRETARY_NAME")] public string? SecretaryName { get; init; }
+
     /// <summary>Lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
@@ -26,7 +29,8 @@ public sealed class Mau08Data
     /// <summary>Luôn đủ 13 dòng, đúng thứ tự.</summary>
     [TemplateCollection("ROWS")] public List<Mau08Row> Rows { get; init; } = new();
 
-    public static Mau08Data From(CollectiveEvaluationRecord record, PartyHeader header)
+    public static Mau08Data From(CollectiveEvaluationRecord record, PartyHeader header,
+        string? secretaryName = null)
     {
         var items = record.Items.OrderBy(i => i.ItemOrder).ToList();
         return new Mau08Data
@@ -34,6 +38,7 @@ public sealed class Mau08Data
             PartyParent = PartyHeader.Lines(header.Parent),
             PartyOrganization = PartyHeader.Lines(header.Organization),
             SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization),
+            SecretaryName = FormText.OrNull(secretaryName?.Trim()),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = " " + FormText.Year(record.Period.Year),

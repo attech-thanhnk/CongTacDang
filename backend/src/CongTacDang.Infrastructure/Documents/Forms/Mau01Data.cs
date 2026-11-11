@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -27,6 +29,15 @@ public sealed class Mau01Data
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
     [TemplateField("POSITION")] public string? Position { get; init; }
 
+    /// <summary>Mã số cán bộ theo hồ sơ cán bộ; chưa nhập → giữ dòng chấm.</summary>
+    [TemplateField("EMPLOYEE_CODE")] public string? EmployeeCode { get; init; }
+
+    /// <summary>Dòng "Người quản lý trực tiếp" đầu phiếu (<see cref="DirectManager"/>); không xác định → giữ dòng chấm.</summary>
+    [TemplateField("MANAGER_NAME")] public string? ManagerName { get; init; }
+
+    /// <summary>Chức danh trên hồ sơ cán bộ của người quản lý trực tiếp.</summary>
+    [TemplateField("MANAGER_POSITION")] public string? ManagerPosition { get; init; }
+
     // Bốn ô ký: người chưa thực hiện, bước tắt/bỏ qua hoặc cấp trên thực hiện → giữ dòng chấm để ký tay.
 
     /// <summary>Ô "Cá nhân đăng ký": chủ hồ sơ.</summary>
@@ -38,7 +49,7 @@ public sealed class Mau01Data
     /// <summary>Ô "Cơ quan tổ chức cán bộ": người rà soát, trình duyệt.</summary>
     [TemplateField("HR_REVIEWER_NAME")] public string? HrReviewerName { get; init; }
 
-    /// <summary>Ô "Cấp có thẩm quyền phê duyệt": người duyệt danh mục.</summary>
+    /// <summary>Ô "Cấp có thẩm quyền phê duyệt": <see cref="TaskApprover"/>.</summary>
     [TemplateField("APPROVER_NAME")] public string? ApproverName { get; init; }
 
     [TemplateCollection("TASKS")] public List<Mau01TaskRow> Tasks { get; init; } = new();
@@ -46,12 +57,41 @@ public sealed class Mau01Data
     /// <summary>Dòng "CỘNG": tổng trọng số các sản phẩm; chưa có sản phẩm → giữ chữ mặc định.</summary>
     [TemplateField("TOTAL_WEIGHT")] public string? TotalWeight { get; init; }
 
-    /// <summary><paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>).</summary>
-    public static Mau01Data From(EvaluationRecord record, string? adminParentLine = null)
+    /// <summary>
+    /// Trưởng đơn vị đã gửi danh mục; chủ hồ sơ tự gửi hoặc bước gửi tắt thì người duyệt danh mục.
+    /// Cấp trên duyệt bằng văn bản (không có người trong hệ thống) → null.
+    /// </summary>
+    /// <summary>Người duyệt danh mục; cấp trên duyệt thì tên cơ quan cấp trên đã ghi nhận; chưa duyệt → null.</summary>
+    public static string? TaskApprover(EvaluationRecord record) =>
+        record.TasksApprovedById != null
+            ? FormText.OrNull(record.TasksApprovedByName)
+            : ExternalAuthority(record, WorkflowStep.B1_APPROVE);
+
+    /// <summary>Tên cơ quan cấp trên đã ghi nhận kết quả bước <paramref name="step"/>; chưa ghi nhận → null.</summary>
+    public static string? ExternalAuthority(EvaluationRecord record, WorkflowStep step) =>
+        FormText.OrNull(record.ExternalResults?.FirstOrDefault(x => x.Step == step)?.AuthorityName?.Trim());
+
+    public static (Guid Id, string Name)? DirectManager(EvaluationRecord record)
+    {
+        if (record.TasksForwardedById is { } forwarder && forwarder != record.MemberId && FormText.OrNull(record.TasksForwardedByName) is { } forwardName)
+            return (forwarder, forwardName);
+        if (record.TasksApprovedById is { } approver && approver != record.MemberId && FormText.OrNull(record.TasksApprovedByName) is { } approveName)
+            return (approver, approveName);
+        return null;
+    }
+
+    /// <summary>
+    /// <paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>);
+    /// <paramref name="managerPosition"/>: chức danh của <see cref="DirectManager"/>.
+    /// </summary>
+    public static Mau01Data From(EvaluationRecord record, string? adminParentLine = null, string? managerPosition = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
+        var manager = DirectManager(record);
         return new Mau01Data
         {
+            ManagerName = manager?.Name,
+            ManagerPosition = manager == null ? null : FormText.OrNull(managerPosition),
             DateLine = CollectiveFormText.DateLine(record.TasksApprovedAt),
             AdminParentUpper = FormText.OrNull(adminParentLine),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
@@ -61,10 +101,11 @@ public sealed class Mau01Data
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
             Position = FormText.OrNull(record.Member?.PositionTitle),
+            EmployeeCode = FormText.OrNull(record.Member?.EmployeeCode?.Trim()),
             RegistrantName = FormText.OrNull(record.Member?.FullName),
             SupervisorName = record.TasksForwardedById != null ? FormText.OrNull(record.TasksForwardedByName) : null,
             HrReviewerName = record.TasksReviewedById != null ? FormText.OrNull(record.TasksReviewedByName) : null,
-            ApproverName = record.TasksApprovedById != null ? FormText.OrNull(record.TasksApprovedByName) : null,
+            ApproverName = TaskApprover(record),
             Tasks = tasks.Select((t, index) => new Mau01TaskRow
             {
                 Order = (index + 1).ToString(),

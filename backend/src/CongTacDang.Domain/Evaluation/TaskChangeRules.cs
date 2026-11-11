@@ -21,6 +21,8 @@ public sealed class TaskChangeProposal
     public string? ExceedCriteria { get; set; }
     public string? EvidenceSource { get; set; }
     public string? Confirmer { get; set; }
+    /// <summary>Đơn vị / cá nhân phối hợp, chỉ cho việc đột xuất (Mẫu 05).</summary>
+    public string? Coordination { get; set; }
     /// <summary>Chỉ cho việc đột xuất; việc hiện có lấy trọng số trong bảng sau điều chỉnh.</summary>
     public double? Weight { get; set; }
 }
@@ -267,7 +269,8 @@ public static class TaskChangeRules
         foreach (var (value, name) in new[]
                  {
                      (p.TargetOutput, "Chuẩn đạt"), (p.ExceedCriteria, "Tiêu chí vượt chuẩn"),
-                     (p.EvidenceSource, "Nguồn minh chứng"), (p.Confirmer, "Thẩm quyền xác nhận")
+                     (p.EvidenceSource, "Nguồn minh chứng"), (p.Confirmer, "Thẩm quyền xác nhận"),
+                     (p.Coordination, "Đơn vị / cá nhân phối hợp")
                  })
         {
             if (value?.Trim().Length > MaxTextLength)

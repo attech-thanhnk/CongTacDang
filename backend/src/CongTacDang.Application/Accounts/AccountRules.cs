@@ -54,6 +54,19 @@ public static partial class AccountRules
         return value;
     }
 
+    public const int EmployeeCodeMaxLength = 20;
+
+    /// <summary>Mã số cán bộ tùy chọn: trống → null; dài quá → <see cref="ValidationException"/>.</summary>
+    public static string? NormalizeOptionalEmployeeCode(string? value)
+    {
+        var text = value?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+            return null;
+        if (text.Length > EmployeeCodeMaxLength)
+            throw new ValidationException($"Mã số cán bộ \"{text}\" dài quá {EmployeeCodeMaxLength} ký tự. Hãy kiểm tra lại mã số.");
+        return text;
+    }
+
     public const int DateOfBirthMaxYears = 100;
 
     /// <summary>Ngày sinh tùy chọn "yyyy-MM-dd": trống → null; sai định dạng, ở tương lai hoặc quá xa → <see cref="ValidationException"/>.</summary>

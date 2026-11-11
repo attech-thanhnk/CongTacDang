@@ -190,6 +190,10 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             if (external.AttachmentId is { } attachmentId && attachmentId != Guid.Empty && _currentUser.UserId is { } userId)
                 await _attachments.EnsureCanLinkAttachmentsAsync(new[] { attachmentId }, userId);
         }
+        // Minh chứng kèm đề nghị điều chỉnh (in ở Mẫu 04): tệp người gửi vừa tải lên, chưa gắn nơi khác.
+        var evidenceId = external == null && type != TaskChangeType.Urgent && request.AttachmentId is { } evidence && evidence != Guid.Empty ? evidence : (Guid?)null;
+        if (evidenceId.HasValue && _currentUser.UserId is { } requesterId)
+            await _attachments.EnsureCanLinkAttachmentsAsync(new[] { evidenceId.Value }, requesterId);
 
         var tasks = await _records.GetTasksAsync(record.Id, ct);
         var proposal = request.Proposal ?? new TaskChangeProposal();
@@ -217,7 +221,8 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             RequestedById = _currentUser.UserId,
             RequestedByName = actorName,
             RequestedAt = now,
-            CreatedAt = now
+            CreatedAt = now,
+            AttachmentId = evidenceId
         };
         _repo.Add(change);
 
@@ -489,7 +494,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         {
             TaskName = p.TaskName?.Trim(), TargetOutput = p.TargetOutput?.Trim(), Deadline = p.Deadline, AxisCode = p.AxisCode?.Trim(),
             ProductCode = p.ProductCode?.Trim(), Role = p.Role?.Trim(), ExceedCriteria = p.ExceedCriteria?.Trim(),
-            EvidenceSource = p.EvidenceSource?.Trim(), Confirmer = p.Confirmer?.Trim(),
+            EvidenceSource = p.EvidenceSource?.Trim(), Confirmer = p.Confirmer?.Trim(), Coordination = p.Coordination?.Trim(),
             Weight = p.Weight.HasValue ? Math.Round(p.Weight.Value, 2) : null
         }
     };

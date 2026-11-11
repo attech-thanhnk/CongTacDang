@@ -73,7 +73,7 @@ public sealed class Mau10Data
     /// <summary>Mục 4 cột Thẩm định: kết quả sau khi người thẩm định chọn; chưa đủ để kết luận → giữ ô trống.</summary>
     [TemplateField("APPRAISAL_EXCELLENT")] public string? AppraisalExcellent { get; init; }
 
-    /// <summary>Mục 5 cột Cá nhân: "Không vi phạm" khi cán bộ đã cam kết; chưa đánh dấu → dòng chấm.</summary>
+    /// <summary>Mục 5 cột Cá nhân: "Không vi phạm" khi cán bộ đã cam kết, đã tự chấm mà không cam kết → "Không cam kết"; chưa tự chấm → dòng chấm.</summary>
     [TemplateField("SELF_CAP")] public string? SelfCap { get; init; }
 
     /// <summary>Mục 5 cột Thẩm định: "Không vi phạm" hoặc mức khống chế kèm lý do; chưa thẩm định → dòng chấm.</summary>
@@ -81,13 +81,17 @@ public sealed class Mau10Data
 
     // Ô ký: bước chưa làm hoặc do cấp trên thực hiện (không có người thực hiện trong hệ thống) → giữ dòng chấm.
 
+    /// <summary>Ô "Cấp có thẩm quyền duyệt": người ký quyết định xếp loại, cấp trên quyết định thì tên cơ quan cấp trên.</summary>
+    [TemplateField("APPROVER_NAME")] public string? ApproverName { get; init; }
+
     /// <summary>Ô "Người trực tiếp sử dụng": người đã nhận xét, đề xuất ở B3c (diện Trưởng đơn vị đề xuất là B3a).</summary>
     [TemplateField("SUPERVISOR_NAME")] public string? SupervisorName { get; init; }
 
     /// <summary>Ô "Đại diện cơ quan thẩm định": người đã thẩm định.</summary>
     [TemplateField("APPRAISER_NAME")] public string? AppraiserName { get; init; }
 
-    public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null, ExcellenceConditionReport? conditions = null)
+    public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null, ExcellenceConditionReport? conditions = null,
+        string? approverName = null)
     {
         string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
         // Chưa tự chấm (vd Chưa xếp loại): điểm tự chấm và chênh lệch để dòng chấm, không in 0.
@@ -117,7 +121,7 @@ public sealed class Mau10Data
             SupervisorComment = FormText.OrNull(supervisor.Comment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
-            MemberExplanation = FormText.OrNull(memberExplanation),
+            MemberExplanation = FormText.OrNull(memberExplanation) ?? (ExplanationNotRequired(record) ? NoExplanation : null),
             CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),
@@ -126,14 +130,30 @@ public sealed class Mau10Data
             AppraiserName = record.AppraisedById != null ? FormText.OrNull(record.AppraisedByName) : null,
             SelfExcellent = SelfExcellentText(record, conditions),
             AppraisalExcellent = AppraisalExcellentText(record, conditions),
-            SelfCap = record.SelfDeclaresNoCap == true ? NoViolation : null,
+            SelfCap = record.SelfDeclaresNoCap == true ? NoViolation : record.SelfScoredAt.HasValue ? NotCommitted : null,
+            ApproverName = FormText.OrNull(approverName?.Trim()),
             AppraisalCap = AppraisalCapText(record)
         };
     }
 
     public const string NoViolation = "Không vi phạm";
 
+    /// <summary>Đã tự chấm nhưng không đánh dấu cam kết không vi phạm.</summary>
+    public const string NotCommitted = "Không cam kết";
+
     public const string NotProposed = "Không đề xuất";
+
+    /// <summary>Ô giải trình của cá nhân khi chênh lệch tự chấm – thẩm định chưa tới ngưỡng phải giải trình.</summary>
+    public const string NoExplanation = "Không có";
+
+    /// <summary>Đã thẩm định, chênh lệch dưới ngưỡng của bộ tiêu chí → cá nhân không phải giải trình; thiếu bộ tiêu chí thì không kết luận.</summary>
+    public static bool ExplanationNotRequired(EvaluationRecord record)
+    {
+        if (!record.SelfScoredAt.HasValue || !record.AppraisalScore.HasValue)
+            return false;
+        var criteria = CongTacDang.Application.Services.EvaluationMapping.SafeCriteria(record.Period);
+        return criteria != null && !EvaluationScoring.RequiresExplanation(criteria.Content, record.TotalSelfScore, record.AppraisalScore);
+    }
 
     /// <summary>Khoảng trắng không ngắt để cặp ô Đạt/Không nằm trên một dòng.</summary>
     public static string Boxes(bool met) => met ? $"☒{Nbsp}Đạt{Nbsp}{Nbsp}☐{Nbsp}Không" : $"☐{Nbsp}Đạt{Nbsp}{Nbsp}☒{Nbsp}Không";

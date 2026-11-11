@@ -83,6 +83,7 @@ public sealed class UserAccountService : IUserAccountService
         if (fullName.Length == 0)
             throw new ValidationException("Họ và tên không được để trống. Hãy nhập họ và tên cán bộ.");
         var dateOfBirth = AccountRules.ParseOptionalDateOfBirth(cmd.DateOfBirth, Today());
+        var employeeCode = AccountRules.NormalizeOptionalEmployeeCode(cmd.EmployeeCode);
         var email = AccountRules.NormalizeOptionalEmail(cmd.Email);
         if (cmd.ApprovalAuthority.HasValue && !Enum.IsDefined(cmd.ApprovalAuthority.Value))
             throw new ValidationException("Cấp có thẩm quyền quyết định xếp loại không hợp lệ. Hãy chọn Đảng ủy cơ sở hoặc cấp trên, hoặc để trống để suy ra từ chức vụ.");
@@ -123,6 +124,7 @@ public sealed class UserAccountService : IUserAccountService
             Username = username,
             FullName = fullName,
             DateOfBirth = dateOfBirth,
+            EmployeeCode = employeeCode,
             Email = email,
             PhoneNumber = cmd.PhoneNumber?.Trim() ?? string.Empty,
             PartyCardNumber = partyCardNumber,
@@ -202,6 +204,8 @@ public sealed class UserAccountService : IUserAccountService
 
         if (cmd.DateOfBirth != null)
             member.DateOfBirth = AccountRules.ParseOptionalDateOfBirth(cmd.DateOfBirth, Today());
+        if (cmd.EmployeeCode != null)
+            member.EmployeeCode = AccountRules.NormalizeOptionalEmployeeCode(cmd.EmployeeCode);
         if (cmd.Email != null)
             member.Email = AccountRules.NormalizeOptionalEmail(cmd.Email);
         if (cmd.PhoneNumber != null)
@@ -346,6 +350,7 @@ public sealed class UserAccountService : IUserAccountService
         Username = m.Username,
         FullName = m.FullName,
         DateOfBirth = m.DateOfBirth,
+        EmployeeCode = m.EmployeeCode,
         Email = m.Email,
         PhoneNumber = m.PhoneNumber,
         PartyCardNumber = m.PartyCardNumber,

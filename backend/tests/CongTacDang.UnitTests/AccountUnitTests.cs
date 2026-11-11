@@ -42,6 +42,16 @@ public sealed class AccountUnitTests
     }
 
     [Fact]
+    public void EmployeeCode_TrimsEmptyIsNull_RejectsTooLong()
+    {
+        Assert.Equal("ld7", AccountRules.NormalizeOptionalEmployeeCode(" ld7 "));
+        Assert.Null(AccountRules.NormalizeOptionalEmployeeCode("  "));
+        Assert.Null(AccountRules.NormalizeOptionalEmployeeCode(null));
+        var ex = Assert.Throws<ValidationException>(() => AccountRules.NormalizeOptionalEmployeeCode(new string('x', AccountRules.EmployeeCodeMaxLength + 1)));
+        Assert.Contains("Mã số cán bộ", ex.Message);
+    }
+
+    [Fact]
     public void DateOfBirth_ParsesIsoDate_AndEmptyIsNull()
     {
         var today = new DateOnly(2026, 10, 6);

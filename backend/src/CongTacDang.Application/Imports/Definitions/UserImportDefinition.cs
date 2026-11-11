@@ -25,6 +25,9 @@ public sealed class UserImportRow
     /// <summary>Ngày sinh dạng yyyy-MM-dd; null = trống.</summary>
     public string? DateOfBirth { get; init; }
 
+    /// <summary>Mã số cán bộ; null = trống (giữ nguyên khi cập nhật).</summary>
+    public string? EmployeeCode { get; init; }
+
     /// <summary>Email (đã kiểm tra); rỗng = trống.</summary>
     public string Email { get; init; } = string.Empty;
 
@@ -77,7 +80,7 @@ public sealed class UserImportRow
 /// </summary>
 public sealed partial class UserImportDefinition : ImportDefinition<UserImportRow>
 {
-    public const string UsernameKey = "username", FullNameKey = "fullName", DateOfBirthKey = "dateOfBirth", EmailKey = "email",
+    public const string UsernameKey = "username", FullNameKey = "fullName", DateOfBirthKey = "dateOfBirth", EmployeeCodeKey = "employeeCode", EmailKey = "email",
         PhoneKey = "phone", DepartmentKey = "departmentCode", PartyCellKey = "partyCellCode", PartyMemberKey = "isPartyMember",
         PartyCardKey = "partyCardNumber", PositionsKey = "positions", WeightFrameKey = "weightFrame", FormLayoutKey = "formLayout";
 
@@ -125,6 +128,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
         new(UsernameKey, "Tên đăng nhập", true, "Chữ không dấu, số và . _ - (3–50 ký tự). Đã có thì dòng này cập nhật tài khoản đó.", Example: "nguyen.van.a"),
         new(FullNameKey, "Họ và tên", true, "Họ và tên đầy đủ.", Example: "Nguyễn Văn A"),
         new(DateOfBirthKey, "Ngày sinh", false, "Dạng dd/MM/yyyy.", Example: "15/08/1980"),
+        new(EmployeeCodeKey, "Mã số cán bộ", false, "Mã nhân viên theo quản lý nhân sự (tối đa 20 ký tự).", Example: "ld7"),
         new(EmailKey, "Email", false, "Thư điện tử.", Example: "a.nv@donvi.vn"),
         new(PhoneKey, "Điện thoại", false, "Số điện thoại (để dạng chữ để giữ số 0 đầu).", Example: "0912345678"),
         new(DepartmentKey, "Mã đơn vị", false, "Mã đơn vị chính quyền đang công tác (phải có trong danh mục, đang hoạt động).", Example: "PH-KT"),
@@ -176,6 +180,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             Try(result, () => AccountRules.ParseOptionalDateOfBirth(dateOfBirth, Today()));
         }
 
+        var employeeCode = Try(result, () => AccountRules.NormalizeOptionalEmployeeCode(raw.Get(EmployeeCodeKey)));
         var email = Try(result, () => AccountRules.NormalizeOptionalEmail(raw.Get(EmailKey))) ?? string.Empty;
         var phone = raw.Get(PhoneKey).Trim();
         if (phone.Length > MaxPhoneLength)
@@ -201,6 +206,7 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             Username = username,
             FullName = fullName,
             DateOfBirth = dateOfBirth,
+            EmployeeCode = employeeCode,
             Email = email,
             Phone = phone,
             DepartmentCode = CatalogRules.NormalizeCode(raw.Get(DepartmentKey)),
@@ -333,7 +339,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
                     {
                         PhoneNumber = data.Phone,
                         WeightFrameCode = data.WeightFrameCode,
-                        DateOfBirth = data.DateOfBirth
+                        DateOfBirth = data.DateOfBirth,
+                        EmployeeCode = data.EmployeeCode
                     }, ct);
                     for (var i = 0; i < data.Positions.Count; i++)
                         await _positions.AddMemberPositionAsync(account.UserId, PositionInput(data.Positions[i], data, isPrimary: i == 0), ct);
@@ -362,7 +369,8 @@ public sealed partial class UserImportDefinition : ImportDefinition<UserImportRo
             PartyCellId: data.PartyCellCode.Length == 0 ? null : data.PartyCellId)
         {
             WeightFrameCode = data.WeightFrameCode,
-            DateOfBirth = data.DateOfBirth
+            DateOfBirth = data.DateOfBirth,
+            EmployeeCode = data.EmployeeCode
         };
     }
 

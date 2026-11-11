@@ -1,5 +1,6 @@
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Documents;
 using CongTacDang.Infrastructure.Documents.Forms;
 using CongTacDang.Infrastructure.Services;
@@ -382,6 +383,88 @@ public class DocumentTemplateTests
         Assert.Contains("Căn cứ: biên bản nghiệm thu", text);
     }
 
+    [Fact]
+    public void Mau10_MemberExplanation_NotRequiredBelowThreshold_PrintsNone()
+    {
+        var record = SampleData().Records[0];
+        record.Period!.CriteriaSnapshot = new CongTacDang.Domain.Evaluation.CriteriaSnapshot
+        {
+            SetId = Guid.NewGuid(), Code = "T", Name = "Bộ thử", Content = CongTacDang.Domain.Evaluation.CriteriaSetDefaults.Build()
+        }.ToJson();
+        record.SelfScoredAt = new DateTime(2026, 9, 11, 2, 0, 0, DateTimeKind.Utc);
+        record.TotalSelfScore = 85;
+
+        // Chênh lệch dưới ngưỡng → không phải giải trình.
+        record.AppraisalScore = 83;
+        Assert.Equal(Mau10Data.NoExplanation, Mau10Data.From(record).MemberExplanation);
+
+        // Tới ngưỡng mà cá nhân chưa giải trình → giữ dòng chấm.
+        record.AppraisalScore = 78;
+        Assert.Null(Mau10Data.From(record).MemberExplanation);
+
+        // Chưa thẩm định → chưa kết luận.
+        record.AppraisalScore = null;
+        Assert.Null(Mau10Data.From(record).MemberExplanation);
+    }
+
+    [Fact]
+    public void Mau10_SelfCap_NotCommittedAfterSelfScore_DotsBefore()
+    {
+        var record = SampleData().Records[0];
+        record.SelfScoredAt = null;
+        record.SelfDeclaresNoCap = null;
+        Assert.Null(Mau10Data.From(record).SelfCap);
+
+        record.SelfScoredAt = new DateTime(2026, 9, 11, 2, 0, 0, DateTimeKind.Utc);
+        Assert.Equal(Mau10Data.NotCommitted, Mau10Data.From(record).SelfCap);
+
+        record.SelfDeclaresNoCap = true;
+        Assert.Equal(Mau10Data.NoViolation, Mau10Data.From(record).SelfCap);
+    }
+
+    [Fact]
+    public void Mau10_ApproverCell_PrintsGivenSigner()
+    {
+        var record = SampleData().Records[0];
+        var data = Mau10Data.From(record, approverName: "Trần Văn Ký");
+        var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(Mau10Data.TemplateFileName), TemplateDataBinder.Bind(data));
+        using var doc = Open(result.Content);
+        Assert.Contains("CẤP CÓ THẨM QUYỀN DUYỆT(Ký, ghi rõ họ tên)Trần Văn Ký", doc.MainDocumentPart!.Document!.Body!.InnerText);
+        Assert.Null(Mau10Data.From(record).ApproverName);
+    }
+
+    [Fact]
+    public void Mau01_02_TaskApprover_PersonOrRecordedSuperiorBody()
+    {
+        var record = SampleData().Records[0];
+        record.TasksApprovedById = Guid.NewGuid();
+        record.TasksApprovedByName = "Lê Văn Duyệt";
+        Assert.Equal("Lê Văn Duyệt", Mau02Data.From(record).ApproverName);
+        Assert.Equal("Lê Văn Duyệt", Mau01Data.From(record).ApproverName);
+
+        // Cấp trên duyệt ngoài hệ thống: tên cơ quan đã ghi nhận, không có tên người.
+        record.TasksApprovedById = null;
+        record.ExternalResults.Add(new EvaluationExternalResult { Step = WorkflowStep.B1_APPROVE, AuthorityName = "Hội đồng thành viên Tổng công ty" });
+        Assert.Equal("Hội đồng thành viên Tổng công ty", Mau02Data.From(record).ApproverName);
+
+        record.ExternalResults.Clear();
+        Assert.Null(Mau02Data.From(record).ApproverName);
+    }
+
+    [Fact]
+    public void Mau01_EmployeeCode_FromProfile_DotsWhenMissing()
+    {
+        var record = SampleData().Records[0];
+        record.Member!.EmployeeCode = "ld7";
+        var template = new FileWordTemplateStore().Load(Mau01Data.TemplateFileName);
+        using (var doc = Open(DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(Mau01Data.From(record))).Content))
+            Assert.Contains("Mã số cán bộ: ld7", doc.MainDocumentPart!.Document!.Body!.InnerText);
+
+        record.Member.EmployeeCode = null;
+        using (var doc = Open(DocxTemplateEngine.Render(template, TemplateDataBinder.Bind(Mau01Data.From(record))).Content))
+            Assert.Contains("Mã số cán bộ: ……", doc.MainDocumentPart!.Document!.Body!.InnerText);
+    }
+
     [Theory]
     [InlineData("SELF_EXCELLENT")]
     [InlineData("APPRAISAL_EXCELLENT")]
@@ -455,7 +538,7 @@ public class DocumentTemplateTests
         Assert.True(Sig("Trần Văn Gửi") > Sig("NGƯỜI TRỰC TIẾP SỬ DỤNG") && Sig("Trần Văn Gửi") < Sig("CÁ NHÂN ĐĂNG KÝ"), mau01);
         Assert.True(Sig(record.Member!.FullName) > Sig("CÁ NHÂN ĐĂNG KÝ"), mau01);
         Assert.Equal(At("Nguyễn Văn Duyệt"), mau01.LastIndexOf("Nguyễn Văn Duyệt", StringComparison.Ordinal));
-        Assert.Contains("Người quản lý trực tiếp: ................................", mau01);
+        Assert.Contains("Người quản lý trực tiếp: Trần Văn Gửi  Chức vụ: ………", mau01);
 
         // Cấp trên duyệt, bước gửi tắt hoặc bỏ qua: ô tương ứng giữ dòng chấm.
         record.TasksApprovedById = null;
@@ -463,6 +546,8 @@ public class DocumentTemplateTests
         record.TasksForwardedById = null;
         record.TasksForwardedByName = null;
         var external = Mau01Data.From(record);
+        Assert.Null(external.ManagerName);
+        Assert.Contains("Người quản lý trực tiếp: ................................", Text(Mau01Data.TemplateFileName, external));
         Assert.Null(external.ApproverName);
         Assert.Null(external.SupervisorName);
         Assert.Equal("Lê Thị Rà Soát", external.HrReviewerName);
