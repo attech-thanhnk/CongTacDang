@@ -399,8 +399,9 @@ public class CollectiveEvaluationService : ICollectiveEvaluationService
 
     public async Task<List<EvaluationMeetingDto>> GetMeetingsAsync(Guid periodId, Guid requesterId, Guid? partyCellId = null)
     {
-        // Không có phạm vi phù hợp → danh sách rỗng.
-        var scope = _guard.GetScope(PermissionCodes.MeetingRead).Union(_guard.GetScope(PermissionCodes.MeetingManage));
+        // Người ghi đề xuất bước 3a cần chọn biên bản dù không có quyền xem biên bản. Không có phạm vi phù hợp → danh sách rỗng.
+        var scope = _guard.GetScope(PermissionCodes.MeetingRead).Union(_guard.GetScope(PermissionCodes.MeetingManage))
+            .Union(_guard.GetScope(PermissionCodes.EvaluationCollectiveRecord)).Union(_guard.GetScope(PermissionCodes.EvaluationUnitReview));
         if (scope.IsEmpty)
             return new List<EvaluationMeetingDto>();
 

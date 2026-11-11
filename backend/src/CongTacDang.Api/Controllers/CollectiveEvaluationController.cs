@@ -90,7 +90,7 @@ public class CollectiveEvaluationController : ControllerBase
 
     /// <summary>Lấy biên bản hội nghị trong một kỳ.</summary>
     [HttpGet("meetings")]
-    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage)]
+    [RequireAnyPermission(PermissionCodes.MeetingRead, PermissionCodes.MeetingManage, PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.EvaluationUnitReview)]
     public async Task<IActionResult> GetMeetings([FromQuery] Guid periodId, [FromQuery] Guid? partyCellId)
     {
         var meetings = await _service.GetMeetingsAsync(periodId, GetCurrentUserId(), partyCellId);

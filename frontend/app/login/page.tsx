@@ -86,7 +86,7 @@ function LoginForm() {
             required
             autoFocus
             autoComplete="username"
-            placeholder="Tên đăng nhập hoặc email"
+            placeholder="Nhập tên đăng nhập"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="form-control"
@@ -101,6 +101,7 @@ function LoginForm() {
             type="password"
             required
             autoComplete="current-password"
+            placeholder="Nhập mật khẩu"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="form-control"
