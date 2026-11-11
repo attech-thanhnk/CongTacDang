@@ -68,7 +68,7 @@ public sealed class Mau04Data
             Quarter = Mau09Shared.Quarter(record),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
+            Position = FormText.OrNull(source.Title) ?? FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             AffectedTask = name == null ? null : code == null ? name : $"{name} (Mã SP: {code})",
             BoxAdjust = request.Type == TaskChangeType.Adjust && (fieldLines.Count > 0 || !weightChanged) ? CheckedBox : null,

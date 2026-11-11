@@ -95,6 +95,7 @@ public sealed class PositionService : IPositionService
         {
             Name = name,
             Side = side,
+            FormTitle = ParseFormTitle(input.FormTitle),
             StatCode = ParseStatCode(input.StatCode),
             DefaultApprovalAuthority = ParseAuthority(input.DefaultApprovalAuthority),
             DefaultWorkflowProfileCode = ParseWorkflowProfileCode(input.DefaultWorkflowProfileCode),
@@ -132,6 +133,8 @@ public sealed class PositionService : IPositionService
                 throw new ValidationException("Bên của chức vụ không hợp lệ. Hãy chọn Đảng, Chính quyền, Đoàn thể hoặc Khác.");
             position.Side = side;
         }
+        if (input.FormTitle != null)
+            position.FormTitle = ParseFormTitle(input.FormTitle);
         if (input.PartyUnitTypeId != null)
             position.PartyUnitTypeId = await ParsePartyUnitTypeAsync(input.PartyUnitTypeId, position.Side, ct);
         // Đổi sang bên khác Đảng thì bỏ cấp tổ chức Đảng.
@@ -527,6 +530,17 @@ public sealed class PositionService : IPositionService
         return name;
     }
 
+    /// <summary>Rỗng → null (in tên chức vụ).</summary>
+    private static string? ParseFormTitle(string? value)
+    {
+        var title = value?.Trim() ?? string.Empty;
+        if (title.Length == 0)
+            return null;
+        if (title.Length > PositionRules.MaxNameLength)
+            throw new ValidationException($"Chức danh khi in dài quá {PositionRules.MaxNameLength} ký tự. Hãy rút ngắn.");
+        return title;
+    }
+
     private static string? ParseStatCode(string? value)
     {
         try
@@ -592,6 +606,7 @@ public sealed class PositionService : IPositionService
         Id = p.Id,
         Name = p.Name,
         Side = p.Side.ToString(),
+        FormTitle = p.FormTitle,
         StatCode = p.StatCode,
         DefaultApprovalAuthority = p.DefaultApprovalAuthority?.ToString(),
         DefaultWorkflowProfileCode = p.DefaultWorkflowProfileCode,

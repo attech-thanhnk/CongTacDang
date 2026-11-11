@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CongTacDang.Application.Common;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
+using CongTacDang.Infrastructure.Data;
 using CongTacDang.Infrastructure.Documents;
 using CongTacDang.Infrastructure.Documents.Forms;
 
@@ -19,9 +20,12 @@ public sealed class ImprovementPlanDocumentService : IImprovementPlanDocument
     private readonly IWordTemplateStore _templates;
     private readonly IOrganizationSettingsService _orgSettings;
     private readonly IPdfConverter _pdfConverter;
+    private readonly CongTacDangDbContext _db;
 
-    public ImprovementPlanDocumentService(IWordTemplateStore templates, IOrganizationSettingsService orgSettings, IPdfConverter pdfConverter)
+    public ImprovementPlanDocumentService(IWordTemplateStore templates, IOrganizationSettingsService orgSettings, IPdfConverter pdfConverter,
+        CongTacDangDbContext db)
     {
+        _db = db;
         _templates = templates;
         _orgSettings = orgSettings;
         _pdfConverter = pdfConverter;
@@ -32,7 +36,8 @@ public sealed class ImprovementPlanDocumentService : IImprovementPlanDocument
     {
         var template = await _templates.LoadAsync(Mau17Data.TemplateFileName, ct);
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
-        var data = TemplateDataBinder.Bind(Mau17Data.From(plan, record)).WithShared(TemplateDataBinder.Bind(org));
+        var data = TemplateDataBinder.Bind(Mau17Data.From(plan, record,
+            await FormPositions.PrimaryTitleAsync(_db, record.MemberId, FormPositions.At(record.Period), ct))).WithShared(TemplateDataBinder.Bind(org));
         var bytes = DocxTemplateEngine.Render(template, data).Content;
 
         var fullName = string.IsNullOrWhiteSpace(record.Member?.FullName) ? "CanBo" : record.Member!.FullName;

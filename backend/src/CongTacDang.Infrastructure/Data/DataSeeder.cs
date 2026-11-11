@@ -456,6 +456,43 @@ public static class DataSeeder
         ("Trạm", OrgSide.Administrative)
     };
 
+    /// <summary>Chức danh in mặc định theo tên chức vụ (như migration ThemChucDanhIn); chức vụ không có ở đây in tên chức vụ.</summary>
+    private static readonly Dictionary<string, string> DefaultFormTitles = new(StringComparer.Ordinal)
+    {
+        ["Bí thư Đảng ủy"] = "Bí thư Đảng ủy Công ty",
+        ["Phó Bí thư Đảng ủy"] = "Phó Bí thư Đảng ủy Công ty",
+        ["Ủy viên Ban Thường vụ Đảng ủy"] = "Ủy viên Ban Thường vụ Đảng ủy Công ty",
+        ["Đảng ủy viên"] = "Ủy viên Ban Chấp hành Đảng bộ Công ty",
+        ["Chủ nhiệm Ủy ban Kiểm tra Đảng ủy"] = "Chủ nhiệm Ủy ban Kiểm tra Đảng ủy Công ty",
+        ["Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy"] = "Phó Chủ nhiệm Ủy ban Kiểm tra Đảng ủy Công ty",
+        ["Ủy viên Ủy ban Kiểm tra Đảng ủy"] = "Ủy viên Ủy ban Kiểm tra Đảng ủy Công ty",
+        ["Bí thư Đảng bộ bộ phận"] = "Bí thư {don_vi}",
+        ["Phó Bí thư Đảng bộ bộ phận"] = "Phó Bí thư {don_vi}",
+        ["Ủy viên Ban Chấp hành Đảng bộ bộ phận"] = "Ủy viên Ban Chấp hành {don_vi}",
+        ["Bí thư Chi bộ"] = "Bí thư {don_vi}",
+        ["Phó Bí thư Chi bộ"] = "Phó Bí thư {don_vi}",
+        ["Bí thư Chi bộ trực thuộc Đảng bộ bộ phận"] = "Bí thư {don_vi}",
+        ["Phó Bí thư Chi bộ trực thuộc Đảng bộ bộ phận"] = "Phó Bí thư {don_vi}",
+        ["Chi ủy viên"] = "Chi ủy viên {don_vi}",
+        ["Chủ tịch Công ty"] = "Chủ tịch Công ty",
+        ["Giám đốc"] = "Giám đốc Công ty",
+        ["Phó Giám đốc"] = "Phó Giám đốc Công ty",
+        ["Kiểm soát viên"] = "Kiểm soát viên chủ sở hữu tại Công ty",
+        ["Trưởng phòng"] = "Trưởng {don_vi}",
+        ["Phó Trưởng phòng"] = "Phó Trưởng {don_vi}",
+        ["Trưởng trung tâm"] = "Trưởng {don_vi}",
+        ["Phó Trưởng trung tâm"] = "Phó Trưởng {don_vi}",
+        ["Quản đốc"] = "Quản đốc {don_vi}",
+        ["Phó Quản đốc"] = "Phó Quản đốc {don_vi}",
+        ["Giám đốc đơn vị trực thuộc"] = "Giám đốc {don_vi}",
+        ["Phó Giám đốc đơn vị trực thuộc"] = "Phó Giám đốc {don_vi}",
+        ["Chánh Văn phòng"] = "Chánh {don_vi}",
+        ["Phó Chánh Văn phòng"] = "Phó Chánh {don_vi}",
+        ["Đội trưởng"] = "Đội trưởng {don_vi}",
+        ["Đài trưởng"] = "Đài trưởng {don_vi}",
+        ["Trạm trưởng"] = "Trạm trưởng {don_vi}"
+    };
+
     private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false,
         string? WorkflowProfile = null);
 
@@ -570,6 +607,7 @@ public static class DataSeeder
             {
                 Name = p.Name,
                 Side = p.Side,
+                FormTitle = DefaultFormTitles.GetValueOrDefault(p.Name),
                 StatCode = p.StatCode,
                 DefaultApprovalAuthority = p.Authority,
                 IsLeadership = p.IsLeadership,

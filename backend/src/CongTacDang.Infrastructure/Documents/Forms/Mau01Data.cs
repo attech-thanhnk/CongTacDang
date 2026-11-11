@@ -82,9 +82,9 @@ public sealed class Mau01Data
 
     /// <summary>
     /// <paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>);
-    /// <paramref name="managerPosition"/>: chức danh của <see cref="DirectManager"/>.
+    /// <paramref name="managerPosition"/>: chức danh của <see cref="DirectManager"/>; <paramref name="position"/>: chức danh in của cán bộ (null → chức danh trên hồ sơ).
     /// </summary>
-    public static Mau01Data From(EvaluationRecord record, string? adminParentLine = null, string? managerPosition = null)
+    public static Mau01Data From(EvaluationRecord record, string? adminParentLine = null, string? managerPosition = null, string? position = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
         var manager = DirectManager(record);
@@ -100,7 +100,7 @@ public sealed class Mau01Data
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(position) ?? FormText.OrNull(record.Member?.PositionTitle),
             EmployeeCode = FormText.OrNull(record.Member?.EmployeeCode?.Trim()),
             RegistrantName = FormText.OrNull(record.Member?.FullName),
             SupervisorName = record.TasksForwardedById != null ? FormText.OrNull(record.TasksForwardedByName) : null,

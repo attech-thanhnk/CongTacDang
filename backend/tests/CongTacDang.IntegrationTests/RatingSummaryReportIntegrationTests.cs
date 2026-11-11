@@ -70,7 +70,7 @@ public sealed class RatingSummaryReportIntegrationTests
             Assert.True(b1.Cell(12).IsEmpty());
             // 2 phiên bản của một tệp (tính 1) + văn bản của cấp trên = 2 tệp.
             Assert.Equal("2 tệp đính kèm", b1.Cell(13).GetString());
-            Assert.Contains($"Phòng RS2 {s.Suffix}", b1.Cell(4).GetString());
+            Assert.Equal($"Trưởng Phòng RS2 {s.Suffix}", b1.Cell(4).GetString());
         }
 
         // Phạm vi đơn vị chính quyền D2: chỉ hồ sơ b1; khối cấp trên không có cán bộ.
@@ -147,6 +147,8 @@ public sealed class RatingSummaryReportIntegrationTests
                 var position = new Position
                 {
                     Name = $"RS {code} {sfx}", StatCode = code, DefaultApprovalAuthority = authority, IsLeadership = true,
+                    // Chức danh in kèm đơn vị gắn với chức vụ (cột 4).
+                    FormTitle = code == "M26" ? "Trưởng {don_vi}" : null,
                     Side = code == "M26" ? PositionSide.Administrative : PositionSide.Party
                 };
                 db.Add(position);
@@ -166,8 +168,8 @@ public sealed class RatingSummaryReportIntegrationTests
         await _factory.WithDbAsync(async db =>
         {
             var from = DateTime.UtcNow.AddYears(-1);
-            foreach (var (user, code) in new[] { (c1, "M8"), (a1, "M22"), (a2, "M26"), (b1, "M26") })
-                db.Add(new MemberPosition { UserId = user.Id, PositionId = positions[code], IsPrimary = true, ValidFrom = from });
+            foreach (var (user, code, dept) in new[] { (c1, "M8", (Guid?)null), (a1, "M22", null), (a2, "M26", dept1), (b1, "M26", dept2) })
+                db.Add(new MemberPosition { UserId = user.Id, PositionId = positions[code], DepartmentId = dept, IsPrimary = true, ValidFrom = from });
 
             EvaluationRecord Record(TestUser owner, Guid dept, Guid cell, ApprovalAuthority authority, bool selfScored) => new()
             {

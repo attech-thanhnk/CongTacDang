@@ -2825,6 +2825,10 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<Guid?>("FormLayoutId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("FormTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 

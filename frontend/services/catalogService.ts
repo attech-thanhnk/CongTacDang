@@ -84,6 +84,8 @@ export interface Position {
   id: string;
   name: string;
   side: PositionSide;
+  /** Mẫu chức danh khi in biểu mẫu, `{don_vi}` = đơn vị gắn với chức vụ; trống = in tên chức vụ. */
+  formTitle?: string | null;
   /** Mã chức danh Mẫu 15A/15B (M1…M26). */
   statCode?: string | null;
   defaultApprovalAuthority?: ApprovalAuthorityCode | null;
@@ -112,6 +114,8 @@ export interface WorkflowProfileOption {
 export interface SavePositionPayload {
   name?: string;
   side?: PositionSide;
+  /** Rỗng = in tên chức vụ. */
+  formTitle?: string;
   statCode?: string;
   /** Id kiểu trình bày; rỗng = không xác định. */
   formLayoutId?: string;

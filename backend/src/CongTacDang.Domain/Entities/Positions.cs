@@ -13,6 +13,9 @@ public class Position : IAuditableEntity, ISoftDeletable
 
     public PositionSide Side { get; set; } = PositionSide.Administrative;
 
+    /// <summary>Mẫu chức danh khi in biểu mẫu, <c>{don_vi}</c> thay bằng đơn vị gắn với chức vụ; null = in tên chức vụ.</summary>
+    public string? FormTitle { get; set; }
+
     /// <summary>Mã chức danh thống kê Mẫu 15A/15B (M1…M26); null = không thuộc nhóm thống kê.</summary>
     public string? StatCode { get; set; }
 

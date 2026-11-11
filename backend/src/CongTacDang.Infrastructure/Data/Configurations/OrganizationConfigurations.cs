@@ -93,6 +93,7 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
         entity.Property(e => e.StatCode).HasMaxLength(10);
         entity.Property(e => e.DefaultApprovalAuthority).HasConversion<int?>();
         entity.Property(e => e.DefaultWorkflowProfileCode).HasMaxLength(50);
+        entity.Property(e => e.FormTitle).HasMaxLength(200);
         entity.HasIndex(e => e.Name).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
         entity.HasQueryFilter(e => !e.IsDeleted);
 

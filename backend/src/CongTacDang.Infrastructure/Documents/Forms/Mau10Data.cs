@@ -91,7 +91,7 @@ public sealed class Mau10Data
     [TemplateField("APPRAISER_NAME")] public string? AppraiserName { get; init; }
 
     public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null, ExcellenceConditionReport? conditions = null,
-        string? approverName = null)
+        string? approverName = null, string? position = null)
     {
         string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
         // Chưa tự chấm (vd Chưa xếp loại): điểm tự chấm và chênh lệch để dòng chấm, không in 0.
@@ -105,7 +105,7 @@ public sealed class Mau10Data
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(position) ?? FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             // Số nguyên "26", số lẻ một chữ số thập phân "26,5".
             GeneralSelfScore = Self(record.GeneralCriteriaScore),

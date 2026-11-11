@@ -15,6 +15,10 @@ namespace CongTacDang.Application.Organization;
 public sealed record HeldPosition(string PositionName, string? StatCode, ApprovalAuthority? DefaultApprovalAuthority, bool IsHead = false,
     string? DefaultWorkflowProfileCode = null, bool IsPrimary = false);
 
+/// <summary>Chức danh in của một chức vụ (có thể gộp "Quyền X" với "Phó X").</summary>
+/// <param name="Acting">Bản ghi "Quyền X" không in vì người giữ cấp phó "Phó X" (<paramref name="Source"/>) cùng đơn vị; null nếu không có.</param>
+public sealed record PrintedPosition(MemberPosition Source, PositionSide Side, string Title, MemberPosition? Acting = null);
+
 /// <summary>Quy tắc suy ra từ chức vụ: thẩm quyền phê duyệt, mã thống kê, chức danh hiển thị.</summary>
 public static class PositionRules
 {
@@ -137,6 +141,86 @@ public static class PositionRules
     /// <summary>Chức danh hiển thị của bản ghi chức vụ (rỗng nếu chưa nạp chức vụ).</summary>
     public static string DisplayName(MemberPosition memberPosition)
         => DisplayName(memberPosition.Position?.Name ?? string.Empty, memberPosition.IsActing);
+
+    /// <summary>Chỗ thay tên đơn vị trong mẫu chức danh khi in (<see cref="Position.FormTitle"/>).</summary>
+    public const string UnitPlaceholder = "{don_vi}";
+
+    /// <summary>Biểu mẫu không in tiền tố "Quyền " (màn hình quản trị vẫn hiện); đổi cách in chỉ cần sửa ở đây.</summary>
+    public const bool PrintActingPrefix = false;
+
+    private static readonly Regex Spaces = new(@"\s+", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Chức danh in trên biểu mẫu: mẫu chức danh (trống → tên chức vụ) với <see cref="UnitPlaceholder"/> thay bằng tên đơn vị;
+    /// đơn vị trống thì bỏ chỗ thay và khoảng trắng thừa.
+    /// </summary>
+    public static string FormTitle(string positionName, string? formTitle, string? unitName)
+        => FillUnit(string.IsNullOrWhiteSpace(formTitle) ? positionName : formTitle, unitName);
+
+    /// <summary>Chức danh in của bản ghi chức vụ (cần nạp Position, PartyCell, Department).</summary>
+    public static string FormTitle(MemberPosition memberPosition)
+        => DisplayName(FormTitle(memberPosition.Position?.Name ?? string.Empty, memberPosition.Position?.FormTitle, UnitName(memberPosition)),
+            memberPosition.IsActing && PrintActingPrefix);
+
+    /// <summary>Tên tổ chức Đảng hoặc đơn vị chính quyền gắn với bản ghi chức vụ.</summary>
+    public static string? UnitName(MemberPosition memberPosition)
+        => new[] { memberPosition.PartyCell?.Name, memberPosition.Department?.Name }.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim();
+
+    private static string FillUnit(string? template, string? unitName)
+        => Spaces.Replace((template ?? string.Empty).Replace(UnitPlaceholder, unitName?.Trim() ?? string.Empty, StringComparison.OrdinalIgnoreCase), " ").Trim();
+
+    /// <summary>
+    /// Chức danh in của một người theo thứ tự đầu vào. Giữ "Quyền X" và cấp phó "Phó X" ở cùng đơn vị thì bỏ "Quyền X",
+    /// chỉ in chức danh cấp phó (bản ghi "Quyền X" gắn vào <see cref="PrintedPosition.Acting"/>).
+    /// </summary>
+    public static List<PrintedPosition> FormTitles(IEnumerable<MemberPosition> positions)
+    {
+        var list = (positions ?? Enumerable.Empty<MemberPosition>()).Where(mp => mp.Position != null).ToList();
+        var actingOf = new Dictionary<MemberPosition, MemberPosition>();
+        foreach (var acting in list.Where(mp => mp.IsActing))
+        {
+            var deputy = list.FirstOrDefault(d => d != acting && !d.IsActing && !actingOf.ContainsKey(d)
+                && IsDeputyOf(d.Position!.Name, acting.Position!.Name)
+                && d.PartyCellId == acting.PartyCellId && d.DepartmentId == acting.DepartmentId);
+            if (deputy != null)
+                actingOf[deputy] = acting;
+        }
+
+        return list
+            .Where(mp => !actingOf.ContainsValue(mp))
+            .Select(mp => new PrintedPosition(mp, mp.Position!.Side, FormTitle(mp), actingOf.GetValueOrDefault(mp)))
+            .ToList();
+    }
+
+    /// <summary>"Phó " + tên chức vụ kia, không phân biệt hoa thường.</summary>
+    public static bool IsDeputyOf(string deputyName, string positionName)
+        => !string.IsNullOrWhiteSpace(positionName)
+            && string.Equals(Spaces.Replace(deputyName?.Trim() ?? string.Empty, " "), "Phó " + Spaces.Replace(positionName.Trim(), " "),
+                StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Chức danh in một ô (Mẫu 01/02/10/17, ô ký): chức danh in của chức vụ chính; chức danh trên hồ sơ cán bộ đã sửa tay khác chức vụ chính
+    /// hoặc không có chức vụ chính thì giữ chức danh trên hồ sơ.
+    /// </summary>
+    public static string? PrimaryFormTitle(IEnumerable<MemberPosition>? positions, string? profileTitle)
+    {
+        var printed = FormTitles(positions ?? Enumerable.Empty<MemberPosition>());
+        var primary = printed.FirstOrDefault(p => p.Source.IsPrimary) ?? printed.FirstOrDefault(p => p.Acting?.IsPrimary == true);
+        var title = string.IsNullOrWhiteSpace(profileTitle) ? null : profileTitle.Trim();
+        if (primary == null)
+            return title;
+        var primarySource = primary.Source.IsPrimary ? primary.Source : primary.Acting!;
+        // Chức danh hồ sơ đồng bộ theo chức vụ chính; khác đi là do người quản lý sửa tay.
+        if (title != null && !string.Equals(title, DisplayName(primarySource), StringComparison.OrdinalIgnoreCase))
+            return title;
+        return primary.Title;
+    }
+
+    /// <summary>Chức danh in của mọi chức vụ, theo bên (Đảng, Chính quyền, Đoàn thể, Khác) rồi thứ tự danh mục, ngăn cách bằng dấu phẩy.</summary>
+    public static string JoinFormTitles(IEnumerable<MemberPosition> positions)
+        => string.Join(", ", FormTitles((positions ?? Enumerable.Empty<MemberPosition>()).Where(p => p.Position != null)
+                .OrderBy(p => (int)p.Position!.Side).ThenBy(p => p.Position!.SortOrder))
+            .Select(p => p.Title).Where(t => t.Length > 0).Distinct());
 
     /// <summary>Chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ; tên là chức danh hiển thị.</summary>
     public static HeldPosition Held(MemberPosition memberPosition)

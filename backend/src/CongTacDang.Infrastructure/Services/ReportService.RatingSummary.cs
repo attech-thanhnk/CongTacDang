@@ -158,15 +158,9 @@ public partial class ReportService
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Bang tong hop xep loai can bo", (await _orgSettings.GetAsync()).ShortName, period, scopeCell), format);
     }
 
-    /// <summary>Cột (4): chức vụ Đảng, chính quyền, đoàn thể kèm đơn vị công tác; chưa khai báo → chức danh trên hồ sơ cán bộ.</summary>
+    /// <summary>Cột (4): chức danh in đầy đủ như Mẫu 14 (<see cref="PositionAndUnit"/>).</summary>
     private static string RatingSummaryPositions(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
-    {
-        var names = positions.Count > 0
-            ? string.Join(", ", positions.OrderBy(p => p.Position!.Side).ThenBy(p => p.Position!.SortOrder).Select(PositionRules.DisplayName))
-            : record.Member?.PositionTitle;
-        var unit = record.Department?.Name ?? record.Member?.Department?.Name;
-        return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
-    }
+        => PositionAndUnit(record, positions);
 
     /// <summary>Cột (13): số tệp đính kèm hiện hành của hồ sơ, nhiệm vụ và văn bản cấp trên; mỗi nhóm phiên bản tính một lần.</summary>
     private async Task<Dictionary<Guid, int>> RecordAttachmentCountsAsync(IReadOnlyCollection<EvaluationRecord> records)

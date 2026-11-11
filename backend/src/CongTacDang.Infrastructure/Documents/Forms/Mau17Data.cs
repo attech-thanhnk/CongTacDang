@@ -72,7 +72,7 @@ public sealed class Mau17Data
         _ => null
     };
 
-    public static Mau17Data From(ImprovementPlan plan, EvaluationRecord record)
+    public static Mau17Data From(ImprovementPlan plan, EvaluationRecord record, string? position = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(record);
@@ -88,7 +88,7 @@ public sealed class Mau17Data
         {
             DateLine = CollectiveFormText.DateLine(plan.ApprovedAt),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(position) ?? FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             GradeLevel = GradeLevelText(record.FinalGrade),
             SupporterName = content.SupporterName,

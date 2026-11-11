@@ -23,6 +23,7 @@ interface FormState {
   id?: string;
   name: string;
   side: PositionSide;
+  formTitle: string;
   statCode: string;
   defaultApprovalAuthority: "" | ApprovalAuthorityCode;
   defaultWorkflowProfileCode: string;
@@ -37,6 +38,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   name: "",
   side: "Administrative",
+  formTitle: "",
   statCode: "",
   defaultApprovalAuthority: "",
   defaultWorkflowProfileCode: "",
@@ -106,6 +108,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
       id: p.id,
       name: p.name,
       side: p.side,
+      formTitle: p.formTitle ?? "",
       statCode: p.statCode ?? "",
       defaultApprovalAuthority: p.defaultApprovalAuthority ?? "",
       defaultWorkflowProfileCode: p.defaultWorkflowProfileCode ?? "",
@@ -128,6 +131,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
     const payload = {
       name: form.name.trim(),
       side: form.side,
+      formTitle: form.formTitle.trim(),
       statCode: form.statCode.trim(),
       defaultApprovalAuthority: form.defaultApprovalAuthority,
       defaultWorkflowProfileCode: form.defaultWorkflowProfileCode,
@@ -245,6 +249,7 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                       <span className="fw-semibold text-dark">{p.name}</span>
                       {p.isLeadership && <span className="status-badge tone-neutral ms-2">Lãnh đạo, quản lý</span>}
                       {p.isHead && <span className="status-badge tone-neutral ms-2">Người đứng đầu</span>}
+                      {p.formTitle && <div className="small text-secondary">In: {p.formTitle}</div>}
                       <div className="small text-secondary">
                         {POSITION_SIDE_LABELS[p.side] ?? p.side}
                         {p.partyUnitTypeId && <> · {partyTypes.find((t) => t.id === p.partyUnitTypeId)?.name}</>}
@@ -313,6 +318,18 @@ export function PositionsTab({ canManage }: { canManage: boolean }) {
                   required
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
+              </div>
+              <div className="col-12">
+                <label className="form-label" htmlFor="pos-form-title">Chức danh khi in</label>
+                <input
+                  id="pos-form-title"
+                  className="form-control form-control-sm"
+                  value={form.formTitle}
+                  maxLength={200}
+                  placeholder="VD: Trưởng {don_vi} (để trống thì in tên chức vụ)"
+                  onChange={(e) => setForm({ ...form, formTitle: e.target.value })}
+                />
+                <div className="form-text">{"{don_vi}"}: tên đơn vị gắn với chức vụ</div>
               </div>
               <div className="col-6">
                 <label className="form-label">Bên</label>

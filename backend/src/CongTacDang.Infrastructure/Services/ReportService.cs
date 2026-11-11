@@ -456,14 +456,16 @@ public partial class ReportService : IReportService
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, Hd03FileName(formName, org.ShortName, scopeCell, period, ".xlsx"), format);
     }
 
-    /// <summary>Cột chức vụ Mẫu 11/13/14: chức vụ Đảng, chính quyền, đoàn thể (theo thứ tự danh mục), rồi đơn vị công tác.</summary>
+    /// <summary>
+    /// Cột chức vụ Mẫu 03/11/13/14, QĐ: chức danh in (đã kèm đơn vị) của chức vụ Đảng, chính quyền, đoàn thể theo thứ tự danh mục;
+    /// chưa khai báo chức vụ → chức danh trên hồ sơ cán bộ kèm đơn vị công tác.
+    /// </summary>
     private static string PositionAndUnit(EvaluationRecord record, IReadOnlyCollection<MemberPosition> positions)
     {
-        var names = positions.Count > 0
-            ? string.Join(", ", positions.OrderBy(p => (int)p.Position!.Side).ThenBy(p => p.Position!.SortOrder).Select(PositionRules.DisplayName))
-            : record.Member?.PositionTitle;
+        if (positions.Count > 0 && PositionRules.JoinFormTitles(positions) is { Length: > 0 } titles)
+            return titles;
         var unit = record.Department?.Name ?? record.Member?.Department?.Name;
-        return string.Join(" — ", new[] { names, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        return string.Join(" — ", new[] { record.Member?.PositionTitle, unit }.Where(s => !string.IsNullOrWhiteSpace(s)));
     }
 
     /// <summary>Cột 12 Mẫu 14: căn cứ, lý do khi đề xuất Hoàn thành xuất sắc hoặc Không hoàn thành nhiệm vụ; lý do của cấp quyết định đứng đầu.</summary>
@@ -917,19 +919,9 @@ public partial class ReportService : IReportService
             : null;
     }
 
-    /// <summary>Chức vụ đang hiệu lực của các cán bộ.</summary>
-    private async Task<Dictionary<Guid, List<MemberPosition>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at)
-    {
-        var ids = memberIds.Distinct().ToList();
-        if (ids.Count == 0)
-            return new Dictionary<Guid, List<MemberPosition>>();
-        var rows = await _db.MemberPositions.AsNoTracking()
-            .Include(mp => mp.Position)
-            .Where(mp => ids.Contains(mp.UserId) && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.Position != null)
-            .ToListAsync();
-        return rows.GroupBy(mp => mp.UserId)
-            .ToDictionary(g => g.Key, g => g.OrderBy(mp => mp.Position!.SortOrder).ToList());
-    }
+    /// <summary>Chức vụ đang hiệu lực của các cán bộ, kèm tổ chức Đảng / đơn vị để in chức danh đầy đủ.</summary>
+    private Task<Dictionary<Guid, List<MemberPosition>>> HeldPositionsAsync(IEnumerable<Guid> memberIds, DateTime at) =>
+        FormPositions.HeldAsync(_db, memberIds, at);
 
     /// <summary>Mã chức danh thống kê của từng cán bộ (mã nhỏ nhất trong các chức vụ đang hiệu lực).</summary>
     private async Task<Dictionary<Guid, string?>> PersonStatCodesAsync(IEnumerable<Guid> memberIds, DateTime at)
@@ -1062,7 +1054,7 @@ public partial class ReportService : IReportService
     {
         var record = await LoadRecordAsync(recordId);
         var evidenceNames = await GetEvidenceNamesAsync(record.Tasks);
-        var bytes = await RenderWordAsync(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames, await AdminParentAsync(record)));
+        var bytes = await RenderWordAsync(Mau02Data.TemplateFileName, Mau02Data.From(record, evidenceNames, await AdminParentAsync(record), await MemberFormTitleAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("02", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1088,12 +1080,16 @@ public partial class ReportService : IReportService
 
     private async Task<Mau01Data> Mau01DataAsync(EvaluationRecord record)
     {
-        // Chức danh người quản lý trực tiếp lấy từ hồ sơ cán bộ của người đó.
+        // Chức danh in của người quản lý trực tiếp theo chức vụ người đó giữ tại thời điểm xét của kỳ.
         var managerPosition = Mau01Data.DirectManager(record) is { } manager
-            ? await _db.PartyMemberProfiles.AsNoTracking().Where(p => p.Id == manager.Id).Select(p => p.PositionTitle).FirstOrDefaultAsync()
+            ? await FormPositions.PrimaryTitleAsync(_db, manager.Id, PositionDate(record.Period))
             : null;
-        return Mau01Data.From(record, await AdminParentAsync(record), managerPosition);
+        return Mau01Data.From(record, await AdminParentAsync(record), managerPosition, await MemberFormTitleAsync(record));
     }
+
+    /// <summary>Chức danh in một ô của chủ hồ sơ (Mẫu 01/02/10).</summary>
+    private Task<string?> MemberFormTitleAsync(EvaluationRecord record) =>
+        FormPositions.PrimaryTitleAsync(_db, record.MemberId, PositionDate(record.Period));
 
     private async Task<ExcellenceConditionReport> ConditionsAsync(EvaluationRecord record) =>
         (await new ExcellenceConditionSource(_db).LoadAsync(record)).Report;
@@ -1101,7 +1097,7 @@ public partial class ReportService : IReportService
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record)));
+        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record), await MemberFormTitleAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1114,8 +1110,8 @@ public partial class ReportService : IReportService
         var bytes = formCode switch
         {
             RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(await Mau01DataAsync(record), fields),
-            RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks), await AdminParentAsync(record)), fields),
-            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record)), fields),
+            RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks), await AdminParentAsync(record), await MemberFormTitleAsync(record)), fields),
+            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record), await Mau10ApproverAsync(record), await MemberFormTitleAsync(record)), fields),
             _ => throw new ArgumentException($"Mẫu {formCode} không xuất Excel theo cách này.")
         };
         return new ReportFileResult
@@ -1263,9 +1259,9 @@ public partial class ReportService : IReportService
         var record = await LoadRecordAsync(crosscheck.RecordId);
         var held = await HeldPositionsAsync(new[] { record.MemberId }, PositionDate(record.Period));
         var positionDept = PositionAndUnit(record, held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>());
-        // Ô ký lãnh đạo ghi rõ họ tên và chức vụ (chức danh trên hồ sơ cán bộ của người xác nhận).
+        // Ô ký lãnh đạo ghi rõ họ tên và chức danh in của người xác nhận.
         var leaderTitle = crosscheck.ConfirmedById is { } leaderId
-            ? await _db.PartyMemberProfiles.AsNoTracking().Where(m => m.Id == leaderId).Select(m => m.PositionTitle).FirstOrDefaultAsync()
+            ? await FormPositions.PrimaryTitleAsync(_db, leaderId, PositionDate(record.Period))
             : null;
         var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept, record.Tasks, leaderTitle));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("03", (await _orgSettings.GetAsync()).ShortName, crosscheck.MemberFullName, record, ".docx"), format);

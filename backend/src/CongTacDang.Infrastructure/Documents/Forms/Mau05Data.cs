@@ -64,7 +64,7 @@ public sealed class Mau05Data
             Quarter = Mau09Shared.Quarter(record),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
+            Position = FormText.OrNull(source.Title) ?? FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             Basis = FormText.OrNull(request.Reason),
             AssignedDate = TaskChangeFormSource.DeadlineLine(CollectiveFormText.ToVietnamTime(request.RequestedAt)),

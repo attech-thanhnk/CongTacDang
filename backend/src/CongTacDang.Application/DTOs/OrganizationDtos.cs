@@ -45,6 +45,9 @@ public class PositionDto
     /// <summary><c>Party</c> / <c>Administrative</c> / <c>MassOrganization</c> / <c>Other</c>.</summary>
     public string Side { get; set; } = string.Empty;
 
+    /// <summary>Mẫu chức danh khi in biểu mẫu (<c>{don_vi}</c> = đơn vị gắn với chức vụ); null = in tên chức vụ.</summary>
+    public string? FormTitle { get; set; }
+
     /// <summary>Mã thống kê Mẫu 15A/15B (M1…M26) hoặc null.</summary>
     public string? StatCode { get; set; }
 
@@ -83,6 +86,9 @@ public class SavePositionDto
 
     /// <summary><c>Party</c> / <c>Administrative</c> / <c>MassOrganization</c> / <c>Other</c>; bắt buộc khi thêm.</summary>
     public string? Side { get; set; }
+
+    /// <summary>Mẫu chức danh khi in; rỗng = bỏ (in tên chức vụ).</summary>
+    public string? FormTitle { get; set; }
 
     /// <summary>M1…M26; rỗng = không có.</summary>
     public string? StatCode { get; set; }

@@ -168,7 +168,8 @@ public sealed class RecordFormService : IRecordFormService
                 $"Đề nghị \"{TaskChangeRules.TypeName(request.Type)}\" dùng {RecordFormCodes.DisplayName(FormCodeOf(request.Type))}, không dùng {RecordFormCodes.DisplayName(code)}.");
         }
 
-        var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).Administrative);
+        var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).Administrative,
+            await FormPositions.PrimaryTitleAsync(_db, record.MemberId, PositionAt(record), ct));
         var attachmentName = request.AttachmentId is { } attachmentId
             ? await _db.TaskAttachments.AsNoTracking().Where(a => a.Id == attachmentId).Select(a => a.OriginalFileName).FirstOrDefaultAsync(ct)
             : null;
@@ -251,20 +252,21 @@ public sealed class RecordFormService : IRecordFormService
         }
     }
 
-    /// <summary>Chức vụ đang giữ tại cuối kỳ (hoặc hôm nay nếu kỳ chưa kết thúc).</summary>
-    private async Task<MemberPositionNames> PositionsAsync(EvaluationRecord record, CancellationToken ct)
+    private static DateTime PositionAt(EvaluationRecord record)
     {
         var now = DateTime.UtcNow;
-        var at = record.Period.EndDate < now ? record.Period.EndDate : now;
-        var rows = await _db.MemberPositions.AsNoTracking()
-            .Include(mp => mp.Position)
-            .Where(mp => mp.UserId == record.MemberId && mp.Position != null
-                         && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at))
-            .ToListAsync(ct);
-        return MemberPositionNames.From(rows
-            .OrderByDescending(mp => mp.IsPrimary)
-            .ThenBy(mp => mp.Position!.SortOrder)
-            .Select(mp => (mp.Position!.Side, PositionRules.DisplayName(mp))));
+        return record.Period.EndDate < now ? record.Period.EndDate : now;
+    }
+
+    /// <summary>Chức danh in (kèm đơn vị) của các chức vụ đang giữ tại cuối kỳ (hoặc hôm nay nếu kỳ chưa kết thúc).</summary>
+    private async Task<MemberPositionNames> PositionsAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        var held = await FormPositions.HeldAsync(_db, new[] { record.MemberId }, PositionAt(record), ct);
+        var rows = held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>();
+        return MemberPositionNames.From(PositionRules.FormTitles(rows
+                .OrderByDescending(mp => mp.IsPrimary)
+                .ThenBy(mp => mp.Position!.SortOrder))
+            .Select(p => (p.Side, p.Title)));
     }
 
     /// <summary>Kiểu trình bày biểu mẫu: kiểu đặt riêng của cán bộ, rồi kiểu của chức vụ đang giữ, rồi mặc định.</summary>

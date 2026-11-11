@@ -154,6 +154,7 @@ Vai trò "Cơ quan chuyên môn" giữ nguyên tên; mô tả của vai trò nê
 | Người được đánh giá | Cán bộ được đánh giá | Người được đánh giá | `PartyMemberProfile` |
 | Diện quyết định: bộ cấu hình các bước (ai làm, nội bộ hay cấp trên, thời hạn, cổng) áp cho một nhóm cán bộ | "cán bộ thuộc diện … quyết định, phê duyệt mức xếp loại" (Mục I.5, Mẫu 14, 15A/15B) | Diện quyết định | `WorkflowProfile` (`profiles` trong cấu hình kỳ) |
 | Thẩm quyền quyết định của người: Đảng ủy cơ sở hay cấp trên; suy ra từ chức vụ, ghi đè được kèm lý do; chọn diện quyết định mặc định | Bảng thẩm quyền quyết định, phê duyệt (Mục I.5) | Đảng ủy cơ sở quyết định / Cấp ủy cấp trên quyết định | `ApprovalAuthority` (`CoSo`, `CapTren`) |
+| Chức danh in trên biểu mẫu: chức vụ kèm đơn vị, không in "Quyền" | Chức vụ (Mẫu 01, 09A, 11, 14 …) | Chức danh khi in (danh mục chức vụ) | `Position.FormTitle`, `PositionRules.FormTitles` |
 | Bộ tiêu chí | Khung tiêu chí, thang điểm (Phụ lục I, Mục III) | Bộ tiêu chí (có phiên bản: Nháp, Đã xuất bản, Lưu trữ) | `CriteriaSet` |
 | Sản phẩm, nhiệm vụ đăng ký đầu kỳ | Sản phẩm công việc (Mẫu 01) | Danh mục sản phẩm | `EvaluationTask` |
 | Hội nghị đánh giá | Hội nghị tập thể lãnh đạo, quản lý hoặc Hội nghị Đảng ủy/Chi ủy cơ sở | Hội nghị | `EvaluationMeeting` |

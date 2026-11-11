@@ -54,7 +54,8 @@ public sealed class Mau02Data
     /// <paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ;
     /// <paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>).
     /// </summary>
-    public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null, string? adminParentLine = null)
+    public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null, string? adminParentLine = null,
+        string? position = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
         // Mặc định 2 chữ số nếu kỳ chưa có bộ tiêu chí.
@@ -72,7 +73,7 @@ public sealed class Mau02Data
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(position) ?? FormText.OrNull(record.Member?.PositionTitle),
             TotalScore = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.SelfScore), scoreDecimals) : null,
             ExceedCount = tasks.Count > 0 ? tasks.Count(t => t.IsExceedStandard).ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
             Tasks = tasks.Select((t, index) =>
