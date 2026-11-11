@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luồng đánh giá cán bộ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Bố cục: chọn diện ở trên, các bước xếp dọc như sổ quy trình; nhánh phụ ở cuối */
+:root{
+  --bg:#f6f6f4; --surface:#ffffff; --fg:#1d2126; --muted:#5d646d; --line:#dcdcd6;
+  --accent:#9b2c2c; --accent-soft:#f6e7e5;
+  --in:#1f6f5c; --in-soft:#e3f1ec;
+  --ext:#8a5a00; --ext-soft:#fbf0d9;
+  --off:#7a8088; --off-soft:#eeeeec;
+  --font:"Be Vietnam Pro",system-ui,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15171a; --surface:#1d2024; --fg:#e8e9ea; --muted:#a2a8b0; --line:#30343a;
+  --accent:#e08a84; --accent-soft:#3a2322;
+  --in:#7fd1b9; --in-soft:#1b3330; --ext:#e8c06a; --ext-soft:#3a3020; --off:#8d939b; --off-soft:#26292d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171a; --surface:#1d2024; --fg:#e8e9ea; --muted:#a2a8b0; --line:#30343a;
+  --accent:#e08a84; --accent-soft:#3a2322;
+  --in:#7fd1b9; --in-soft:#1b3330; --ext:#e8c06a; --ext-soft:#3a3020; --off:#8d939b; --off-soft:#26292d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+main{max-width:860px;margin:0 auto;display:grid;gap:28px}
+h1{font-size:1.6rem;margin:0;text-wrap:balance}
+h2{font-size:1.1rem;margin:0 0 12px;text-wrap:balance}
+p{margin:0}
+.lead{color:var(--muted);max-width:65ch;margin-top:6px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:10px 14px;cursor:pointer;text-align:left;display:grid;gap:2px;min-width:0;flex:1 1 180px}
+.tab small{color:var(--muted);font-size:.8rem}
+.tab[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:var(--muted)}
+.chip{display:inline-block;font-size:.78rem;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chip.in{background:var(--in-soft);color:var(--in)}
+.chip.ext{background:var(--ext-soft);color:var(--ext)}
+.chip.off{background:var(--off-soft);color:var(--off)}
+ol.flow{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.step{display:grid;grid-template-columns:44px 1fr;gap:12px;position:relative}
+.num{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.85rem;background:var(--surface);border:2px solid var(--line);z-index:1;margin-top:10px;font-variant-numeric:tabular-nums}
+.step::before{content:"";position:absolute;left:15px;top:0;bottom:0;border-left:2px solid var(--line)}
+.step:first-child::before{top:20px}.step:last-child::before{bottom:calc(100% - 20px)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:4px 0;min-width:0}
+.card .top{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.card b{font-weight:600}
+.who{color:var(--muted);font-size:.9rem;margin-top:2px}
+.form{font-size:.8rem;color:var(--accent);font-weight:600}
+.step.is-off .card{background:transparent;border-style:dashed}
+.step.is-off .card b{color:var(--off);text-decoration:line-through}
+.step.is-in .num{border-color:var(--in);color:var(--in)}
+.step.is-ext .num{border-color:var(--ext);color:var(--ext)}
+.step.is-off .num{color:var(--off)}
+.gate{grid-column:2;font-size:.85rem;color:var(--muted);border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;background:var(--accent-soft);border-radius:0 6px 6px 0}
+.phase{grid-column:1/-1;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:14px 0 4px 56px}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.branch{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.branch h3{font-size:.95rem;margin:0 0 4px}
+.branch p{color:var(--muted);font-size:.9rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:640px}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--muted)}
+td.c{text-align:center}
+@media (prefers-reduced-motion:no-preference){.tab{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <h1>Luồng đánh giá, xếp loại cán bộ hằng quý</h1>
+    <p class="lead">Mọi hồ sơ đi cùng 11 bước; 4 diện chỉ khác nhau ở bước nào làm trong hệ thống, bước nào cấp trên làm, bước nào không có.</p>
+  </header>
+
+  <section>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </section>
+
+  <section>
+    <div class="legend" style="margin-bottom:12px">
+      <span><span class="chip in">Trong hệ thống</span> làm trên phần mềm</span>
+      <span><span class="chip ext">Cấp trên làm</span> Văn phòng Đảng ủy ghi nhận kết quả</span>
+      <span><span class="chip off">Không có</span> bỏ qua</span>
+    </div>
+    <ol class="flow" id="flow"></ol>
+  </section>
+
+  <section>
+    <h2>So sánh nhanh 4 diện</h2>
+    <div class="scroll"><table id="matrix"></table></div>
+  </section>
+
+  <section>
+    <h2>Các trường hợp khác</h2>
+    <div class="branches">
+      <div class="branch"><h3>Trả lại</h3><p>Ở bước danh mục: về đăng ký lại. Ở Chi bộ, thẩm định: về tự chấm. Phải ghi lý do.</p></div>
+      <div class="branch"><h3>Điều chỉnh trong quý</h3><p>Điều chỉnh việc (<b>Mẫu 04</b>), việc đột xuất (<b>Mẫu 05</b>); người duyệt danh mục duyệt.</p></div>
+      <div class="branch"><h3>Chưa xếp loại</h3><p>Phòng TCCB-LĐ đánh dấu kèm lý do; hồ sơ bỏ qua các bước, chờ công bố.</p></div>
+      <div class="branch"><h3>Phiếu xác nhận số liệu</h3><p>Khi cần, Phòng TCCB-LĐ lập <b>Mẫu 03</b> gửi cơ quan chuyên môn xác nhận.</p></div>
+      <div class="branch"><h3>Hồ sơ tập thể</h3><p>Chi bộ, đảng bộ bộ phận lập <b>Mẫu 06, 07, 08</b>.</p></div>
+      <div class="branch"><h3>Sau công bố</h3><p>Cán bộ gửi <b>kiến nghị</b>, chấp nhận thì mở lại hồ sơ. Mức chưa đạt: kế hoạch khắc phục (<b>Mẫu 17</b>).</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const STEPS = [
+  {k:"reg",   phase:"Bước 1 – Đăng ký, duyệt danh mục", name:"Đăng ký sản phẩm", form:"Mẫu 01"},
+  {k:"send",  name:"Trưởng đơn vị gửi danh mục", form:"Mẫu 01"},
+  {k:"hr",    name:"Rà soát, trình duyệt danh mục", form:"Mẫu 01"},
+  {k:"appr",  name:"Duyệt danh mục", form:"Mẫu 01"},
+  {k:"self",  phase:"Bước 2 – Tự đánh giá", name:"Tự chấm điểm, đề xuất mức", form:"Mẫu 02, 09A, 9D"},
+  {k:"cell",  name:"Chi bộ xác nhận", form:"Mẫu 9D"},
+  {k:"col",   phase:"Bước 3 – Đề xuất, thẩm định, nhận xét", name:"Tập thể lãnh đạo đề xuất mức", form:"Mẫu 11, 12, 13"},
+  {k:"app",   name:"Thẩm định", form:"Mẫu 10 (Mẫu 03 khi cần)"},
+  {k:"dir",   name:"Cấp trực tiếp sử dụng nhận xét", form:"Mẫu 10"},
+  {k:"dec",   phase:"Bước 4 – Quyết định", name:"Quyết định mức xếp loại", form:"Mẫu 14, 15A, 15B, Quyết định", gate:true},
+  {k:"pub",   phase:"Bước 5 – Công bố", name:"Công bố, lưu trữ", form:"Mẫu 16"}
+];
+const I=(w)=>({m:"in",w}), E=(w)=>({m:"ext",w}), O=(w)=>({m:"off",w});
+const PROFILES = [
+  {id:"co-so", title:"Diện Đảng ủy cơ sở", who:"Trưởng, Phó phòng và tương đương",
+   s:{reg:I("Cán bộ"), send:I("Trưởng đơn vị"), hr:I("Phòng TCCB-LĐ"), appr:I("Giám đốc"),
+      self:I("Cán bộ"), cell:I("Chi bộ"), col:I("Tập thể lãnh đạo đơn vị (họp, bỏ phiếu kín)"),
+      app:I("Phòng TCCB-LĐ"), dir:I("Giám đốc"), dec:I("Đảng ủy Công ty"), pub:I("Văn phòng Đảng ủy")},
+   gate:"họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19)."},
+  {id:"bi-thu", title:"Bí thư, Phó Bí thư chi bộ là nhân viên", who:"Không giữ chức vụ quản lý",
+   s:{reg:I("Cán bộ"), send:I("Trưởng đơn vị"), hr:I("Phòng TCCB-LĐ"), appr:I("Giám đốc"),
+      self:I("Cán bộ"), cell:I("Chi bộ"), col:I("Trưởng đơn vị đề xuất"),
+      app:I("Phòng TCCB-LĐ"), dir:O("Không có"), dec:I("Đảng ủy Công ty"), pub:I("Văn phòng Đảng ủy")},
+   gate:"họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19)."},
+  {id:"pgd", title:"Phó Giám đốc", who:"Phó Giám đốc Công ty",
+   s:{reg:I("Cán bộ"), send:O("Không có"), hr:I("Phòng TCCB-LĐ"), appr:I("Chủ tịch"),
+      self:I("Cán bộ"), cell:I("Chi bộ"), col:I("Tập thể lãnh đạo Công ty"),
+      app:O("Không có (cấp trên thẩm định, ghi cùng quyết định)"), dir:I("Chủ tịch"),
+      dec:E("Ban Thường vụ Đảng ủy Tổng công ty"), pub:I("Văn phòng Đảng ủy")},
+   gate:"họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19)."},
+  {id:"cap-tren", title:"Diện BTV Đảng ủy Tổng công ty", who:"Chủ tịch, Giám đốc, Kiểm soát viên",
+   s:{reg:I("Cán bộ"), send:O("Không có"), hr:O("Không có"), appr:E("Hội đồng thành viên Tổng công ty"),
+      self:I("Cán bộ"), cell:I("Chi bộ"), col:I("Tập thể lãnh đạo Công ty"),
+      app:E("Ban Tổ chức Đảng ủy Tổng công ty"), dir:E("Hội đồng thành viên Tổng công ty"),
+      dec:E("Ban Thường vụ Đảng ủy Tổng công ty"), pub:I("Văn phòng Đảng ủy")},
+   gate:"họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19)."}
+];
+const LABEL={in:"Trong hệ thống",ext:"Cấp trên làm",off:"Không có"};
+const tabs=document.getElementById("tabs"), flow=document.getElementById("flow");
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function render(id){
+  const p=PROFILES.find(x=>x.id===id);
+  [...tabs.children].forEach(t=>t.setAttribute("aria-selected",t.dataset.id===id));
+  let n=0;
+  flow.innerHTML=STEPS.map(st=>{
+    const c=p.s[st.k]; n++;
+    const phase=st.phase?`<li class="phase">${st.phase}</li>`:"";
+    const gate=st.gate?`<li class="step" style="grid-template-columns:44px 1fr"><span></span><div class="gate">Trước khi quyết định: ${esc(p.gate)}</div></li>`:"";
+    return phase+gate+`<li class="step is-${c.m}"><span class="num">${n}</span><div class="card">
+      <div class="top"><b>${st.name}</b><span class="chip ${c.m}">${LABEL[c.m]}</span>${c.m!=="off"?`<span class="form">${st.form}</span>`:""}</div>
+      <div class="who">${esc(c.w)}</div></div></li>`;
+  }).join("");
+  try{localStorage.setItem("dien",id)}catch(e){}
+}
+PROFILES.forEach(p=>{
+  const b=document.createElement("button");
+  b.className="tab";b.role="tab";b.dataset.id=p.id;b.id="tab-"+p.id;
+  b.innerHTML=`<span>${p.title}</span><small>${p.who}</small>`;
+  b.onclick=()=>render(p.id);tabs.appendChild(b);
+});
+let start="co-so";try{start=localStorage.getItem("dien")||start}catch(e){}
+render(PROFILES.some(p=>p.id===start)?start:"co-so");
+const m=document.getElementById("matrix");
+m.innerHTML=`<thead><tr><th>Bước</th>${PROFILES.map(p=>`<th>${p.title}</th>`).join("")}</tr></thead><tbody>`+
+  STEPS.map((st,i)=>`<tr><td>${i+1}. ${st.name}</td>${PROFILES.map(p=>`<td class="c"><span class="chip ${p.s[st.k].m}">${LABEL[p.s[st.k].m]}</span></td>`).join("")}</tr>`).join("")+"</tbody>";
+</script>
+</body>
+</html>

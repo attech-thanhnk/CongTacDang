@@ -1,212 +1,200 @@
 # Hướng dẫn cho người được đánh giá
 
-Dành cho mọi cán bộ có hồ sơ đánh giá trong kỳ. Đọc từ trên xuống; việc nào chưa tới lượt thì bỏ qua.
+Áp dụng cho cán bộ có hồ sơ đánh giá trong kỳ. Thực hiện theo thứ tự; việc chưa đến lượt thì bỏ qua.
 
-Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx` (mỗi vấn đề một dòng, kèm ảnh chụp màn hình nếu có).
+## I. Quy định chung
 
-## Cần biết trước
+- Thanh tiến trình ở đầu trang hồ sơ ghi bước đang chờ (**Chờ: …**, người thực hiện) và **Hạn**.
+- Người được đánh giá chỉ đăng ký sản phẩm, đề nghị điều chỉnh việc, tự chấm, giải trình, gửi kiến nghị, xác nhận kế hoạch khắc phục; hồ sơ của mình không có nút xét duyệt.
+- Nút chỉ hiện khi đến lượt. Không có nút: xem dải vàng trên hồ sơ (chưa đến bước hoặc đã quá hạn).
+- Các bước tùy **Diện quyết định** (khối **Thông tin** cuối trang hồ sơ). Bước **Cấp trên thực hiện** làm ngoài hệ thống, Văn phòng Đảng ủy ghi nhận kết quả.
+- Trước công bố, xem được mức và nhận xét của các bước đã qua trên hồ sơ.
+- Lỗi, nội dung khó hiểu: ghi vào `phieu-gop-y.xlsx` (mỗi vấn đề một dòng, kèm ảnh chụp màn hình nếu có).
 
-- Hồ sơ của bạn đi lần lượt qua các bước trên **thanh tiến trình** ở đầu trang hồ sơ. Bước đang chờ ghi **Chờ: …** (ai đang phải làm) và **Hạn**.
-- Bạn chỉ làm các bước của chính mình: đăng ký sản phẩm, đề nghị điều chỉnh việc, tự chấm, giải trình sau thẩm định, gửi kiến nghị, xác nhận kế hoạch khắc phục. Các bước xét duyệt do người khác làm; bạn không bao giờ thấy nút duyệt trên hồ sơ của mình.
-- Nút chỉ hiện khi đến lượt bạn. Không thấy nút: đọc dải vàng trên hồ sơ, thường do chưa tới bước hoặc đã quá hạn.
-- Các bước hồ sơ đi qua tùy **Diện quyết định** của bạn (ghi ở khối **Thông tin** cuối trang hồ sơ). Bước ghi **Cấp trên thực hiện** do cấp trên làm ngoài hệ thống; Văn phòng Đảng ủy ghi lại kết quả, bạn không phải làm gì.
-- Trước khi công bố, bạn xem được mức và nhận xét của các bước đã qua ngay trên hồ sơ của mình.
+## II. Đăng nhập lần đầu
 
-## 1. Đăng nhập lần đầu
-
-1. Mở địa chỉ hệ thống do Quản trị gửi.
-2. Nhập **Tên đăng nhập** và **Mật khẩu** (mật khẩu tạm Quản trị đưa) → bấm **Đăng nhập**. Máy của riêng bạn thì tích **Ghi nhớ phiên làm việc trên thiết bị này**.
+1. Mở địa chỉ hệ thống do Quản trị cung cấp.
+2. Nhập **Tên đăng nhập**, **Mật khẩu** (mật khẩu tạm) → **Đăng nhập**. Máy dùng riêng thì tích **Ghi nhớ phiên làm việc trên thiết bị này**.
 
 ![Màn hình đăng nhập](anh/can-bo-01-dang-nhap.png)
 
-3. Hệ thống mở trang **Đổi mật khẩu**. Nhập **Mật khẩu hiện tại** (mật khẩu tạm), **Mật khẩu mới**, **Xác nhận mật khẩu mới** → bấm **Đổi mật khẩu**. Mật khẩu mới tối thiểu 8 ký tự, có cả chữ và số.
+3. Tại trang **Đổi mật khẩu**, nhập **Mật khẩu hiện tại**, **Mật khẩu mới**, **Xác nhận mật khẩu mới** → **Đổi mật khẩu**. Mật khẩu mới tối thiểu 8 ký tự, có chữ và số.
 
 ![Đổi mật khẩu lần đầu](anh/can-bo-02-doi-mat-khau.png)
 
-- Nhập sai mật khẩu 5 lần liên tiếp, tài khoản bị khóa 15 phút. Chờ hết thời gian hoặc báo Quản trị mở khóa.
-- Quên mật khẩu: báo Quản trị đặt lại.
+**Lưu ý:**
+- Sai mật khẩu 5 lần liên tiếp: tài khoản khóa 15 phút; chờ hoặc báo Quản trị mở khóa. Quên mật khẩu: báo Quản trị đặt lại.
+- Đổi mật khẩu: bấm tên người dùng (góc trên bên phải) → **Tài khoản** → **Mật khẩu**. Đăng xuất: bấm tên người dùng → **Đăng xuất**.
 
-**Đổi mật khẩu sau này:** bấm tên của bạn ở góc trên bên phải → **Tài khoản** → phần **Mật khẩu**. **Đăng xuất:** bấm tên của bạn → **Đăng xuất**.
-
-## 2. Tổng quan và Việc cần xử lý
-
-Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của tôi** ở đầu trang cho biết hồ sơ đang ở bước nào, ai làm, hạn khi nào. Khối **Việc cần xử lý** bên dưới liệt kê việc đang chờ bạn.
+## III. Tổng quan và Việc cần xử lý
 
 ![Tổng quan](anh/can-bo-03-tong-quan.png)
 
-- Bấm nút ở cuối dòng để mở hồ sơ, tên nút theo việc: **Đăng ký**, **Tự chấm**, **Xác nhận kế hoạch**…
-- Menu **Việc cần xử lý** bên trái mở danh sách đầy đủ, chia nhóm theo việc, kèm hạn. Quá hạn hiện màu đỏ.
-- Chuông ở góc trên bên phải: số đỏ là số việc đang chờ bạn.
-- Ô **Kỳ** ở thanh trên chọn kỳ đánh giá đang xem; ô này chỉ có ở các trang xem theo kỳ (Tổng quan, Việc cần xử lý, Hồ sơ đánh giá, Đánh giá tập thể, Xác nhận số liệu, Duyệt kết quả, Kết quả đánh giá, Báo cáo).
-- Thẻ **Hồ sơ của tôi** ghi bước đang chờ, hạn, số bước đã qua và kết quả kỳ trước của bạn; bấm vào kết quả để mở hồ sơ kỳ đó.
-- Khối **Lịch kỳ** ghi hạn từng bước theo diện của bạn; bước hồ sơ của bạn đang chờ có nhãn **Bạn đang ở đây**. Bấm **Xem chi tiết** để xem ngày hạn cụ thể theo từng diện quyết định.
+- Thẻ **Hồ sơ của tôi** (trang **Tổng quan**): bước đang chờ, người thực hiện, hạn, số bước đã qua, kết quả kỳ trước (bấm để mở hồ sơ kỳ đó).
+- Khối và menu **Việc cần xử lý**: việc đang chờ, chia nhóm, kèm hạn; quá hạn màu đỏ. Bấm nút cuối dòng (**Đăng ký**, **Tự chấm**, **Xác nhận kế hoạch**…) để mở hồ sơ.
+- Chuông góc trên bên phải: số đỏ là số việc đang chờ.
+- Ô **Kỳ** ở thanh trên chọn kỳ đang xem; có ở Tổng quan, Việc cần xử lý, Hồ sơ đánh giá, Đánh giá tập thể, Xác nhận số liệu, Duyệt kết quả, Kết quả đánh giá, Báo cáo.
+- Khối **Lịch kỳ**: hạn từng bước theo diện; bước đang chờ có nhãn **Bạn đang ở đây**. **Xem chi tiết**: ngày hạn theo từng diện quyết định.
 
 ![Việc cần xử lý](anh/can-bo-04-viec-can-xu-ly.png)
 
-## 3. Đăng ký sản phẩm (Mẫu 01)
+## IV. Đăng ký sản phẩm (Mẫu 01)
 
-**Khi nào:** ngay khi kỳ mở; hạn ở thanh tiến trình, bước **Đăng ký sản phẩm**.
+**Thời điểm:** khi kỳ mở; hạn tại bước **Đăng ký sản phẩm**.
 
-1. Bấm **Việc cần xử lý** → dòng hồ sơ của bạn → bấm **Đăng ký**. Khung **Nộp danh mục sản phẩm** hiện ở đầu trang, có sẵn 3 dòng trống.
+1. **Việc cần xử lý** → dòng hồ sơ → **Đăng ký**. Khung **Nộp danh mục sản phẩm** có sẵn 3 dòng trống.
 
 ![Khung đăng ký sản phẩm](anh/can-bo-05-dang-ky.png)
 
-2. Mỗi sản phẩm điền:
-   - **Tên sản phẩm, công việc**;
-   - **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**;
-   - **Trọng số (điểm)**, **Thời hạn / mốc quý**;
-   - **Mã sản phẩm**: để trống thì hệ thống tự đánh SP01, SP02… khi lưu; mã đã có giữ nguyên, không trùng nhau trong hồ sơ;
-   - **Chuẩn đạt**;
-   - bấm **Thêm chi tiết** rồi điền **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận** (cả ba ô bắt buộc).
-3. Cần thêm sản phẩm: bấm **Thêm dòng**. Bỏ một dòng: bấm **Xóa** ở góc dòng đó.
+2. Điền từng sản phẩm: **Tên sản phẩm, công việc**; **Loại việc** (Trọng tâm / Thường xuyên); **Vai trò** (Chủ trì / Phối hợp); **Trục kết quả**; **Trọng số (điểm)**; **Thời hạn / mốc quý**; **Chuẩn đạt**; **Mã sản phẩm** (để trống thì tự đánh SP01, SP02… khi lưu; mã đã có giữ nguyên, không trùng trong hồ sơ).
+3. Bấm **Thêm chi tiết**, điền **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận** (bắt buộc cả ba).
+4. Thêm sản phẩm: **Thêm dòng**. Bỏ dòng: **Xóa** ở góc dòng.
 
 ![Đang nhập sản phẩm](anh/can-bo-06-dang-ky-nhap.png)
 
-4. Xem dòng **Tổng trọng số** ở chân khung: phải bằng số tối đa (ví dụ **70 / 70**); số sản phẩm cho phép ghi ngay bên cạnh.
-5. Bấm **Nộp danh mục** → hộp **Xác nhận thao tác** → **Đồng ý**.
+5. Dòng **Tổng trọng số** ở chân khung phải bằng số tối đa (ví dụ **70 / 70**); số sản phẩm cho phép ghi bên cạnh.
+6. Bấm **Nộp danh mục** → **Đồng ý**.
 
 ![Xác nhận nộp danh mục](anh/can-bo-08-dang-ky-xac-nhan.png)
 
-**Xong thì thấy:** thanh tiến trình chuyển sang bước kế tiếp. Danh mục đi tiếp theo diện của bạn:
+**Kết quả:** danh mục chuyển xét duyệt theo diện; sau khi được duyệt, hồ sơ chuyển sang **Tự chấm điểm, đề xuất mức**.
 
-| Bạn là | Danh mục đi qua |
+| Người được đánh giá | Danh mục đi qua |
 |---|---|
-| Trưởng phòng, Phó phòng và tương đương; Bí thư, Phó Bí thư chi bộ là nhân viên | Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt. Bạn là trưởng đơn vị thì bỏ qua bước gửi. |
-| Phó Giám đốc | Phòng TCCB-LĐ rà soát, trình → Chủ tịch duyệt. |
-| Chủ tịch, Giám đốc, Kiểm soát viên | Cấp trên duyệt ngoài hệ thống; Văn phòng Đảng ủy ghi nhận kết quả duyệt (xem mục 4, phần **Danh mục do cấp trên duyệt**). |
-
-Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
+| Trưởng phòng, Phó phòng và tương đương; Bí thư, Phó Bí thư chi bộ là nhân viên | Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt (trưởng đơn vị thì bỏ bước gửi) |
+| Phó Giám đốc | Phòng TCCB-LĐ rà soát, trình → Chủ tịch duyệt |
+| Chủ tịch, Giám đốc, Kiểm soát viên | Cấp trên duyệt ngoài hệ thống; Văn phòng Đảng ủy ghi nhận (xem mục V, **Danh mục do cấp trên duyệt**) |
 
 ![Đã nộp danh mục](anh/can-bo-09-dang-ky-xong.png)
 
-**Bị trả lại:** người gửi, người rà soát hoặc người duyệt có thể **Trả lại danh mục** kèm lý do. Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Đăng ký**; sửa theo lý do rồi **Nộp danh mục** lại. Danh mục đi lại từ đầu các bước trên.
+**Lưu ý:**
+- Bị **Trả lại danh mục** (người gửi, rà soát hoặc duyệt): hồ sơ hiện lại ở **Việc cần xử lý** với nút **Đăng ký**; sửa theo lý do, **Nộp danh mục** lại; danh mục đi lại từ đầu.
+- Bị thu hồi duyệt (ngay sau duyệt, khi chưa nộp phiếu tự chấm): hồ sơ về **Đăng ký sản phẩm**, khung đỏ ghi lý do; sửa, **Nộp danh mục** lại.
 
-**Bị thu hồi duyệt:** người duyệt có thể thu hồi ngay sau khi duyệt, khi bạn chưa nộp phiếu tự chấm. Hồ sơ về bước **Đăng ký sản phẩm**, khung đỏ ghi lý do thu hồi; sửa rồi **Nộp danh mục** lại.
+## V. Điều chỉnh việc trong quý
 
-## 4. Điều chỉnh việc trong quý
+**Thời điểm:** sau khi danh mục được duyệt, trước khi nộp phiếu tự chấm. Mỗi lúc chỉ một đề nghị chờ duyệt.
 
-**Khi nào:** sau khi danh mục đã được duyệt và trước khi nộp phiếu tự chấm, khi việc được giao thay đổi. Mỗi lúc chỉ có một đề nghị chờ duyệt.
-
-1. Mở hồ sơ của bạn → khối **Điều chỉnh việc trong quý** → bấm **Đề nghị điều chỉnh** (việc đã đăng ký) hoặc **Ghi nhận việc đột xuất** (việc mới được giao).
-2. **Đề nghị điều chỉnh (Mẫu 04):** chọn **Việc** và **Loại đề nghị**: **Điều chỉnh việc**, **Chuyển tiếp sang quý sau** hoặc **Loại trừ việc**. Với **Điều chỉnh việc**, sửa nội dung cần đổi (tên việc, chuẩn đạt, trục, vai trò, thời hạn…). Có giấy tờ chứng minh thì ở **Hồ sơ, minh chứng kèm theo (tùy chọn)** bấm **Đính kèm minh chứng**.
-3. **Việc đột xuất (Mẫu 05):** điền tên việc, chuẩn đạt, trục, vai trò, thời hạn và trọng số của việc mới. Việc mới được tự đánh mã sản phẩm tiếp theo. Cấp giao việc cũng có thể ghi nhận việc đột xuất trên hồ sơ của bạn.
+1. Mở hồ sơ → khối **Điều chỉnh việc trong quý** → **Đề nghị điều chỉnh** (việc đã đăng ký) hoặc **Ghi nhận việc đột xuất** (việc mới).
+2. Đề nghị điều chỉnh (Mẫu 04): chọn **Việc**, **Loại đề nghị** (**Điều chỉnh việc**, **Chuyển tiếp sang quý sau**, **Loại trừ việc**). **Điều chỉnh việc** thì sửa nội dung cần đổi (tên, chuẩn đạt, trục, vai trò, thời hạn…). Có giấy tờ: **Đính kèm minh chứng** tại **Hồ sơ, minh chứng kèm theo (tùy chọn)**.
+3. Việc đột xuất (Mẫu 05): điền tên việc, chuẩn đạt, trục, vai trò, thời hạn, trọng số; mã sản phẩm tự đánh tiếp. Cấp giao việc cũng ghi nhận được việc đột xuất trên hồ sơ.
 
 ![Đề nghị điều chỉnh](anh/can-bo-11-dieu-chinh-nhap.png)
 
-4. Bảng **Trọng số sau điều chỉnh**: nhập cột **Sau** cho từng việc; dòng **Tổng** phải bằng số tối đa.
-5. Ghi **Lý do / nguyên nhân** → bấm **Gửi đề nghị**.
+4. Bảng **Trọng số sau điều chỉnh**: nhập cột **Sau**; dòng **Tổng** phải bằng số tối đa.
+5. Ghi **Lý do / nguyên nhân** → **Gửi đề nghị**.
 
 ![Trọng số sau điều chỉnh](anh/can-bo-12-dieu-chinh-trong-so.png)
 
-**Xong thì thấy:** đề nghị hiện trong khối với nhãn **Chờ duyệt**. Người duyệt danh mục của bạn duyệt (Giám đốc; hồ sơ Phó Giám đốc: Chủ tịch); khi duyệt, danh mục cập nhật ngay và nhãn đổi thành **Đã duyệt**. Không duyệt thì nhãn **Không duyệt** kèm lý do. Việc loại trừ hoặc chuyển tiếp vẫn hiện trên phiếu nhưng không chấm điểm. Mỗi đề nghị có phiếu Mẫu 04 (hoặc Mẫu 05) trong danh sách **Biểu mẫu** của hồ sơ.
+**Kết quả:** đề nghị có nhãn **Chờ duyệt**; người duyệt danh mục (Giám đốc; hồ sơ Phó Giám đốc: Chủ tịch) xét. Duyệt: danh mục cập nhật ngay, nhãn **Đã duyệt**. Không duyệt: nhãn **Không duyệt** kèm lý do. Việc loại trừ, chuyển tiếp vẫn hiện trên phiếu nhưng không chấm điểm. Mỗi đề nghị có phiếu Mẫu 04 (hoặc 05) trong **Biểu mẫu**.
 
 ![Đề nghị đã gửi](anh/can-bo-13-dieu-chinh-da-gui.png)
 
-**Danh mục do cấp trên duyệt** (ví dụ Chủ tịch, Giám đốc, Kiểm soát viên):
-- Đang chờ duyệt mà cấp trên sửa danh mục: mở hồ sơ → **Cập nhật danh mục** → sửa cho khớp → **Lưu danh mục**. Phòng TCCB-LĐ hoặc Văn phòng Đảng ủy cũng cập nhật thay được.
-- Đã duyệt mà cấp trên đồng ý điều chỉnh: bấm **Ghi điều chỉnh đã duyệt**, nhập thêm **Cơ quan phê duyệt**, **Số văn bản**, **Ngày văn bản**, đính kèm văn bản nếu có → **Ghi và áp dụng**. Danh mục cập nhật ngay, không chờ duyệt.
+**Danh mục do cấp trên duyệt** (Chủ tịch, Giám đốc, Kiểm soát viên):
+- Đang chờ duyệt, cấp trên sửa danh mục: **Cập nhật danh mục** → sửa cho khớp → **Lưu danh mục** (Phòng TCCB-LĐ hoặc Văn phòng Đảng ủy cập nhật thay được).
+- Đã duyệt, cấp trên đồng ý điều chỉnh: **Ghi điều chỉnh đã duyệt**, nhập thêm **Cơ quan phê duyệt**, **Số văn bản**, **Ngày văn bản**, đính kèm văn bản nếu có → **Ghi và áp dụng**; danh mục cập nhật ngay.
 
-## 5. Tự chấm điểm (Mẫu 02, 09A, 09C, 9D)
+## VI. Tự chấm điểm (Mẫu 02, 09A, 09C, 9D)
 
-**Khi nào:** khi danh mục đã được duyệt; hạn ở thanh tiến trình, bước **Tự chấm điểm, đề xuất mức**.
+**Thời điểm:** sau khi danh mục được duyệt; hạn tại bước **Tự chấm điểm, đề xuất mức**.
 
-1. Bấm **Việc cần xử lý** → dòng hồ sơ của bạn → bấm **Tự chấm**. Khung **Nộp phiếu tự chấm** hiện ở đầu trang.
+1. **Việc cần xử lý** → dòng hồ sơ → **Tự chấm**. Khung **Nộp phiếu tự chấm** hiện ở đầu trang.
 
 ![Đầu phiếu tự chấm](anh/can-bo-15-tu-cham-dau.png)
 
-2. **I. Nhóm tiêu chí chung:** mỗi tiêu chí chọn **Đảm bảo**, **Không đảm bảo** hoặc **Không áp dụng**. Chọn **Không đảm bảo** hoặc **Không áp dụng** thì phải ghi lý do ở cột **Lý do**. Dòng **Cộng tiêu chí chung (tạm tính)** tự cập nhật.
-3. **II. Kết quả thực hiện sản phẩm (Mẫu 02):** với mỗi sản phẩm, nhập % đạt ở cả bốn cột **A %**, **B %**, **C %**, **D %**. Cột **Điểm** tự tính. Không rõ nên nhập bao nhiêu: mở **Thang quy đổi % A-B-C-D** dưới bảng.
-4. Sản phẩm làm vượt chuẩn đã đăng ký: tích ô **Vượt** và bắt buộc đính kèm minh chứng (mục 6).
+2. **I. Nhóm tiêu chí chung:** chọn **Đảm bảo**, **Không đảm bảo** hoặc **Không áp dụng**; hai lựa chọn sau bắt buộc ghi **Lý do**.
+3. **II. Kết quả thực hiện sản phẩm (Mẫu 02):** nhập % ở cả bốn cột **A %**, **B %**, **C %**, **D %**; **Điểm** tự tính. Tham khảo **Thang quy đổi % A-B-C-D** dưới bảng.
+4. Sản phẩm vượt chuẩn: tích **Vượt**, bắt buộc đính kèm minh chứng (mục VII).
 
 ![Bảng kết quả sản phẩm](anh/can-bo-16-tu-cham-san-pham.png)
 
-5. **Mẫu 09C** và **Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D):** hệ thống đã điền sẵn các việc đã đăng ký vào trục tương ứng. Với mỗi nhiệm vụ, ghi tình hình, kết quả và chọn ô **Mức** (Mức 1, Mức 2, Mức 3). Cần thêm thì bấm **Thêm nhiệm vụ** hoặc **Thêm ý**. Phần **Dòng Trục … — Mẫu 9D** ghi **Tình hình thực hiện**, **Sản phẩm hoàn thành**, **Đánh giá tiến độ**, **Thời hạn hoàn thành**, **Ghi chú**; bấm **Lấy tình hình từ nhiệm vụ** để điền nhanh.
+5. **Mẫu 09C**, **Nhiệm vụ và kết quả theo trục (Mẫu 09C, 9D):** việc đã đăng ký được điền sẵn theo trục. Ghi tình hình, kết quả, chọn **Mức** (Mức 1, 2, 3); thêm bằng **Thêm nhiệm vụ**, **Thêm ý**. Phần **Dòng Trục … — Mẫu 9D** ghi **Tình hình thực hiện**, **Sản phẩm hoàn thành**, **Đánh giá tiến độ**, **Thời hạn hoàn thành**, **Ghi chú**; **Lấy tình hình từ nhiệm vụ** để điền nhanh.
 
 ![Nhiệm vụ theo trục](anh/can-bo-17-tu-cham-nhiem-vu.png)
 
-6. Cuối phiếu: dòng **Tổng tạm tính** cho biết điểm và mức theo điểm. Ô **Mức tự đề xuất** để **— Hệ thống gợi ý —** là dùng mức theo điểm. Chọn mức khác thì có thể phải ghi **Lý do đề xuất mức**.
-   Không bị kỷ luật, vi phạm hay để xảy ra sự cố an toàn do lỗi chủ quan thì tích ô **Tôi không thuộc trường hợp bị khống chế mức xếp loại**. Ô này dùng khi xét điều kiện **Hoàn thành xuất sắc** và in ở Mẫu 09A.
-7. Bấm **Xem trước bản in** để xem đoạn văn sẽ in ra.
+6. Dòng **Tổng tạm tính** ghi điểm và mức theo điểm. **Mức tự đề xuất** để **— Hệ thống gợi ý —** là dùng mức theo điểm; chọn mức khác có thể phải ghi **Lý do đề xuất mức**.
+7. Không bị kỷ luật, vi phạm, sự cố an toàn do lỗi chủ quan: tích **Tôi không thuộc trường hợp bị khống chế mức xếp loại** (dùng khi xét **Hoàn thành xuất sắc**, in ở Mẫu 09A).
+8. **Xem trước bản in** để xem đoạn văn sẽ in.
 
 ![Cuối phiếu tự chấm](anh/can-bo-18-tu-cham-cuoi.png)
 
-**Làm dở:** bấm **Lưu nháp**. Cạnh nút ghi "Có thay đổi chưa lưu" khi bạn còn sửa chưa lưu.
-
-**Nộp:** bấm **Nộp phiếu**. Hộp **Nộp phiếu tự chấm** cho biết tổng điểm, mức đề xuất và nhắc sản phẩm nào chưa có minh chứng. Bấm **Nộp phiếu** lần nữa để nộp.
+9. Chưa xong: **Lưu nháp** (cạnh nút ghi "Có thay đổi chưa lưu" khi còn nội dung chưa lưu).
+10. Xong: **Nộp phiếu**; hộp **Nộp phiếu tự chấm** ghi tổng điểm, mức đề xuất, sản phẩm chưa có minh chứng → **Nộp phiếu**.
 
 ![Hộp xác nhận nộp phiếu](anh/can-bo-19-nop-phieu.png)
 
-**Xong thì thấy:** thanh tiến trình chuyển sang **Chi bộ xác nhận phiếu tự chấm**. Sau khi nộp, bạn không sửa được nữa, trừ khi bị trả lại.
+**Kết quả:** chuyển sang **Chi bộ xác nhận phiếu tự chấm**; phiếu không sửa được, trừ khi bị trả lại.
 
-## 6. Đính kèm minh chứng
+## VII. Đính kèm minh chứng
 
-Đính kèm ngay trong phiếu tự chấm, trước khi nộp:
+**Thời điểm:** trong phiếu tự chấm, trước khi nộp.
 
-- Minh chứng của một sản phẩm: bấm **Đính kèm tệp** ở dòng **Minh chứng** dưới sản phẩm đó.
-- Minh chứng chung của một nhóm tiêu chí: bấm **Đính kèm tệp** dưới tên nhóm.
+1. Bấm **Đính kèm tệp** ở dòng **Minh chứng** dưới sản phẩm, hoặc dưới tên nhóm tiêu chí (minh chứng chung của nhóm).
+2. Chọn tệp PDF, Word, Excel, JPG, PNG, tối đa 25 MB.
 
-Chọn tệp trên máy. Nhận tệp PDF, Word, Excel, JPG, PNG, tối đa 25 MB mỗi tệp. Tệp đã gắn hiện tên kèm nút **Thay** (đổi tệp khác) và **Gỡ** (bỏ tệp).
+**Kết quả:** tệp hiện tên kèm **Thay**, **Gỡ**.
 
-- Trước khi nộp phiếu (kể cả khi bị trả lại): thêm, thay, gỡ tự do.
-- Đã nộp phiếu: chỉ thêm được tệp mới, không thay, không gỡ tệp cũ.
-- Kỳ đã khóa dữ liệu (trừ khi hồ sơ được mở riêng) hoặc hồ sơ đã công bố: không đính kèm được nữa. Sau công bố, cần bổ sung thì gửi tệp kèm kiến nghị (mục 10).
+**Lưu ý:**
+- Chưa nộp phiếu (kể cả bị trả lại): thêm, thay, gỡ tự do. Đã nộp: chỉ thêm tệp mới.
+- Kỳ khóa dữ liệu (trừ hồ sơ mở riêng) hoặc đã công bố: không đính kèm được; sau công bố gửi tệp kèm kiến nghị (mục XI).
+- Báo sai định dạng: lưu lại thành PDF hoặc ảnh rồi đính kèm.
 
-**Lỗi thường gặp:** báo tệp không đúng định dạng thì lưu lại thành PDF hoặc ảnh rồi đính kèm lại.
+## VIII. Hồ sơ bị trả lại
 
-## 7. Khi hồ sơ bị trả lại
+- Chi bộ hoặc Phòng TCCB-LĐ trả lại: đầu trang có khung đỏ **Bị trả lại:** kèm lý do; **Việc cần xử lý** có nút **Tự chấm**. Sửa → **Nộp phiếu** lại.
+- Trả lại ở bước thẩm định: nộp lại thì đi lại Chi bộ xác nhận, đề xuất của tập thể, thẩm định.
+- Kỳ khóa dữ liệu: đầu trang ghi **Hồ sơ được mở riêng đến …**; nộp trước hạn đó, quá hạn thì báo Phòng TCCB-LĐ gia hạn.
 
-Chi bộ hoặc Phòng TCCB-LĐ có thể trả lại phiếu để bạn sửa. Khi đó:
+## IX. Giải trình sau thẩm định
 
-- Đầu trang hồ sơ hiện khung đỏ **Bị trả lại:** kèm lý do.
-- Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Tự chấm**.
-- Sửa theo lý do → **Nộp phiếu** lại.
-- Nộp lại sau khi bị trả lại ở bước thẩm định: hồ sơ đi lại từ bước Chi bộ xác nhận, rồi đề xuất của tập thể, rồi thẩm định.
-- Kỳ đã khóa dữ liệu mà hồ sơ được trả lại: đầu trang ghi **Hồ sơ được mở riêng đến …**. Sửa và nộp trước thời hạn đó; quá hạn thì báo Phòng TCCB-LĐ gia hạn.
+**Thời điểm:** sau thẩm định, trước quyết định; không bắt buộc.
 
-## 8. Giải trình sau thẩm định
+1. Mở hồ sơ → khối **Giải trình của cá nhân** → **Ghi giải trình** (điểm thẩm định chênh nhiều so với tự chấm thì khối nhắc số điểm chênh).
+2. Ghi nội dung → **Lưu**.
 
-**Khi nào:** sau khi Phòng TCCB-LĐ thẩm định, trước khi có quyết định. Không bắt buộc.
+**Kết quả:** giải trình hiện kèm tên, thời gian; in vào phiếu thẩm định (Mẫu 10).
 
-1. Mở hồ sơ của bạn → khối **Giải trình của cá nhân** → bấm **Ghi giải trình**. Điểm thẩm định chênh lệch nhiều so với điểm tự chấm thì khối có dòng nhắc kèm số điểm chênh lệch.
-2. Ghi nội dung → bấm **Lưu**.
+## X. Xem kết quả
 
-**Xong thì thấy:** giải trình hiện trong khối kèm tên bạn và thời gian. Nội dung được in vào phiếu thẩm định (Mẫu 10).
-
-## 9. Xem kết quả
-
-Sau khi Văn phòng Đảng ủy công bố:
+**Thời điểm:** sau khi Văn phòng Đảng ủy công bố.
 
 - Trang hồ sơ hiện mức xếp loại chính thức.
-- Menu **Kết quả đánh giá** liệt kê kết quả đã công bố bạn được xem; dòng của bạn có nhãn **Của tôi**. Không đánh giá trong kỳ thì dòng của bạn ghi **Chưa xếp loại**.
+- Menu **Kết quả đánh giá**: kết quả được phép xem; dòng của mình có nhãn **Của tôi**, không đánh giá trong kỳ thì ghi **Chưa xếp loại**.
 
 ![Hồ sơ đã công bố](anh/can-bo-21-ket-qua.png)
 
-## 10. Gửi kiến nghị
+## XI. Gửi kiến nghị
 
-**Khi nào:** sau khi công bố, nếu bạn không đồng ý với kết quả.
+**Thời điểm:** sau công bố, khi không đồng ý kết quả.
 
-1. Mở hồ sơ của bạn (từ **Tổng quan** hoặc **Kết quả đánh giá**) → khối **Kiến nghị** → bấm **Gửi kiến nghị**.
-2. Ghi **Nội dung kiến nghị**; tích bước mà bạn kiến nghị ở **Kiến nghị liên quan tới bước**; đính kèm tệp minh chứng nếu có.
-3. Bấm **Gửi kiến nghị**.
+1. Mở hồ sơ (từ **Tổng quan** hoặc **Kết quả đánh giá**) → khối **Kiến nghị** → **Gửi kiến nghị**.
+2. Ghi **Nội dung kiến nghị**, tích bước tại **Kiến nghị liên quan tới bước**, đính kèm minh chứng nếu có → **Gửi kiến nghị**.
 
 ![Gửi kiến nghị](anh/can-bo-23-kien-nghi.png)
 
-**Xong thì thấy:** kiến nghị ghi "Đã gửi, chờ xem xét"; kết quả của bạn trong danh sách ghi "Đang xem xét kiến nghị". Mỗi lúc chỉ gửi được một kiến nghị; chờ trả lời rồi mới gửi kiến nghị khác. Khi có trả lời, chuông góc trên có nhóm **Kiến nghị đã trả lời**; **Việc cần xử lý** có nhóm **Kiến nghị đã được trả lời** → bấm **Xem trả lời**. Câu trả lời hiện trong khối **Kiến nghị**.
+**Kết quả:** kiến nghị ghi "Đã gửi, chờ xem xét"; kết quả trong danh sách ghi "Đang xem xét kiến nghị".
+
+**Lưu ý:**
+- Mỗi lúc chỉ một kiến nghị; có trả lời mới gửi kiến nghị khác.
+- Có trả lời: chuông có nhóm **Kiến nghị đã trả lời**; **Việc cần xử lý** có nhóm **Kiến nghị đã được trả lời** → **Xem trả lời**; nội dung hiện trong khối **Kiến nghị**.
 
 ![Kiến nghị đã được trả lời](anh/can-bo-24-chuong-tra-loi.png)
 
-## 11. Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
+## XII. Xác nhận kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 
-**Khi nào:** chỉ khi bạn xếp loại **Hoàn thành nhiệm vụ** hoặc **Không hoàn thành nhiệm vụ**. Lãnh đạo đơn vị lập kế hoạch, cấp trên duyệt, sau đó đến lượt bạn.
+**Thời điểm:** khi xếp loại **Hoàn thành nhiệm vụ** hoặc **Không hoàn thành nhiệm vụ**, sau khi lãnh đạo đơn vị lập và cấp trên duyệt kế hoạch.
 
-1. Bấm **Việc cần xử lý** → nhóm **Kế hoạch chờ bạn xác nhận** → bấm **Xác nhận kế hoạch**.
-2. Đọc kế hoạch trong khối **Kế hoạch 30-60-90 ngày (Mẫu 17)**: hạn chế cần khắc phục, mục tiêu, biện pháp ở từng mốc 30, 60, 90 ngày.
-3. Ghi ý kiến (nếu có) vào ô **Ý kiến** → bấm **Xác nhận cam kết khắc phục**.
+1. **Việc cần xử lý** → nhóm **Kế hoạch chờ bạn xác nhận** → **Xác nhận kế hoạch**.
+2. Đọc khối **Kế hoạch 30-60-90 ngày (Mẫu 17)**: hạn chế, mục tiêu, biện pháp từng mốc 30, 60, 90 ngày.
+3. Ghi **Ý kiến** (nếu có) → **Xác nhận cam kết khắc phục**.
 
 ![Xác nhận kế hoạch](anh/can-bo-26-xac-nhan-ke-hoach.png)
 
-**Xong thì thấy:** dòng **Cá nhân xác nhận** ghi tên bạn và ngày xác nhận. Tải bản Word của kế hoạch bằng nút **Tải Word** ở đầu khối.
+**Kết quả:** dòng **Cá nhân xác nhận** ghi tên, ngày; **Tải Word** ở đầu khối để tải kế hoạch.
 
-## 12. Tải biểu mẫu
+## XIII. Tải biểu mẫu
 
-Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Nút **⋯** cạnh đó có **Tải PDF** và, với Mẫu 01, 02, 09A, 9D, 10, có thêm **Excel**. **Xem bản in** mở bản xem trước trên màn hình. Danh sách có thêm phiếu Mẫu 04, 05 cho mỗi đề nghị điều chỉnh, việc đột xuất. Hồ sơ không qua thẩm định trong hệ thống (do cấp trên thẩm định) thì không có phiếu thẩm định (Mẫu 10).
+1. Bấm **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên).
+2. Bấm **Tải Word** cạnh mẫu; **⋯** có **Tải PDF** và **Excel** (Mẫu 01, 02, 09A, 9D, 10). **Xem bản in**: xem trước trên màn hình.
+
+**Lưu ý:** có phiếu Mẫu 04, 05 cho mỗi đề nghị điều chỉnh, việc đột xuất. Hồ sơ do cấp trên thẩm định không có Mẫu 10.
