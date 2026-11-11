@@ -8,7 +8,7 @@ Việc của bạn tùy vai trò được gán:
 |---|---|---|
 | **Cơ quan thẩm định** | Lãnh đạo Phòng TCCB-LĐ | Mọi phần dưới đây, gồm lập, mở, khóa, đóng kỳ (Phần A, F) |
 | **Cán bộ giúp việc đánh giá** | Nhân viên Phòng TCCB-LĐ (Nhân viên Nhân sự) được Trưởng phòng phân công | Rà soát danh mục (Phần B), thẩm định (Phần C), biên bản họp thống nhất (Phần D), phiếu kiểm tra (Phần E), theo dõi tiến độ; làm thư ký hội nghị tập thể lãnh đạo cấp Công ty theo [Hướng dẫn cho thư ký hội nghị](thu-ky.md); xem mọi hồ sơ, biên bản, kết quả và xuất báo cáo. Không lập, mở, khóa, đóng kỳ, không sửa bộ tiêu chí |
-| **Cán bộ giúp việc Đảng ủy** | Nhân viên công tác Đảng ở Văn phòng Công ty (Nhân viên công tác Đảng, đoàn thể và thi đua) được phân công | Như dòng trên nhưng không rà soát danh mục (Phần B là việc của Phòng TCCB-LĐ); phối hợp thẩm định; giúp cấp ủy lập hồ sơ tập thể Mẫu 06, 07, 08 |
+| **Cán bộ giúp việc Đảng ủy** | Nhân viên công tác Đảng ở Văn phòng Công ty (Nhân viên công tác Đảng, đoàn thể và thi đua) được phân công | Như dòng trên nhưng không rà soát danh mục (Phần B là việc của Phòng TCCB-LĐ); phối hợp thẩm định; giúp cấp ủy lập hồ sơ tập thể Mẫu 06, 07, 08 (Phần G) |
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 
@@ -108,14 +108,19 @@ Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Bi�
 2. Bảng sản phẩm: dưới tên mỗi sản phẩm ghi loại (và **Vượt chuẩn** nếu có); cột **Tự chấm** là kết quả cán bộ tự đánh giá. Ở cột **Mức thẩm định, nhận xét**, chọn mức cho từng sản phẩm (Mức 1, Mức 2, Mức 3; bắt buộc đủ), ghi **Nhận xét** ngắn ở ô bên dưới nếu cần.
 3. **Chấm tiêu chí chung:** để **Theo nhóm** thì nhập 2 điểm **Tiêu chí chung** và **Kết quả nhiệm vụ** (đã điền sẵn điểm tự chấm, sửa nếu khác). Chọn **Từng tiêu chí** nếu muốn chấm lại từng tiêu chí con.
 4. Ô **Tổng** tự tính. Chọn **Mức đề xuất**; ghi **Ý kiến thẩm định**.
-5. Điểm chênh lệch nhiều so với tự chấm, hoặc đổi mức: ô **Giải trình** có dấu \* (bắt buộc). Ghi rõ căn cứ.
-6. Bấm **Ghi nhận thẩm định** → **Đồng ý**.
+5. **Khống chế mức xếp loại:** cán bộ bị kỷ luật, vi phạm hoặc để xảy ra sự cố an toàn do lỗi chủ quan thì chọn **Có, tối đa …** đúng mức trần và ghi **Lý do khống chế** (bắt buộc). Không thì để **Không**.
+6. Bảng **Điều kiện Hoàn thành xuất sắc** (6 điều kiện): cột **Hệ thống** là kết quả tính sẵn kèm căn cứ. Cột **Kết luận** để **Theo hệ thống** hoặc chọn **Đạt**, **Không**. Điều kiện (i) luôn do bạn chọn; điều kiện ghi **Chưa xác định** thì xem căn cứ rồi chọn.
+7. Dải vàng phía dưới là cảnh báo, không chặn: mức đề xuất cao hơn mức khống chế; đề xuất **Hoàn thành xuất sắc** mà còn điều kiện không đạt; phiếu đối soát an toàn - chất lượng (Mẫu 03) có mục khiếm khuyết mà chưa khống chế mức. Đọc kỹ rồi sửa nếu cần.
+8. Điểm chênh lệch nhiều so với tự chấm, hoặc đổi mức: ô **Giải trình** có dấu \* (bắt buộc). Ghi rõ căn cứ.
+9. Bấm **Ghi nhận thẩm định** → **Đồng ý**.
 
 ![Khung thẩm định](anh/tham-dinh-11-tham-dinh.png)
 
 ![Điểm, mức đề xuất và giải trình](anh/tham-dinh-12-tham-dinh-diem.png)
 
-**Xong thì thấy:** hồ sơ chuyển sang bước nhận xét của cấp trực tiếp sử dụng (hoặc quyết định, tùy diện).
+**Xong thì thấy:** hồ sơ chuyển sang bước nhận xét của cấp trực tiếp sử dụng (hoặc quyết định, tùy diện). Điều kiện Hoàn thành xuất sắc và khống chế mức in ở phiếu thẩm định (Mẫu 10). Hồ sơ do cấp trên thẩm định thì không lập Mẫu 10.
+
+**Giải trình của cá nhân:** sau thẩm định, trước quyết định, cán bộ ghi được giải trình trên hồ sơ của mình. Nội dung hiện ở khối **Ý kiến và giải trình** và in vào Mẫu 10.
 
 **Cần cán bộ sửa phiếu:** bấm **Trả lại để chủ hồ sơ sửa**, ghi lý do → **Trả lại**.
 
@@ -160,3 +165,23 @@ Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Bi�
 - **Tổng quan:** khối **Tiến độ trong phạm vi** đếm hồ sơ toàn công ty theo bước, theo tổ chức Đảng, và liệt kê hồ sơ **Chậm hạn** kèm người phải làm. Khối **Kỳ đánh giá cần xử lý** chỉ hiện khi kỳ đang mở còn **Bước chưa có người thực hiện**; bấm vào để mở trang kỳ với danh sách bước thiếu người ở thẻ **Tiến độ**.
 - **Khóa dữ liệu:** khi mọi hồ sơ đã có biên bản họp thống nhất và phiếu kiểm tra: trang kỳ → **⋯** → **Khóa dữ liệu** → **Khóa dữ liệu**. Từ lúc này cán bộ không sửa hồ sơ được nữa; chỉ các bước từ thẩm định trở đi tiếp tục. Còn thiếu thì **⋯** → **Mở lại kỳ**, làm xong rồi khóa lại.
 - **Đóng kỳ:** khi mọi hồ sơ đã công bố: **⋯** → **Đóng kỳ** → **Đóng kỳ**.
+
+## Phần G. Cán bộ giúp việc Đảng ủy
+
+Dành cho cán bộ công tác Đảng ở Văn phòng Công ty được gán vai trò **Cán bộ giúp việc Đảng ủy**. Bạn làm được:
+
+- thẩm định (Phần C), biên bản họp thống nhất (Phần D), phiếu kiểm tra (Phần E), theo dõi tiến độ;
+- thư ký hội nghị tập thể lãnh đạo cấp Công ty, theo [Hướng dẫn cho thư ký hội nghị](thu-ky.md);
+- cập nhật danh mục hồ sơ do cấp trên duyệt (cuối Phần B);
+- lập hồ sơ tập thể Mẫu 06, 07, 08 giúp cấp ủy (dưới đây).
+
+Bạn không rà soát, trình duyệt danh mục; không lập, mở, khóa, đóng kỳ.
+
+**Lập hồ sơ tập thể (Mẫu 06, 07, 08):**
+
+1. Menu **Đánh giá tập thể** → thẻ **Hồ sơ tập thể** → bấm **Lập hồ sơ**.
+2. Chọn **Biểu mẫu**; ở **Thuộc** chọn **Tổ chức Đảng** hoặc **Phòng / đơn vị**, rồi chọn đơn vị cụ thể. Mẫu 07 chỉ lập cho tổ chức Đảng.
+3. Nhập nội dung theo từng mục của biểu mẫu → bấm **Lưu**.
+4. Tải bản in: nút **⋯** ở dòng hồ sơ → **Tải Word** (Mẫu 08 có thêm **Tải Excel**).
+
+Ô ký trên Mẫu 06, 07, 08 tự in **T/M CHI BỘ** hoặc **T/M ĐẢNG ỦY** theo tổ chức Đảng của hồ sơ. Thẻ **Theo dõi** cho biết tổ chức Đảng nào đã, chưa lập. Số nhiệm vụ được giao, hoàn thành đúng hạn ở Mẫu 06 dùng để tính điều kiện (ii) Hoàn thành xuất sắc của người phụ trách đơn vị, nên nhập trước khi thẩm định.

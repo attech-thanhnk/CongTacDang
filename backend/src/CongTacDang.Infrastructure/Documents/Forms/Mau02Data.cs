@@ -14,6 +14,11 @@ public sealed class Mau02Data
     /// <summary>Ngày nộp phiếu tự chấm; chưa nộp → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
+    /// <summary>Cơ quan chủ quản trực tiếp của đơn vị hồ sơ (dòng 1 tiêu đề trái); null khi trực thuộc Công ty → in tên công ty.</summary>
+    [TemplateField("ADMIN_PARENT_UPPER")] public string? AdminParentUpper { get; init; }
+
+    [TemplateCondition("HAS_ADMIN_PARENT")] public bool HasAdminParent => AdminParentUpper != null;
+
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
     /// <summary>Đơn vị gốc (chính là công ty) → tiêu đề trái chỉ in tên công ty, không lặp.</summary>
@@ -42,8 +47,11 @@ public sealed class Mau02Data
     /// <summary>Ô "Đại diện lãnh đạo đơn vị": Trưởng đơn vị đã gửi danh mục (cùng người ký Mẫu 01).</summary>
     [TemplateField("UNIT_LEADER_NAME")] public string? UnitLeaderName { get; init; }
 
-    /// <summary><paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ.</summary>
-    public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null)
+    /// <summary>
+    /// <paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ;
+    /// <paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>).
+    /// </summary>
+    public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null, string? adminParentLine = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
         // Mặc định 2 chữ số nếu kỳ chưa có bộ tiêu chí.
@@ -51,6 +59,7 @@ public sealed class Mau02Data
         return new Mau02Data
         {
             DateLine = CollectiveFormText.DateLine(record.SelfScoredAt),
+            AdminParentUpper = FormText.OrNull(adminParentLine),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             HasDepartment = Mau09Shared.HasDepartment(record),
             TotalWeight = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.Weight), 1) : null,

@@ -9,6 +9,7 @@ using CongTacDang.Application.Organization;
 using CongTacDang.Application.Services;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Documents;
 using static CongTacDang.Infrastructure.Documents.ExcelFormLayout;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,7 @@ public partial class ReportService
         // Chỉ hồ sơ thuộc phạm vi report.export của người xem (theo ảnh chụp trên hồ sơ).
         records = records.Where(r => viewerScope.Matches(null, r.DepartmentId, r.PartyCellId)).ToList();
 
+        var settings = SettingsOrNull(period);
         var held = await HeldPositionsAsync(records.Select(r => r.MemberId), PositionDate(period));
         var attachmentCounts = await RecordAttachmentCountsAsync(records);
         var org = await _orgSettings.GetAsync();
@@ -101,6 +103,7 @@ public partial class ReportService
             foreach (var (r, positions, code) in block)
             {
                 var selfScored = r.SelfScoredAt.HasValue;
+                var unitLeader = ProposalColumns.IsUnitLeaderProposal(r, settings);
                 var count = attachmentCounts.GetValueOrDefault(r.Id);
                 var values = new object?[]
                 {
@@ -112,9 +115,9 @@ public partial class ReportService
                     selfScored ? r.TasksScore : null,
                     selfScored ? r.TotalSelfScore : null,
                     GradeOrBlank(r.SelfProposedGrade),
-                    GradeOrBlank(r.CollectiveProposedGrade),
+                    GradeOrBlank(ProposalColumns.Collective(r, unitLeader).Grade),
                     GradeOrBlank(r.ReviewedGrade()),
-                    GradeOrBlank(r.DirectorProposedGrade),
+                    GradeOrBlank(ProposalColumns.DirectSupervisor(r, unitLeader).Grade),
                     r.DecisionRecordedAt != null ? FormText.Grade(r.FinalGrade) : GradeOrBlank(r.FinalGrade),
                     count > 0 ? $"{count} tệp đính kèm" : null
                 };

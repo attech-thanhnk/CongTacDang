@@ -7,7 +7,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 ## Cần biết trước
 
 - Hồ sơ của bạn đi lần lượt qua các bước trên **thanh tiến trình** ở đầu trang hồ sơ. Bước đang chờ ghi **Chờ: …** (ai đang phải làm) và **Hạn**.
-- Bạn chỉ làm các bước của chính mình: đăng ký sản phẩm, đề nghị điều chỉnh việc, tự chấm, gửi kiến nghị, xác nhận kế hoạch khắc phục. Các bước xét duyệt do người khác làm; bạn không bao giờ thấy nút duyệt trên hồ sơ của mình.
+- Bạn chỉ làm các bước của chính mình: đăng ký sản phẩm, đề nghị điều chỉnh việc, tự chấm, giải trình sau thẩm định, gửi kiến nghị, xác nhận kế hoạch khắc phục. Các bước xét duyệt do người khác làm; bạn không bao giờ thấy nút duyệt trên hồ sơ của mình.
 - Nút chỉ hiện khi đến lượt bạn. Không thấy nút: đọc dải vàng trên hồ sơ, thường do chưa tới bước hoặc đã quá hạn.
 
 ## 1. Đăng nhập lần đầu
@@ -91,7 +91,7 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 **Danh mục do cấp trên duyệt** (ví dụ Chủ tịch, Giám đốc, Kiểm soát viên):
 - Đang chờ duyệt mà cấp trên sửa danh mục: mở hồ sơ → **Cập nhật danh mục** → sửa cho khớp → **Lưu danh mục**. Phòng TCCB-LĐ hoặc Văn phòng Đảng ủy cũng cập nhật thay được.
-- Đã duyệt mà cấp trên đồng ý điều chỉnh: bấm **Ghi điều chỉnh đã duyệt**, nhập thêm **Cơ quan phê duyệt**, **Số văn bản**, **Ngày văn bản** → **Ghi và áp dụng**. Danh mục cập nhật ngay, không chờ duyệt.
+- Đã duyệt mà cấp trên đồng ý điều chỉnh: bấm **Ghi điều chỉnh đã duyệt**, nhập thêm **Cơ quan phê duyệt**, **Số văn bản**, **Ngày văn bản**, đính kèm văn bản nếu có → **Ghi và áp dụng**. Danh mục cập nhật ngay, không chờ duyệt.
 
 ## 5. Tự chấm điểm (Mẫu 02, 09A, 09C, 9D)
 
@@ -112,6 +112,7 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 ![Nhiệm vụ theo trục](anh/can-bo-17-tu-cham-nhiem-vu.png)
 
 6. Cuối phiếu: dòng **Tổng tạm tính** cho biết điểm và mức theo điểm. Ô **Mức tự đề xuất** để **— Hệ thống gợi ý —** là dùng mức theo điểm. Chọn mức khác thì có thể phải ghi **Lý do đề xuất mức**.
+   Không bị kỷ luật, vi phạm hay để xảy ra sự cố an toàn do lỗi chủ quan thì tích ô **Tôi không thuộc trường hợp bị khống chế mức xếp loại**. Ô này dùng khi xét điều kiện **Hoàn thành xuất sắc** và in ở Mẫu 09A.
 7. Bấm **Xem trước bản in** để xem đoạn văn sẽ in ra.
 
 ![Cuối phiếu tự chấm](anh/can-bo-18-tu-cham-cuoi.png)
@@ -143,7 +144,16 @@ Chi bộ hoặc Phòng TCCB-LĐ có thể trả lại phiếu để bạn sửa.
 - Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Tự chấm**.
 - Sửa theo lý do → **Nộp phiếu** lại.
 
-## 8. Xem kết quả
+## 8. Giải trình sau thẩm định
+
+**Khi nào:** sau khi Phòng TCCB-LĐ thẩm định, trước khi có quyết định. Không bắt buộc.
+
+1. Mở hồ sơ của bạn → khối **Giải trình của cá nhân** → bấm **Ghi giải trình**. Điểm thẩm định chênh lệch nhiều so với điểm tự chấm thì khối có dòng nhắc kèm số điểm chênh lệch.
+2. Ghi nội dung → bấm **Lưu**.
+
+**Xong thì thấy:** giải trình hiện trong khối kèm tên bạn và thời gian. Nội dung được in vào phiếu thẩm định (Mẫu 10).
+
+## 9. Xem kết quả
 
 Sau khi Văn phòng Đảng ủy công bố:
 
@@ -152,7 +162,7 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 ![Hồ sơ đã công bố](anh/can-bo-21-ket-qua.png)
 
-## 9. Gửi kiến nghị
+## 10. Gửi kiến nghị
 
 **Khi nào:** sau khi công bố, nếu bạn không đồng ý với kết quả.
 
@@ -166,7 +176,7 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 ![Kiến nghị đã được trả lời](anh/can-bo-24-chuong-tra-loi.png)
 
-## 10. Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
+## 11. Kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 
 **Khi nào:** chỉ khi bạn xếp loại **Hoàn thành nhiệm vụ** hoặc **Không hoàn thành nhiệm vụ**. Lãnh đạo đơn vị lập kế hoạch, cấp trên duyệt, sau đó đến lượt bạn.
 
@@ -178,6 +188,6 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 **Xong thì thấy:** dòng **Cá nhân xác nhận** ghi tên bạn và ngày xác nhận. Tải bản Word của kế hoạch bằng nút **Tải Word** ở đầu khối.
 
-## 11. Tải biểu mẫu
+## 12. Tải biểu mẫu
 
-Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Bản PDF ở nút **⋯** cạnh đó. **Xem bản in** mở bản xem trước trên màn hình.
+Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Bản PDF ở nút **⋯** cạnh đó. **Xem bản in** mở bản xem trước trên màn hình. Hồ sơ do cấp trên thẩm định thì không có phiếu thẩm định (Mẫu 10).

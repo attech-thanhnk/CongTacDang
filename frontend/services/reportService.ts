@@ -73,7 +73,7 @@ export const REPORTS: ReportDefinition[] = [
   {
     id: "decision", code: "Quyết định", group: "hd03", scope: "period", fileType: "DOCX", fileCode: "QD",
     filePrefix: "Quyet dinh xep loai",
-    title: "Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy), kèm Phụ lục kết quả",
+    title: "Quyết định xếp loại cán bộ quý của Đảng ủy, kèm Phụ lục kết quả",
     endpoint: "/reports/docx/decision",
   },
   {
@@ -212,8 +212,8 @@ export const reportService = {
   },
 
   /** Lập được Quyết định xếp loại chưa (kèm lý do). */
-  getDecisionReadiness(periodId: string, branchId?: string): Promise<{ ready: boolean; message?: string | null }> {
-    return request(withQuery("/reports/decision/readiness", { periodId, branchId }));
+  getDecisionReadiness(periodId: string): Promise<{ ready: boolean; message?: string | null }> {
+    return request(withQuery("/reports/decision/readiness", { periodId }));
   },
 
   /** Không truyền `branchId`: phạm vi mặc định theo quyền được giao. */

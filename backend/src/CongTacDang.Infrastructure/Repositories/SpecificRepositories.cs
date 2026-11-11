@@ -94,8 +94,11 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         var externalRefs = _db.Set<EvaluationExternalResult>().IgnoreQueryFilters()
             .Where(x => x.AttachmentId != null)
             .Select(x => x.AttachmentId!.Value);
+        var changeRefs = _db.Set<TaskChangeRequest>().IgnoreQueryFilters()
+            .Where(x => x.AttachmentId != null)
+            .Select(x => x.AttachmentId!.Value);
         return _db.TaskAttachments.IgnoreQueryFilters()
-            .Where(v => taskRefs.Contains(v.Id) || externalRefs.Contains(v.Id))
+            .Where(v => taskRefs.Contains(v.Id) || externalRefs.Contains(v.Id) || changeRefs.Contains(v.Id))
             .Select(v => v.FileGroupId ?? v.Id);
     }
 
@@ -152,7 +155,11 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .Where(x => x.AttachmentId != null && ids.Contains(x.AttachmentId.Value))
             .Select(x => x.AttachmentId!.Value)
             .ToListAsync(ct);
-        return fromTasks.Concat(fromExternal).ToHashSet();
+        var fromChanges = await _db.Set<TaskChangeRequest>().IgnoreQueryFilters()
+            .Where(x => x.AttachmentId != null && ids.Contains(x.AttachmentId.Value))
+            .Select(x => x.AttachmentId!.Value)
+            .ToListAsync(ct);
+        return fromTasks.Concat(fromExternal).Concat(fromChanges).ToHashSet();
     }
 
     /// <inheritdoc />
@@ -181,12 +188,17 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
                     || (a.OwnerType == null && a.RecordId == ownerId))
                 .ToListAsync();
 
-            // Văn bản cấp trên gắn vào kết quả các bước do cấp trên thực hiện.
+            // Văn bản cấp trên gắn vào kết quả các bước do cấp trên thực hiện và vào điều chỉnh việc đã được phê duyệt.
             var externalIds = await _db.Set<EvaluationExternalResult>()
                 .AsNoTracking()
                 .Where(x => x.RecordId == ownerId && x.AttachmentId.HasValue)
                 .Select(x => x.AttachmentId!.Value)
                 .ToListAsync();
+            externalIds.AddRange(await _db.Set<TaskChangeRequest>()
+                .AsNoTracking()
+                .Where(x => x.RecordId == ownerId && x.AttachmentId.HasValue)
+                .Select(x => x.AttachmentId!.Value)
+                .ToListAsync());
             foreach (var externalId in externalIds)
             {
                 var current = await GetCurrentVersionAsync(externalId);
@@ -462,6 +474,19 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             .Distinct()
             .ToList();
 
+        var changeVersionLinks = await _db.Set<TaskChangeRequest>()
+            .AsNoTracking()
+            .Where(x => x.AttachmentId.HasValue && versionIds.Contains(x.AttachmentId.Value))
+            .Select(x => new { VersionId = x.AttachmentId!.Value, x.RecordId })
+            .Distinct()
+            .ToListAsync();
+        var changeLinks = attachments
+            .SelectMany(a => changeVersionLinks
+                .Where(l => groupOfVersion[l.VersionId] == a.GroupId)
+                .Select(l => new { AttachmentId = a.Id, l.RecordId }))
+            .Distinct()
+            .ToList();
+
         var explicitLinks = attachments
             .Where(a => a.RecordId.HasValue)
             .Select(a => new { AttachmentId = a.Id, RecordId = a.RecordId!.Value })
@@ -470,6 +495,7 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
         var recordIds = taskLinks.Select(x => x.RecordId)
             .Concat(explicitLinks.Select(x => x.RecordId))
             .Concat(externalLinks.Select(x => x.RecordId))
+            .Concat(changeLinks.Select(x => x.RecordId))
             .Distinct()
             .ToList();
         if (recordIds.Count == 0)
@@ -497,6 +523,8 @@ public class AttachmentRepository : GenericRepository<TaskAttachment>, IAttachme
             Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.Task);
         foreach (var link in externalLinks)
             Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.ExternalResult);
+        foreach (var link in changeLinks)
+            Add(link.AttachmentId, link.RecordId, AttachmentLinkKind.TaskChange);
 
         return result;
     }

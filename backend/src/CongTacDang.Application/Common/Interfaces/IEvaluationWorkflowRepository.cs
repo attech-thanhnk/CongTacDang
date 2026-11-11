@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CongTacDang.Application.Organization;
@@ -64,6 +65,10 @@ public interface IEvaluationWorkflowRepository : IOrgSubtreeReader
 
     /// <summary>Được theo dõi.</summary>
     Task<List<EvaluationTask>> GetTasksAsync(Guid recordId, CancellationToken ct = default);
+
+    /// <summary>Mọi mã sản phẩm từng có của hồ sơ, kể cả sản phẩm đã xóa mềm (để không đánh lại mã cũ).</summary>
+    async Task<List<string>> GetAllProductCodesAsync(Guid recordId, CancellationToken ct = default) =>
+        (await GetTasksAsync(recordId, ct)).Where(t => !string.IsNullOrWhiteSpace(t.ProductCode)).Select(t => t.ProductCode!).ToList();
 
     void AddHistory(EvaluationRecordHistory history);
 

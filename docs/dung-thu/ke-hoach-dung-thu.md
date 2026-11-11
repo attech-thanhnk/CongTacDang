@@ -18,8 +18,8 @@ Mục đích: một nhóm nhỏ dùng hệ thống đúng vai trò thật của 
 | | Nguyễn Xuân Hưng | `hung.nx` | Đội trưởng, Phó Bí thư chi bộ: Chi bộ xác nhận cho Đội trưởng Cường |
 | Phòng TC-KT | Nguyễn Phạm Quỳnh Trang | `trang.npq` | Trưởng phòng, Bí thư chi bộ: Chi bộ xác nhận cho Phó Giám đốc Thành |
 | | Uông Thị Thu Huyền | `huyen.utt` | Chi bộ: xác nhận cho Phó Giám đốc Thành |
-| Phòng TCCB-LĐ | Trần Thị Phương Loan, Chu Thị Phương Loan | `loan.ttp`, `loan.ctp` | Lập, mở kỳ; thẩm định; lập biên bản họp thống nhất, phiếu kiểm tra |
-| Văn phòng | Đinh Thế Hùng, Nguyễn Chí Long, Nguyễn Thanh Thảo | `hung.dt`, `long.nc`, `thao.nt` | Văn phòng Đảng ủy: chốt biên bản, quyết định, công bố, báo cáo; thư ký hội nghị |
+| Phòng TCCB-LĐ | Trần Thị Phương Loan, Chu Thị Phương Loan | `loan.ttp`, `loan.ctp` | Lập, mở kỳ; cập nhật danh mục hồ sơ do cấp trên duyệt; thẩm định (điều kiện Hoàn thành xuất sắc, khống chế mức); lập biên bản họp thống nhất, phiếu kiểm tra |
+| Văn phòng | Đinh Thế Hùng, Nguyễn Chí Long, Nguyễn Thanh Thảo | `hung.dt`, `long.nc`, `thao.nt` | Văn phòng Đảng ủy: chốt biên bản, quyết định, công bố, báo cáo; thư ký hội nghị. Người được gán Cán bộ giúp việc Đảng ủy: thử thêm lập Mẫu 06, 07, 08 |
 | CNTT | Quản trị | `quantri` | Cấp, mở khóa tài khoản; hỗ trợ người thử |
 
 Mỗi người đọc **hướng dẫn theo vai trò** của mình trước khi bắt đầu: tìm tên mình trong [bảng "tôi là ai, đọc tệp nào"](README.md).
@@ -34,6 +34,15 @@ Mỗi người đọc **hướng dẫn theo vai trò** của mình trước khi 
 | Tổng kết (1 buổi) | Gom phiếu góp ý, thống nhất việc phải sửa trước khi mở kỳ thật | Phòng TCCB-LĐ, Văn phòng, CNTT |
 
 Hạn các bước trong kỳ thử đặt theo lịch trên, không theo hạn thật của quý.
+
+### Kịch bản cần thử thêm
+
+| Kịch bản | Ai làm | Làm gì | Đạt khi |
+|---|---|---|---|
+| Cập nhật danh mục hồ sơ do cấp trên duyệt | Phòng TCCB-LĐ hoặc Văn phòng Đảng ủy, trên hồ sơ Chủ tịch hoặc Giám đốc | Khi hồ sơ chờ duyệt danh mục: **Cập nhật danh mục** → sửa một sản phẩm → **Lưu danh mục**, rồi ghi nhận kết quả của cấp trên. Sau khi duyệt: **Ghi điều chỉnh đã duyệt** với số, ngày văn bản | Danh mục đổi đúng; lịch sử ghi người cập nhật; điều chỉnh có nhãn **Đã duyệt**, Mẫu 04/05 in số, ngày văn bản. Không thấy nút trên hồ sơ của chính mình |
+| Giải trình của cá nhân | Một cán bộ có điểm thẩm định khác điểm tự chấm | Sau thẩm định, mở hồ sơ → **Ghi giải trình** → **Lưu** | Giải trình hiện trên hồ sơ, người duyệt đọc được, in ở Mẫu 10. Sau khi có quyết định thì không ghi thêm được |
+| Điều kiện Xuất sắc và khống chế mức | Cán bộ tự chấm; Phòng TCCB-LĐ thẩm định | Cán bộ tích ô cam kết không bị khống chế, đề xuất **Hoàn thành xuất sắc**. Khi thẩm định: xem bảng 6 điều kiện, chọn điều kiện (i); thử chọn **Có, tối đa …** kèm lý do | Bảng điều kiện có kết quả tính sẵn; chọn khống chế mà mức đề xuất cao hơn thì có cảnh báo; Mẫu 10 in đúng điều kiện và khống chế. Hồ sơ do cấp trên thẩm định không có Mẫu 10 |
+| In Quyết định và Mẫu 14 | Văn phòng Đảng ủy | Menu **Báo cáo**: tải **Quyết định** khi ô phạm vi là một chi bộ và khi là **Toàn Đảng bộ**; tải **Mẫu 14** theo từng chi bộ | Quyết định luôn là bản đầy đủ của Đảng ủy Công ty, tiêu đề **ĐẢNG ỦY …**; Mẫu 14 chỉ có người của chi bộ đã chọn. Cán bộ diện Trưởng đơn vị đề xuất có mức ở cột 10 |
 
 ## 3. Đăng nhập lần đầu
 

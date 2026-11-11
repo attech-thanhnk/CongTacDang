@@ -249,6 +249,24 @@ public class TaskChangeFormsTests
     }
 
     [Fact]
+    public void Mau05_Assigner_ApproverInSystem_OrUpperDocument_OrDotsWhenNotApproved()
+    {
+        var (approved, _) = Source(TaskChangeType.Urgent);
+        Assert.Contains("Cấp có thẩm quyền giao việcLê Văn Duyệt", BodyText(Render(Mau05Data.TemplateFileName, approved)));
+
+        var (external, _) = Source(TaskChangeType.Urgent);
+        external.Request.DecidedByName = "Ban Thường vụ Đảng ủy";
+        external.Request.DecisionComment = "Văn bản số 45/QĐ ngày 01/09/2026";
+        Assert.Equal("Ban Thường vụ Đảng ủy\n(Văn bản số 45/QĐ ngày 01/09/2026)", Mau05Data.From(external).Assigner);
+
+        var (pending, _) = Source(TaskChangeType.Urgent, TaskChangeStatus.Pending);
+        Assert.Null(Mau05Data.From(pending).Assigner);
+        var text = BodyText(Render(Mau05Data.TemplateFileName, pending));
+        Assert.Contains("Cấp có thẩm quyền giao việc……", text);
+        Assert.DoesNotContain("[Lãnh đạo", text);
+    }
+
+    [Fact]
     public void Mau05_NoReducedWeight_LeavesRebalanceBoxUnchecked()
     {
         var (source, _) = Source(TaskChangeType.Urgent);

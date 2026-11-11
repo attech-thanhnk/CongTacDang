@@ -83,7 +83,7 @@ public sealed class RecordFormService : IRecordFormService
         if (criteria == null)
             throw new ConflictException("Xuất biểu mẫu tự chấm không thành công: kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.");
 
-        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
+        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct), await PartyParentAsync(record, ct));
         var (templateFileName, data) = code switch
         {
             RecordFormCodes.Form09A => (Mau09AData.TemplateFileName, (object)Mau09AData.From(source)),
@@ -105,7 +105,7 @@ public sealed class RecordFormService : IRecordFormService
 
         if (criteria == null)
             throw new ConflictException("Xuất biểu mẫu tự chấm không thành công: kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.");
-        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
+        var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct), await PartyParentAsync(record, ct));
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
         var bytes = code == RecordFormCodes.Form09A
             ? PersonalFormWorkbooks.Mau09A(Mau09AData.From(source), org)
@@ -189,6 +189,14 @@ public sealed class RecordFormService : IRecordFormService
 
         var pdf = await _pdfConverter.ConvertToPdfAsync(bytes, ".docx");
         return new ReportFileResult { FileBytes = pdf, ContentType = PdfMimeType, FileName = Path.ChangeExtension(fileName, ".pdf") };
+    }
+
+    /// <summary>Tên tổ chức Đảng cấp trên trực tiếp của Chi bộ hồ sơ cho dòng 1 tiêu đề trái Mẫu 09A/09C/9D.</summary>
+    private async Task<string?> PartyParentAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        var org = await _orgSettings.GetAsync(ct);
+        var (name, isRoot) = await OrgHeaderLookup.PartyParentAsync(_db, record.PartyCell, ct);
+        return IndividualFormSource.PartyParentLine(name, isRoot, org.PartyCommitteeName);
     }
 
     /// <summary>Nạp hồ sơ (kèm kỳ, cán bộ, Phòng, Chi bộ, nhiệm vụ) và kiểm tra quyền xem hồ sơ.</summary>

@@ -13,6 +13,11 @@ public sealed class Mau01Data
     /// <summary>Ngày duyệt danh mục nhiệm vụ; chưa duyệt → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
+    /// <summary>Cơ quan chủ quản trực tiếp của đơn vị hồ sơ (dòng 1 tiêu đề trái); null khi trực thuộc Công ty → in tên công ty.</summary>
+    [TemplateField("ADMIN_PARENT_UPPER")] public string? AdminParentUpper { get; init; }
+
+    [TemplateCondition("HAS_ADMIN_PARENT")] public bool HasAdminParent => AdminParentUpper != null;
+
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
     /// <summary>Đơn vị gốc (chính là công ty) → tiêu đề trái chỉ in tên công ty, không lặp.</summary>
@@ -41,12 +46,14 @@ public sealed class Mau01Data
     /// <summary>Dòng "CỘNG": tổng trọng số các sản phẩm; chưa có sản phẩm → giữ chữ mặc định.</summary>
     [TemplateField("TOTAL_WEIGHT")] public string? TotalWeight { get; init; }
 
-    public static Mau01Data From(EvaluationRecord record)
+    /// <summary><paramref name="adminParentLine"/>: dòng 1 tiêu đề trái (<see cref="OrgHeaderLine.DirectParent"/>).</summary>
+    public static Mau01Data From(EvaluationRecord record, string? adminParentLine = null)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
         return new Mau01Data
         {
             DateLine = CollectiveFormText.DateLine(record.TasksApprovedAt),
+            AdminParentUpper = FormText.OrNull(adminParentLine),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             HasDepartment = Mau09Shared.HasDepartment(record),
             TotalWeight = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.Weight), 1) : null,

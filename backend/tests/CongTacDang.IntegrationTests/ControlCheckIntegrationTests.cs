@@ -87,7 +87,12 @@ public sealed class ControlCheckIntegrationTests
         }).ToList();
         var draft = await Data(await w.BothC.PutAsJsonAsync($"/api/control-checks/{id}",
             new { version = await VersionOf(w, id), items = failing, conclusion = "Eligible" }));
-        Assert.Equal(HttpStatusCode.BadRequest, (await Act(w.BothC, id, "submit", draft.GetProperty("version").GetUInt32())).StatusCode);
+        // Nháp vẫn lưu được nhưng trả cảnh báo nêu mục chưa đạt.
+        Assert.Equal("Eligible", draft.GetProperty("conclusion").GetString());
+        Assert.Contains("K03", draft.GetProperty("conclusionWarning").GetString());
+        var blocked = await Act(w.BothC, id, "submit", draft.GetProperty("version").GetUInt32());
+        Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
+        Assert.Contains("K03", await MessageOf(blocked));
 
         // K/AD có lý do không cản kết luận Đủ điều kiện.
         var notApplicableOnly = Codes().Select(c => new
@@ -97,6 +102,7 @@ public sealed class ControlCheckIntegrationTests
         var ready = await Data(await w.BothC.PutAsJsonAsync($"/api/control-checks/{id}",
             new { version = await VersionOf(w, id), items = notApplicableOnly, conclusion = "Eligible" }));
         Assert.True(ready.GetProperty("canSubmit").GetBoolean());
+        Assert.True(!ready.TryGetProperty("conclusionWarning", out var noWarning) || noWarning.ValueKind == JsonValueKind.Null);
         var submitted = await Data(await Act(w.BothC, id, "submit", ready.GetProperty("version").GetUInt32()));
         Assert.Equal("Submitted", submitted.GetProperty("status").GetString());
         // Đang chờ xác nhận → không sửa được.

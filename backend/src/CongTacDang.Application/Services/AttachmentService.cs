@@ -590,11 +590,11 @@ public class AttachmentService : IAttachmentService
             return; // Tệp chưa gắn hồ sơ: chỉ người tải lên, chưa thuộc minh chứng của hồ sơ nào.
 
         var requester = await _resolver.GetAsync(requesterId);
-        if (links.Any(link => link.Kind == AttachmentLinkKind.ExternalResult
-                && AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationExternalRecord, AccessTarget.ForRecord(link.Record))))
+        if (links.Any(link => link.Kind is AttachmentLinkKind.ExternalResult or AttachmentLinkKind.TaskChange
+                && CanUpdateLinked(requester, link)))
             return;
 
-        foreach (var link in links.Where(link => link.Kind != AttachmentLinkKind.ExternalResult))
+        foreach (var link in links.Where(link => link.Kind is not (AttachmentLinkKind.ExternalResult or AttachmentLinkKind.TaskChange)))
         {
             var (stage, recordStatus, periodStatus) = StageOf(link.Record);
             var reason = EvidenceRules.ChangeBlockReason(stage, recordStatus, periodStatus);
@@ -788,12 +788,9 @@ public class AttachmentService : IAttachmentService
         {
             // Sửa: tệp của chủ hồ sơ → evaluation.self; văn bản cấp trên → quyền ghi nhận kết quả cấp trên (chủ hồ sơ không sửa được).
             var isAppealFile = attachment.EffectiveOwnerType == AttachmentOwnerTypes.EvaluationAppeal;
-            return effectiveLinks.Any(link => AuthorizationGuard.Evaluate(
-                    requester,
-                    operation == FileOperation.Read ? PermissionCodes.EvaluationRead
-                        : link.Kind == AttachmentLinkKind.ExternalResult ? PermissionCodes.EvaluationExternalRecord
-                        : PermissionCodes.EvaluationSelf,
-                    AccessTarget.ForRecord(link.Record))
+            return effectiveLinks.Any(link => (operation == FileOperation.Read
+                    ? AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationRead, AccessTarget.ForRecord(link.Record))
+                    : CanUpdateLinked(requester, link))
                 // Người xử lý kiến nghị xem được tệp kèm kiến nghị kể cả khi không có quyền xem hồ sơ.
                 || (operation == FileOperation.Read && isAppealFile
                     && AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationAppealResolve, AccessTarget.ForRecord(link.Record))));
@@ -801,6 +798,19 @@ public class AttachmentService : IAttachmentService
 
         // Tệp chưa gắn hồ sơ: chỉ người tải lên.
         return attachment.UploadedById.HasValue && attachment.UploadedById == requesterId;
+    }
+
+    /// <summary>Tải lên / thay / gỡ: người được ghi đối tượng gắn tệp (văn bản cấp trên không cho chủ hồ sơ sửa).</summary>
+    private static bool CanUpdateLinked(EffectivePermissions requester, AttachmentRecordLink link)
+    {
+        var target = AccessTarget.ForRecord(link.Record);
+        return link.Kind switch
+        {
+            AttachmentLinkKind.ExternalResult => AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationExternalRecord, target),
+            AttachmentLinkKind.TaskChange => AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationSelf, target)
+                || AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationTasksProxy, target),
+            _ => AuthorizationGuard.Evaluate(requester, PermissionCodes.EvaluationSelf, target)
+        };
     }
 
     private enum FileOperation

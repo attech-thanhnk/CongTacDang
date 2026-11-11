@@ -61,6 +61,10 @@ public static class ControlCheckRules
         ControlConclusion? conclusion,
         string? needsWorkContent)
     {
+        // Báo mâu thuẫn kết luận trước để người lập biết sửa kết luận thay vì đi bổ sung minh chứng từng mục.
+        if (ConclusionWarning(items.Select(i => (i.Code, i.Result)).ToList(), conclusion) is { } mismatch)
+            return mismatch;
+
         foreach (var (code, text) in Items)
         {
             var item = items.FirstOrDefault(i => i.Code == code);
@@ -74,11 +78,24 @@ public static class ControlCheckRules
 
         if (conclusion == null)
             return "Hãy chọn kết luận kiểm tra.";
-        if (conclusion == ControlConclusion.Eligible && items.Any(i => i.Result == ControlItemResult.Fail))
-            return "Còn mục chưa đạt nên không thể kết luận đủ điều kiện trình phê duyệt.";
         if (conclusion == ControlConclusion.NeedsWork && string.IsNullOrWhiteSpace(needsWorkContent))
             return "Hãy ghi nội dung cần hoàn thiện.";
         return null;
+    }
+
+    /// <summary>Kết luận đủ điều kiện mà còn mục chưa đạt: nháp vẫn lưu được nhưng gửi xác nhận bị chặn; null nếu không mâu thuẫn.</summary>
+    public static string? ConclusionWarning(
+        IReadOnlyCollection<(string Code, ControlItemResult? Result)> items,
+        ControlConclusion? conclusion)
+    {
+        if (conclusion != ControlConclusion.Eligible)
+            return null;
+        var failed = items.Where(i => i.Result == ControlItemResult.Fail)
+            .Select(i => i.Code).OrderBy(c => c, StringComparer.Ordinal).ToList();
+        if (failed.Count == 0)
+            return null;
+        return $"Còn mục chưa đạt ({string.Join(", ", failed)}) nên không thể kết luận \"{ConclusionName(ControlConclusion.Eligible)}\". "
+            + "Hãy chọn \"Cần hoàn thiện\" và ghi nội dung cần hoàn thiện, hoặc sửa kết quả các mục đó.";
     }
 
     /// <summary>Thao tác làm đổi kết quả hồ sơ hoặc bước của hồ sơ nên phiếu đã xác nhận hết hiệu lực.</summary>

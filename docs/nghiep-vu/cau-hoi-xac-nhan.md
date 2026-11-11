@@ -304,6 +304,7 @@ Câu đánh dấu **[Ưu tiên]** cần trả lời **trước khi mở kỳ đ�
 - **Hệ thống đang làm (mặc định):** Ghi "dưới 20%" kèm chú thích trong mô tả điều kiện (chỉ hiển thị, không tự kiểm tra).
 - **Phương án khác:** Giữ nguyên văn; chờ văn bản đính chính.
 - **Ảnh hưởng nếu đổi:** Cấu hình trên giao diện (Bộ tiêu chí).
+- **Trả lời (11/11/2026), đã làm:** hiểu là "dưới 20%" (văn bản viết nhầm); giữ như đang làm.
 
 ### E10. Người đứng đầu và mức nâng trần 25%
 - **Câu hỏi:** Người đứng đầu có bị loại khỏi phép tính trần Xuất sắc không? Đảng ủy ATTECH có tự nâng trần lên 25% được không?

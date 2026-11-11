@@ -62,9 +62,11 @@ Người dùng không nhớ mật khẩu thì đặt lại mật khẩu (mục 2
 **Cán bộ giúp việc đánh giá:** gán cho nhân viên Phòng TCCB-LĐ (chức vụ **Nhân viên Nhân sự**) mà Trưởng phòng phân công giúp việc đánh giá. Cán bộ công tác Đảng ở Văn phòng (chức vụ **Nhân viên công tác Đảng, đoàn thể và thi đua**) thì gán vai trò **Cán bộ giúp việc Đảng ủy** theo cùng các bước: làm được như dưới đây trừ rà soát danh mục, thêm lập hồ sơ tập thể Mẫu 06, 07, 08.
 
 1. Kiểm tra thẻ **Chức vụ** của tài khoản đã có đúng chức vụ trên.
-2. Thẻ **Vai trò & phạm vi** → **Phân công vai trò** → **Vai trò**: **Cán bộ giúp việc đánh giá**; **Loại phạm vi**: **Toàn công ty**; **Ghi chú**: văn bản hoặc người phân công → **Phân công**.
+2. Thẻ **Vai trò & phạm vi** → **Phân công vai trò** → **Vai trò**: **Cán bộ giúp việc đánh giá** (cán bộ công tác Đảng: **Cán bộ giúp việc Đảng ủy**); **Loại phạm vi**: **Toàn công ty**; **Ghi chú**: văn bản hoặc người phân công → **Phân công**.
 3. Người đó làm được rà soát danh mục, thẩm định, thư ký hội nghị tập thể lãnh đạo cấp Công ty, biên bản họp thống nhất, phiếu kiểm tra, xem hồ sơ, kết quả và xuất báo cáo; không quản lý kỳ, bộ tiêu chí.
 4. Hết phân công (chuyển việc, thôi giao): **Kết thúc phân công** ngay ở dòng vai trò này.
+
+**Cập nhật danh mục theo kết quả cấp trên duyệt:** quyền **Cập nhật danh mục sản phẩm theo kết quả cấp trên duyệt** có sẵn ở vai trò **Cơ quan thẩm định**, **Cán bộ giúp việc đánh giá**, **Cán bộ giúp việc Đảng ủy**, **Văn phòng Đảng ủy**. Người có quyền này sửa được danh mục của hồ sơ do cấp trên duyệt (Chủ tịch, Giám đốc, Kiểm soát viên) và ghi điều chỉnh đã được cấp trên phê duyệt; không làm được trên hồ sơ của chính mình.
 
 ## 5. Xem người thực hiện các bước
 

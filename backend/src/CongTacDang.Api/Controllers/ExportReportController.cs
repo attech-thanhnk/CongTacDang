@@ -168,22 +168,23 @@ public class ExportReportController : ControllerBase
     }
 
     /// <summary>Xuất Word Quyết định xếp loại kèm Phụ lục; còn hồ sơ chưa ghi quyết định → 400.</summary>
+    /// <remarks>Chỉ Đảng ủy cơ sở ban hành nên luôn là bản đầy đủ toàn Đảng bộ; tổ chức Đảng được chọn (branchId) bị bỏ qua.</remarks>
     [HttpGet("docx/decision")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> ExportDecisionDocx([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null, [FromQuery] string? format = null)
+    public async Task<IActionResult> ExportDecisionDocx([FromQuery] Guid? periodId, [FromQuery] string? format = null)
     {
-        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.ExportDecisionDocxAsync(await ResolvePeriodIdAsync(periodId), scope, ParseFormat(format));
+        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
+        var result = await _reportService.ExportDecisionDocxAsync(await ResolvePeriodIdAsync(periodId), ParseFormat(format));
         return File(result.FileBytes, result.ContentType, result.FileName);
     }
 
     /// <summary>Kiểm tra lập được Quyết định xếp loại chưa (kèm lý do).</summary>
     [HttpGet("decision/readiness")]
     [RequirePermission(PermissionCodes.ReportExport)]
-    public async Task<IActionResult> GetDecisionReadiness([FromQuery] Guid? periodId, [FromQuery] Guid? branchId = null)
+    public async Task<IActionResult> GetDecisionReadiness([FromQuery] Guid? periodId)
     {
-        var scope = await _reportAccess.ResolveBranchExportScopeAsync(GetCurrentUserId(), branchId);
-        var result = await _reportService.GetDecisionReadinessAsync(await ResolvePeriodIdAsync(periodId), scope);
+        await _reportAccess.EnsureCanExportOrganizationReportAsync(GetCurrentUserId());
+        var result = await _reportService.GetDecisionReadinessAsync(await ResolvePeriodIdAsync(periodId));
         return Ok(ApiResponse<DecisionReadinessDto>.Ok(result, result.Ready ? "Đủ điều kiện lập Quyết định." : result.Message ?? string.Empty));
     }
 

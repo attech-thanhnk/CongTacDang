@@ -34,7 +34,7 @@ Tên biểu mẫu trên giao diện và file xuất có dạng "Mẫu NN — tê
 | 18 | Bảng kiểm hồ sơ, quyền truy cập và quản lý phiên bản | Không xuất thành file; ma trận quyền truy cập thể hiện bằng vai trò và quyền (mục 4, 5) | — |
 | 19 | Phiếu kiểm soát tính hợp lệ, công bằng và nhất quán | Phiếu kiểm tra (tiêu đề đầy đủ in trên phiếu Word) | `19`, `MAU_19` |
 | 20 | Biên bản hiệu chuẩn kết quả đánh giá | Biên bản họp thống nhất (tiêu đề đầy đủ in trên file Word) | `20`, `MAU_20` |
-| — | Quyết định xếp loại (kèm Phụ lục kết quả) | Quyết định xếp loại cán bộ quý của Đảng ủy (Chi ủy), kèm Phụ lục kết quả | `MAU_QD` |
+| — | Quyết định xếp loại (kèm Phụ lục kết quả) | Quyết định xếp loại cán bộ quý của Đảng ủy, kèm Phụ lục kết quả | `MAU_QD` |
 
 Ở "Tên trên giao diện", **phiếu** = các mẫu "Phiếu …"; **biên bản** = Mẫu 12, 13, 20; **báo cáo** = Mẫu 06, 07, 08, 16.
 

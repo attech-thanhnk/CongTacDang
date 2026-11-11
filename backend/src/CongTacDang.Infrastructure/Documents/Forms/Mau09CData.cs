@@ -17,6 +17,9 @@ public sealed class Mau09CData
 
     public const string TemplateFileName = "Mau_09C_BanTuDanhGia.docx";
 
+    /// <summary>Tổ chức Đảng cấp trên trực tiếp của Chi bộ, in hoa.</summary>
+    [TemplateField("PARTY_PARENT_UPPER")] public string? PartyParentUpper { get; init; }
+
     /// <summary>In hoa.</summary>
     [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
 
@@ -94,6 +97,7 @@ public sealed class Mau09CData
         var fullName = FormText.OrNull(record.Member?.FullName?.Trim());
         return new Mau09CData
         {
+            PartyParentUpper = Mau09Shared.PartyParentUpper(source),
             PartyCell = Mau09Shared.PartyCellUpper(record),
             DateLine = Mau09Shared.DateLine(source),
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,

@@ -213,8 +213,8 @@ public class CollectiveFormsTemplateTests
         Assert.DoesNotContain("đóng dấu", text);
         // Giữa câu dùng tên thường; chỉ dòng tiêu đề in hoa.
         Assert.Contains("01 bản lưu tại Đảng ủy Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
-        // Tên dài ngắt thành hai dòng cân nhau ở cột tiêu đề trái.
-        Assert.Contains("ĐẢNG ỦY CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY", text);
+        // Tên tổ chức in một dòng ở cột tiêu đề trái.
+        Assert.Contains("ĐẢNG ỦY CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY\n", text);
         Assert.Contains("Hội nghị tập thể lãnh đạo, quản lý Phòng Kỹ thuật về việc", text);
 
         // Chưa ghi chức vụ chủ trì: hội nghị tập thể lãnh đạo không in "BÍ THƯ".
@@ -278,6 +278,64 @@ public class CollectiveFormsTemplateTests
         // Mục không nhập tay giữ đoạn mẫu của biểu mẫu gốc.
         Assert.Contains("2. Kính đề nghị Đảng ủy cấp trên xem xét", text);
         Assert.Contains("Trần Văn Bí Thư", text);
+    }
+
+    [Fact]
+    public void Mau16_EmptyDraft_PrintsNoGuideText()
+    {
+        var header = PartyHeader.Of("ĐẢNG BỘ TỔNG CÔNG TY B", "ĐẢNG BỘ CÔNG TY A", "Đảng bộ Công ty A");
+        var draft = new Form16DraftDto
+        {
+            BaseRows = new List<Form16SummaryRowDto> { new() { Subject = "Tổng cộng" } },
+            SuperiorRows = new List<Form16SummaryRowDto> { new() { Subject = "Tổng cộng" } }
+        };
+
+        var text = BodyText(Render(Mau16Data.TemplateFileName,
+            Mau16Data.From(Period, header, draft, "Ban Thường vụ Đảng ủy Tổng công ty B", "Đảng ủy Công ty A")).Content);
+
+        Assert.Contains("Kính gửi: Ban Thường vụ Đảng ủy Tổng công ty B", text);
+        Assert.Contains("Kính trình Ban Thường vụ Đảng ủy Tổng công ty B xem xét", text);
+        Assert.Contains("Căn cứ Quy chế làm việc của Đảng ủy Công ty A nhiệm kỳ 2025-2030;", text);
+        Assert.Contains("1. Kính đề nghị Đảng ủy Công ty A xem xét", text);
+        Assert.Contains("Các Ủy viên BCH,", text);
+        Assert.Contains("T/M ĐẢNG ỦY\n", text);
+        Assert.DoesNotContain("(hoặc Đảng ủy cơ sở", text);
+        Assert.DoesNotContain("Ghi chú: Tùy theo", text);
+        Assert.DoesNotContain("BCH/Chi ủy viên", text);
+        Assert.DoesNotContain("(CHI BỘ)", text);
+
+        // Không xác định được nơi nhận → dòng chấm để ghi tay.
+        var blank = BodyText(Render(Mau16Data.TemplateFileName, Mau16Data.From(Period, header, draft)).Content);
+        Assert.Contains("Kính gửi: …………………………", blank);
+    }
+
+    [Fact]
+    public void Mau12_AbsentNote_WorkingRules_VotePurposeInAttendance()
+    {
+        var text = BodyText(Render(Mau12Data.TemplateFileName, Mau12Sample(withAttendees: true)).Content);
+        Assert.DoesNotContain("(hoặc bỏ phiếu", text);
+        Assert.Contains("bỏ phiếu quyết định, phê duyệt mức xếp loại\n", text);
+        Assert.Contains("1 đồng chí (có lý do).", text);
+
+        Assert.Equal(string.Empty, Mau12Data.AbsentNoteText(0, "Đi công tác"));
+        Assert.Equal(" (có lý do: đi công tác)", Mau12Data.AbsentNoteText(1, "đi công tác."));
+        Assert.Null(Mau12Data.AbsentNoteText(2, " "));
+
+        Assert.Equal("Chi ủy X nhiệm kỳ 2025-2030", Mau12Data.WorkingRulesText("Quy chế làm việc của Chi ủy X nhiệm kỳ 2025-2030", null, 2026));
+        Assert.Equal("Đảng ủy Công ty A nhiệm kỳ 2025-2030", Mau12Data.WorkingRulesText(null, "Đảng bộ Công ty A", 2027));
+        Assert.Null(Mau12Data.WorkingRulesText(" ", null, 2027));
+
+        // Chủ trì ghi nhầm vào danh sách người được cử dự: không in lại ở mục 3.2.
+        var meeting = new EvaluationMeeting
+        {
+            Period = Period, FormCode = "M12", Stage = WorkflowStep.B3A_COLLECTIVE, ChairName = "Nguyễn Văn A",
+            StartedAt = new DateTime(2026, 9, 15, 1, 30, 0, DateTimeKind.Utc)
+        };
+        var details = new MeetingDetailsDto { Attendees = new List<MeetingAttendeeDto> { new() { Name = "nguyễn văn a" }, new() { Name = "Lê Văn C" } } };
+        var data = Mau12Data.From(meeting, Header, "Phòng Kỹ thuật", "Chi bộ Kỹ thuật", details);
+        Assert.Equal(new[] { "Lê Văn C" }, data.Attendees.Select(a => a.Name));
+        Assert.Equal(string.Empty, data.AbsentNote);
+        Assert.Null(data.WorkingRules);
     }
 
     [Fact]

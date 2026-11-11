@@ -18,8 +18,8 @@ public sealed record PartyHeader(string? Parent, string? Organization, string? U
 
     public static string? Upper(string? value) => FormText.OrNull(value?.Trim())?.ToUpper(Vietnamese);
 
-    /// <summary>Tên dài hơn mức này (ký tự) không vừa một dòng ở cột tiêu đề trái.</summary>
-    private const int MaxLineLength = 30;
+    /// <summary>Tên đến mức này (ký tự) in một dòng ở cột tiêu đề trái (template đã nới cột, cỡ chữ cho vừa); dài hơn mới ngắt.</summary>
+    private const int MaxLineLength = 55;
 
     /// <summary>Tên đơn vị bắt đầu bằng các từ này: ngắt dòng được ngay trước đó (không tách giữa một từ ghép).</summary>
     private static readonly string[] UnitWords =

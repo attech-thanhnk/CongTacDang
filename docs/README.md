@@ -7,7 +7,7 @@ Tìm đúng tài liệu theo việc bạn cần làm. Mọi liên kết là đư
 | Bạn là ai / muốn làm gì | Đọc file | Nội dung |
 |---|---|---|
 | Cho người thật dùng thử: nhóm thử, lịch, đăng nhập, góp ý | [dung-thu/ke-hoach-dung-thu.md](dung-thu/ke-hoach-dung-thu.md) | Kèm phiếu góp ý Excel. |
-| Người trong nhóm dùng thử: tôi là ai, đọc hướng dẫn nào | [dung-thu/README.md](dung-thu/README.md) | Bảng người → hướng dẫn theo vai trò: người được đánh giá, lãnh đạo đơn vị, Chi bộ, thư ký, Phòng TCCB-LĐ, Giám đốc/Chủ tịch, Văn phòng Đảng ủy, Quản trị. |
+| Người trong nhóm dùng thử: tôi là ai, đọc hướng dẫn nào | [dung-thu/README.md](dung-thu/README.md) | Bảng người → hướng dẫn theo vai trò: người được đánh giá, lãnh đạo đơn vị, Chi bộ, thư ký, Phòng TCCB-LĐ (cả Cán bộ giúp việc Đảng ủy), Giám đốc/Chủ tịch, Văn phòng Đảng ủy, Quản trị. |
 | Lệnh chạy thử trên máy dev: đăng nhập, tạo dữ liệu tới một giai đoạn, làm sạch | [lenh-chay-thu.md](lenh-chay-thu.md) | Tài khoản thử, mật khẩu, các giai đoạn và ai làm tiếp, lệnh kiểm thử. |
 | Cán bộ, người duyệt, cơ quan thẩm định dùng hệ thống hằng ngày | [dung-thu/README.md](dung-thu/README.md) | Hướng dẫn theo vai trò, kèm ảnh trong `dung-thu/anh/`. Trang Hướng dẫn trong ứng dụng gộp từ các tệp này. |
 | Tra cứu nhanh vai trò, công việc, 55 tài khoản ATTECH và cách xử lý khi luân chuyển / giao phụ trách cán bộ | [so-tay-phan-quyen-va-luan-chuyen.md](so-tay-phan-quyen-va-luan-chuyen.md) | Phân biệt Chức vụ vs Vai trò vs Diện quyết định, bảng 55 tài khoản hiện hành và 6 kịch bản điều động/phụ trách thực tế. |

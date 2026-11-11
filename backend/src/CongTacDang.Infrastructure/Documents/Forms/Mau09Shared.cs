@@ -34,9 +34,17 @@ public sealed record MemberPositionNames(string? Party, string? Administrative, 
 }
 
 /// <summary>Nguồn Mẫu 09A–9D: chỉ đọc điểm đã lưu, không tính lại. Layout null = in như template.</summary>
+/// <remarks>PartyParent: dòng 1 tiêu đề trái đã in hoa (xem <see cref="PartyParentLine"/>); null giữ chữ mặc định.</remarks>
 public sealed record IndividualFormSource(
-    EvaluationRecord Record, CriteriaSetContent Criteria, MemberPositionNames Positions, FormLayout? Layout = null)
+    EvaluationRecord Record, CriteriaSetContent Criteria, MemberPositionNames Positions, FormLayout? Layout = null, string? PartyParent = null)
 {
+    /// <summary>
+    /// Dòng 1 tiêu đề trái theo thể thức văn bản Đảng: tổ chức cấp trên trực tiếp của Chi bộ;
+    /// cấp trên là gốc cây (Đảng bộ Công ty) hoặc không có thì giữ tên Đảng bộ trong cài đặt đơn vị như trước; luôn một dòng.
+    /// </summary>
+    public static string? PartyParentLine(string? parentName, bool parentIsRoot, string? partyCommitteeName) =>
+        OrgHeaderLine.DirectParent(parentName, parentIsRoot) ?? PartyHeader.Upper(partyCommitteeName);
+
     /// <summary>Chưa nộp phiếu tự chấm thì các ô điểm giữ chữ mặc định.</summary>
     public bool HasSelfScore => Record.SelfScoredAt.HasValue;
 }
@@ -85,6 +93,9 @@ internal static class Mau09Shared
 
     /// <summary>Tên Chi bộ in hoa; null giữ chữ mặc định.</summary>
     public static string? PartyCellUpper(EvaluationRecord record) => FormText.OrNull(record.PartyCell?.Name)?.ToUpper(Vietnamese);
+
+    /// <summary>Dòng 1 tiêu đề trái; null giữ chữ mặc định.</summary>
+    public static string? PartyParentUpper(IndividualFormSource source) => FormText.OrNull(source.PartyParent);
 
     /// <summary>
     /// Không giữ chức vụ nào trong danh mục thì dòng chính quyền lấy chức danh trên hồ sơ cán bộ.

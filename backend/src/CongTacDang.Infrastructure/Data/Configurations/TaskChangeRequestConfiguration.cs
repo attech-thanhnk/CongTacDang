@@ -32,6 +32,10 @@ public sealed class TaskChangeRequestConfiguration : IEntityTypeConfiguration<Ta
             .HasForeignKey(e => e.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
         // Các Id người/việc là tham chiếu mềm (không FK).
+        entity.HasOne<TaskAttachment>()
+            .WithMany()
+            .HasForeignKey(e => e.AttachmentId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Áp cùng bộ lọc xóa mềm của hồ sơ.
         entity.HasQueryFilter(e => !e.IsDeleted && !e.Record.IsDeleted);

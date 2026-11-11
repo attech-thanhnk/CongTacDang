@@ -1,5 +1,6 @@
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 using CongTacDang.Infrastructure.Documents;
 using CongTacDang.Infrastructure.Documents.Forms;
 using CongTacDang.Infrastructure.Services;
@@ -87,6 +88,61 @@ public class Mau11FormTests
         Assert.Equal(
             new[] { "2", "Lê Văn C", "Trưởng phòng — Phòng Kỹ thuật", "30", "57,5", "Hoàn thành tốt nhiệm vụ", "", "", "", "", "", "", "", "" },
             rows[7]);
+    }
+
+    [Fact]
+    public void Mau11_UnitLeaderProposal_PrintsInColumn7_Column5Blank()
+    {
+        var record = Record("Phạm Thị E", ApprovalAuthority.CoSo, proposals: false);
+        record.WorkflowProfileCode = PeriodSettings.ProfileCellSecretaryStaff;
+        record.CollectiveProposedGrade = EvaluationGrade.HoanThanhTot;
+        record.CollectiveRecordedAt = At;
+
+        var rows = RenderRows(Mau11Data.From(Period(), new List<Mau11Line> { new(record, "Bí thư Chi bộ — Phòng Kỹ thuật") }, "Chi bộ Kỹ thuật"));
+
+        Assert.Equal(new[] { "Hoàn thành tốt nhiệm vụ", "", "", "Hoàn thành tốt nhiệm vụ" }, rows[4].Skip(5).Take(4));
+    }
+
+    [Fact]
+    public void ProposalColumns_UnitLeaderProposal_IsDirectSupervisor_OtherProfilesUseB3c()
+    {
+        var record = Record("Phạm Thị E", ApprovalAuthority.CoSo, proposals: true);
+        record.CollectiveComment = "Trưởng phòng đề xuất";
+        record.CollectiveRecordedById = Guid.NewGuid();
+        record.CollectiveRecordedByName = "Trưởng Phòng";
+        record.DirectorReviewedById = Guid.NewGuid();
+        record.DirectorReviewedByName = "Giám Đốc";
+        var settings = PeriodSettings.Default();
+
+        record.WorkflowProfileCode = PeriodSettings.ProfileCellSecretaryStaff;
+        Assert.True(ProposalColumns.IsUnitLeaderProposal(record, settings));
+        var direct = ProposalColumns.DirectSupervisor(record, true);
+        Assert.Equal((EvaluationGrade.HoanThanhTot, "Trưởng phòng đề xuất", "Trưởng Phòng"), (direct.Grade, direct.Comment, direct.ByName));
+        Assert.Null(ProposalColumns.Collective(record, true).RecordedAt);
+
+        record.WorkflowProfileCode = string.Empty;
+        Assert.False(ProposalColumns.IsUnitLeaderProposal(record, settings));
+        Assert.Equal("Giám Đốc", ProposalColumns.DirectSupervisor(record, false).ByName);
+        Assert.Equal(EvaluationGrade.HoanThanhTot, ProposalColumns.Collective(record, false).Grade);
+        Assert.False(ProposalColumns.IsUnitLeaderProposal(record, (PeriodSettings?)null));
+    }
+
+    [Fact]
+    public void Mau10_UnitLeaderProposal_SupervisorFromB3a()
+    {
+        var record = Record("Phạm Thị E", ApprovalAuthority.CoSo, proposals: false);
+        record.Period = Period();
+        record.WorkflowProfileCode = PeriodSettings.ProfileCellSecretaryStaff;
+        record.CollectiveProposedGrade = EvaluationGrade.HoanThanhTot;
+        record.CollectiveRecordedAt = At;
+        record.CollectiveComment = "Trưởng phòng đề xuất trên ý kiến tập thể";
+        record.CollectiveRecordedById = Guid.NewGuid();
+        record.CollectiveRecordedByName = "Trưởng Phòng";
+
+        var data = Mau10Data.From(record);
+
+        Assert.Equal("Trưởng Phòng", data.SupervisorName);
+        Assert.Equal("Trưởng phòng đề xuất trên ý kiến tập thể", data.SupervisorComment);
     }
 
     [Fact]

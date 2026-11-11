@@ -50,7 +50,7 @@ public sealed class Mau10Data
     /// <summary>Số sản phẩm theo mức thẩm định, mỗi mức một dòng; chưa thẩm định nhiệm vụ nào → giữ chữ mặc định.</summary>
     [TemplateField("TASK_LEVELS")] public string? TaskLevels { get; init; }
 
-    /// <summary>Nhận xét của cấp trực tiếp sử dụng (B3c); chưa có → giữ chữ mặc định.</summary>
+    /// <summary>Nhận xét của cấp trực tiếp sử dụng (B3c, diện Trưởng đơn vị đề xuất là B3a); chưa có → giữ chữ mặc định.</summary>
     [TemplateField("SUPERVISOR_COMMENT")] public string? SupervisorComment { get; init; }
 
     [TemplateField("APPRAISAL_COMMENT")] public string? AppraisalComment { get; init; }
@@ -81,7 +81,7 @@ public sealed class Mau10Data
 
     // Ô ký: bước chưa làm hoặc do cấp trên thực hiện (không có người thực hiện trong hệ thống) → giữ dòng chấm.
 
-    /// <summary>Ô "Người trực tiếp sử dụng": người đã nhận xét, đề xuất ở B3c.</summary>
+    /// <summary>Ô "Người trực tiếp sử dụng": người đã nhận xét, đề xuất ở B3c (diện Trưởng đơn vị đề xuất là B3a).</summary>
     [TemplateField("SUPERVISOR_NAME")] public string? SupervisorName { get; init; }
 
     /// <summary>Ô "Đại diện cơ quan thẩm định": người đã thẩm định.</summary>
@@ -94,6 +94,7 @@ public sealed class Mau10Data
         var scored = record.SelfScoredAt.HasValue || record.TotalSelfScore > 0;
         string Self(double value) => scored ? CollectiveFormText.Score(value) : NotScored;
         string? Difference(double? appraisal, double self) => scored ? Diff(appraisal, self) : null;
+        var supervisor = ProposalColumns.DirectSupervisor(record, ProposalColumns.IsUnitLeaderProposal(record));
         return new Mau10Data
         {
             DateLine = CollectiveFormText.DateLine(record.AppraisedAt),
@@ -113,7 +114,7 @@ public sealed class Mau10Data
             TotalAppraisalScore = Score(record.AppraisalScore),
             TotalDiff = Difference(record.AppraisalScore, record.TotalSelfScore),
             TaskLevels = TaskLevelText(record),
-            SupervisorComment = FormText.OrNull(record.DirectorComment),
+            SupervisorComment = FormText.OrNull(supervisor.Comment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
             MemberExplanation = FormText.OrNull(memberExplanation),
@@ -121,7 +122,7 @@ public sealed class Mau10Data
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),
             CheckFailed = Box(EvaluationGrade.KhongHoanThanh),
-            SupervisorName = record.DirectorReviewedById != null ? FormText.OrNull(record.DirectorReviewedByName) : null,
+            SupervisorName = supervisor.ById != null ? FormText.OrNull(supervisor.ByName) : null,
             AppraiserName = record.AppraisedById != null ? FormText.OrNull(record.AppraisedByName) : null,
             SelfExcellent = SelfExcellentText(record, conditions),
             AppraisalExcellent = AppraisalExcellentText(record, conditions),

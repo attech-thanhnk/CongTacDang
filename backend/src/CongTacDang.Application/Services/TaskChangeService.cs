@@ -52,6 +52,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthorizationGuard _guard;
     private readonly ICurrentUserService _currentUser;
+    private readonly IAttachmentService _attachments;
     private readonly IStepPerformers? _stepPerformers;
 
     public TaskChangeService(
@@ -60,8 +61,10 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         IUnitOfWork unitOfWork,
         IAuthorizationGuard guard,
         ICurrentUserService currentUser,
+        IAttachmentService attachments,
         IStepPerformers? stepPerformers = null)
     {
+        _attachments = attachments;
         _stepPerformers = stepPerformers;
         _records = records;
         _repo = repo;
@@ -89,14 +92,17 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         var canRecordExternal = context.Applicable && CanRecordExternal(record, context.Profile);
         var hasPending = requests.Any(r => r.Status == TaskChangeStatus.Pending);
         var blocked = context.Applicable ? StateBlockReason(record) ?? (hasPending ? PendingBlockReason : null) : null;
+        // Diện cấp trên duyệt: chỉ ghi điều chỉnh theo văn bản cấp trên, không gửi đề nghị chờ duyệt.
+        var external = context.Applicable && IsExternalApproval(context.Profile);
+        var canCreate = external ? canRecordExternal : isOwnerWithSelf;
 
         var tasks = (record.Tasks ?? new List<EvaluationTask>()).Where(t => !t.IsDeleted).OrderBy(t => t.TaskOrder).ToList();
         return new RecordTaskChangesDto
         {
             RecordId = record.Id,
             Applicable = context.Applicable,
-            CanRequestChange = context.Applicable && blocked == null && (isOwnerWithSelf || canRecordExternal),
-            CanRecordUrgent = context.Applicable && blocked == null && (isOwnerWithSelf || canDecide || canRecordExternal),
+            CanRequestChange = context.Applicable && blocked == null && canCreate,
+            CanRecordUrgent = context.Applicable && blocked == null && (canCreate || (!external && canDecide)),
             RequiresExternalApproval = context.Applicable && IsExternalApproval(context.Profile),
             DefaultAuthorityName = context.Applicable && IsExternalApproval(context.Profile) ? DefaultAuthority(record) : null,
             BlockedReason = context.Applicable && (isOwnerWithSelf || canDecide || canRecordExternal) ? blocked : null,
@@ -123,12 +129,15 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         var context = Context(record);
         var target = AccessTarget.ForRecord(record);
         var external = request.ExternalApproval;
-        if (external != null)
+        if (external != null && !IsExternalApproval(context.Profile))
+            throw new ConflictException("Ghi điều chỉnh đã được cấp trên phê duyệt không thành công: danh mục của hồ sơ này được duyệt trong hệ thống, hãy gửi đề nghị để người duyệt xử lý.");
+        if (IsExternalApproval(context.Profile))
         {
-            if (!IsExternalApproval(context.Profile))
-                throw new ConflictException("Ghi điều chỉnh đã được cấp trên phê duyệt không thành công: danh mục của hồ sơ này được duyệt trong hệ thống, hãy gửi đề nghị để người duyệt xử lý.");
             // Chủ hồ sơ hoặc người cập nhật thay (guard chặn người cập nhật thay trên hồ sơ của mình).
             _guard.Ensure(IsOwner(record) ? PermissionCodes.EvaluationSelf : PermissionCodes.EvaluationTasksProxy, target);
+            // Cấp trên duyệt ngoài hệ thống nên không còn ai duyệt đề nghị chờ trong hệ thống.
+            if (external == null)
+                throw new ValidationException("Ghi điều chỉnh không thành công: hãy nhập số, ngày văn bản phê duyệt của cấp trên.");
         }
         else if (type == TaskChangeType.Urgent)
         {
@@ -177,6 +186,9 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             if (external.DocumentDate is not { } documentDate)
                 throw new ValidationException("Hãy nhập ngày văn bản phê duyệt của cấp trên.");
             documentLine = TaskChangeRules.ExternalDocumentLine(number, documentDate);
+            // Tệp mới phải là tệp người ghi tải lên (chưa gắn), như văn bản của kết quả cấp trên.
+            if (external.AttachmentId is { } attachmentId && attachmentId != Guid.Empty && _currentUser.UserId is { } userId)
+                await _attachments.EnsureCanLinkAttachmentsAsync(new[] { attachmentId }, userId);
         }
 
         var tasks = await _records.GetTasksAsync(record.Id, ct);
@@ -212,12 +224,13 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         if (external != null)
         {
             // Cấp trên đã phê duyệt ngoài hệ thống: áp ngay như khi duyệt, người duyệt là cơ quan cấp trên.
-            var applied = ApplyToTasks(change, record, tasks, context);
+            var applied = await ApplyToTasksAsync(change, record, tasks, context, ct);
             change.Status = TaskChangeStatus.Approved;
             change.DecidedById = null;
             change.DecidedByName = authority;
             change.DecidedAt = now;
             change.DecisionComment = documentLine;
+            change.AttachmentId = external.AttachmentId is { } fileId && fileId != Guid.Empty ? fileId : null;
             AddHistory(record, WorkflowStep.B1_APPROVE,
                 $"Ghi {TaskChangeRules.TypeName(type).ToLowerInvariant()} đã được cấp trên phê duyệt ({authority}, {documentLine}): {change.TaskNameSnapshot}.{applied}",
                 null, actorName, now);
@@ -282,7 +295,7 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
 
             var tasks = await _records.GetTasksAsync(record.Id, ct);
             history = $"Duyệt đề nghị {TaskChangeRules.TypeName(change.Type).ToLowerInvariant()}: {change.TaskNameSnapshot}."
-                + ApplyToTasks(change, record, tasks, context)
+                + await ApplyToTasksAsync(change, record, tasks, context, ct)
                 + (string.IsNullOrEmpty(comment) ? string.Empty : $" Ý kiến: {comment}");
             change.Status = TaskChangeStatus.Approved;
         }
@@ -442,11 +455,13 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
         && _guard.Can(IsOwner(record) ? PermissionCodes.EvaluationSelf : PermissionCodes.EvaluationTasksProxy, AccessTarget.ForRecord(record));
 
     /// <summary>Kiểm lại trên danh mục hiện tại rồi áp; trả phần mô tả trọng số cho lịch sử.</summary>
-    private string ApplyToTasks(TaskChangeRequest change, EvaluationRecord record, IReadOnlyList<EvaluationTask> tasks, ChangeContext context)
+    private async Task<string> ApplyToTasksAsync(TaskChangeRequest change, EvaluationRecord record, IReadOnlyList<EvaluationTask> tasks, ChangeContext context,
+        CancellationToken ct)
     {
         var before = tasks.Where(TaskChangeRules.IsActive).ToDictionary(t => t.Id, t => t.Weight);
         var content = context.Criteria!.Content;
-        var (error, created) = TaskChangeRules.Apply(change, tasks, content, record.Period.EndDate, RecordWeightFrames.Effective(record, content));
+        var usedCodes = await _records.GetAllProductCodesAsync(record.Id, ct);
+        var (error, created) = TaskChangeRules.Apply(change, tasks, content, record.Period.EndDate, RecordWeightFrames.Effective(record, content), usedCodes);
         if (error != null)
             throw new ValidationException($"Áp đề nghị vào danh mục hiện tại không thành công: {error}");
         if (created != null)
@@ -566,7 +581,8 @@ public sealed class TaskChangeService : ITaskChangeService, ITaskChangeWorkQueue
             DecidedAt = r.DecidedAt,
             DecisionComment = r.DecisionComment,
             CanDecide = canDecide,
-            ApprovedExternally = TaskChangeRules.IsExternallyApproved(r)
+            ApprovedExternally = TaskChangeRules.IsExternallyApproved(r),
+            AttachmentId = r.AttachmentId
         };
     }
 

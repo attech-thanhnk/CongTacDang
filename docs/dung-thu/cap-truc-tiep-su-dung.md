@@ -57,7 +57,7 @@ Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Vi�
 
 ![Việc chờ nhận xét](anh/cap-tren-01-viec-can-xu-ly.png)
 
-2. Xem các khối bên dưới: **Phiếu tự chấm (Mẫu 09A)**, **Xác nhận của Chi bộ**, **Đề xuất của tập thể lãnh đạo**, **Thẩm định**. Bấm tiêu đề khối để mở.
+2. Xem các khối bên dưới: **Phiếu tự chấm (Mẫu 09A)**, **Xác nhận của Chi bộ**, **Đề xuất của tập thể lãnh đạo**, **Thẩm định**. Bấm tiêu đề khối để mở. Kết luận điều kiện Hoàn thành xuất sắc và khống chế mức xem ở phiếu thẩm định (nút **Biểu mẫu** → Mẫu 10). Cán bộ đã giải trình thì đọc ở khối **Ý kiến và giải trình**.
 3. Trong khung **Nhận xét**: ô **Mức đề xuất** đã điền sẵn mức thẩm định, đổi nếu bạn đề xuất khác; ghi **Nhận xét**.
 4. Bấm **Ghi nhận nhận xét** → **Đồng ý**.
 

@@ -36,6 +36,7 @@ public sealed class Mau13Data
     [TemplateField("INVITED")] public string? Invited { get; init; }
     [TemplateField("PRESENT")] public string? Present { get; init; }
     [TemplateField("ABSENT")] public string? Absent { get; init; }
+    [TemplateField("ABSENT_NOTE")] public string? AbsentNote { get; init; }
 
     /// <summary>Người được cử ghi chép, phục vụ hội nghị.</summary>
     [TemplateCollection("ATTENDEES")] public List<Mau12Attendee> Attendees { get; init; } = new();
@@ -141,6 +142,7 @@ public sealed class Mau13Data
             Invited = common.Invited,
             Present = common.Present,
             Absent = common.Absent,
+            AbsentNote = common.AbsentNote,
             Attendees = common.Attendees,
             HasAttendees = common.HasAttendees,
             ChairName = common.ChairName,

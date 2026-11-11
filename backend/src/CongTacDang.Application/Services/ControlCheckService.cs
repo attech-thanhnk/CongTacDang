@@ -29,7 +29,7 @@ public interface IControlCheckService
     /// <summary>Lập phiếu nháp với đủ mười mục chưa chọn kết quả.</summary>
     Task<ControlCheckDto> CreateAsync(CreateControlCheckDto request, CancellationToken ct = default);
 
-    /// <summary>Lưu bản nháp (kết quả từng mục, kết luận, danh sách hồ sơ).</summary>
+    /// <summary>Lưu bản nháp (kết quả từng mục, kết luận, danh sách hồ sơ); kết luận mâu thuẫn chỉ trả cảnh báo.</summary>
     Task<ControlCheckDto> UpdateAsync(Guid id, UpdateControlCheckDto request, CancellationToken ct = default);
 
     /// <summary>Kiểm tra đủ mười mục và kết luận rồi chuyển sang chờ xác nhận.</summary>
@@ -203,6 +203,9 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         dto.ItemsVersion = check.ItemsVersion;
         dto.NeedsWorkContent = check.NeedsWorkContent;
         dto.ReturnReason = check.ReturnReason;
+        if (check.Status == ControlCheckStatus.Draft)
+            dto.ConclusionWarning = ControlCheckRules.ConclusionWarning(
+                check.Items.Select(i => (i.ItemCode, i.Result)).ToList(), check.Conclusion);
         dto.Items = check.Items.OrderBy(i => i.ItemCode, StringComparer.Ordinal).Select(i => new ControlCheckItemDto
         {
             ItemCode = i.ItemCode,

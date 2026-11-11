@@ -126,8 +126,10 @@ export default function ControlCheckDetailPage() {
   const run = async (work: () => Promise<ControlCheckDto>, success: string, failure: string): Promise<boolean> => {
     setBusy(true);
     try {
-      apply(await work());
-      toast.success(success);
+      const saved = await work();
+      apply(saved);
+      if (saved.conclusionWarning) toast.warning(saved.conclusionWarning, success);
+      else toast.success(success);
       return true;
     } catch (err: unknown) {
       toast.error(errorMessage(err, failure));
@@ -267,6 +269,15 @@ export default function ControlCheckDetailPage() {
     setAdding(false);
   };
   const removeRecord = (rid: string) => setDraft({ ...draft, records: draft.records.filter((r) => r.recordId !== rid) });
+  // Tính theo bản đang nhập để cảnh báo ngay khi chọn, trước cả khi lưu.
+  const failedCodes = draft.items.filter((i) => i.result === "Fail").map((i) => i.itemCode);
+  const conclusionWarning = ro
+    ? null
+    : dirty
+      ? draft.conclusion === "Eligible" && failedCodes.length > 0
+        ? `Còn mục chưa đạt (${failedCodes.join(", ")}) nên không thể kết luận "${CONTROL_CONCLUSION_LABELS.Eligible}". Hãy chọn "Cần hoàn thiện" và ghi nội dung cần hoàn thiện, hoặc sửa kết quả các mục đó.`
+        : null
+      : data.conclusionWarning ?? null;
   const setItem = (code: string, patch: Partial<Draft["items"][number]>) =>
     setDraft((d) => (d ? { ...d, items: d.items.map((i) => (i.itemCode === code ? { ...i, ...patch } : i)) } : d));
 
@@ -394,6 +405,11 @@ export default function ControlCheckDetailPage() {
                 </div>
               ))}
             </div>
+            {conclusionWarning && (
+              <div className="alert alert-warning small mb-0" role="alert">
+                {conclusionWarning}
+              </div>
+            )}
             {(draft.conclusion === "NeedsWork" || draft.needsWorkContent) && (
               <div>
                 <label className="form-label small mb-1" htmlFor="cc19-needs">Nội dung cần hoàn thiện</label>

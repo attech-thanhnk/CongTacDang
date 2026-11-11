@@ -3134,6 +3134,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AttachmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3232,6 +3235,8 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .HasDefaultValueSql("'{}'::jsonb");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AttachmentId");
 
                     b.HasIndex("Status");
 
@@ -3905,6 +3910,11 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CongTacDang.Domain.Entities.TaskChangeRequest", b =>
                 {
+                    b.HasOne("CongTacDang.Domain.Entities.TaskAttachment", null)
+                        .WithMany()
+                        .HasForeignKey("AttachmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CongTacDang.Domain.Entities.EvaluationRecord", "Record")
                         .WithMany()
                         .HasForeignKey("RecordId")

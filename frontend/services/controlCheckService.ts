@@ -83,6 +83,8 @@ export interface ControlCheckDto extends ControlCheckSummaryDto {
   itemsVersion: number;
   needsWorkContent?: string | null;
   returnReason?: string | null;
+  /** Kết luận mâu thuẫn với kết quả các mục; gửi xác nhận sẽ bị chặn. */
+  conclusionWarning?: string | null;
   items: ControlCheckItemDto[];
   records: ControlCheckRecordDto[];
   history: ControlCheckHistoryDto[];

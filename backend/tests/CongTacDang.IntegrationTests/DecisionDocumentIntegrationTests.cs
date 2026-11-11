@@ -5,16 +5,19 @@ using CongTacDang.Application.Organization;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
+using CongTacDang.Application.Services;
+using CongTacDang.Infrastructure.Documents.Forms;
 using CongTacDang.IntegrationTests.Infrastructure;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Position = CongTacDang.Domain.Entities.Position;
 
 namespace CongTacDang.IntegrationTests;
 
-/// <summary>Quyết định xếp loại kèm Phụ lục: chỉ hồ sơ diện cơ sở đã quyết định; còn hồ sơ chưa quyết định → 400.</summary>
+/// <summary>Quyết định xếp loại kèm Phụ lục: chỉ Đảng ủy cơ sở ban hành, luôn đủ toàn Đảng bộ; chỉ hồ sơ diện cơ sở đã quyết định; còn hồ sơ chưa quyết định → 400.</summary>
 [Collection(ApiCollection.Name)]
 public sealed class DecisionDocumentIntegrationTests
 {
@@ -27,33 +30,44 @@ public sealed class DecisionDocumentIntegrationTests
     private void SkipIfNoDatabase() => Skip.If(_factory.SkipReason != null, _factory.SkipReason);
 
     [SkippableFact]
-    public async Task D1_CellScope_OnlyBaseLevelDecidedRecords_WithDocumentAndChair()
+    public async Task D1_PartyBranchSelected_StillFullCompanyDecision()
     {
         SkipIfNoDatabase();
         var s = await GetScenarioAsync();
+        var org = await OrgSettingsAsync();
+        var committeeUpper = CollectiveFormText.CommitteeUpper(CollectiveFormText.PartyCommitteeInSentence(org))!;
 
-        var response = await s.Committee.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellA}");
-        var (text, rows) = await ReadAsync(response);
+        // Chọn Đảng bộ bộ phận vẫn ra Quyết định đầy đủ của Đảng ủy cơ sở (tổ chức được chọn bị bỏ qua).
+        foreach (var query in new[] { $"periodId={s.PeriodId}&branchId={s.CellA}", $"periodId={s.PeriodId}" })
+        {
+            var response = await s.Committee.GetAsync($"/api/reports/docx/decision?{query}");
+            var (text, rows) = await ReadAsync(response);
 
-        Assert.StartsWith("Quyet dinh xep loai_", response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
-        Assert.Contains(s.CellAName.ToUpperInvariant() + " QUYẾT ĐỊNH", text);
-        Assert.Contains("Số 21-QĐ/CB", text);
-        Assert.Contains("ngày 22 tháng 09 năm", text);
-        Assert.Contains("Hội nghị " + s.CellAName + " ngày 21/09/", text);
-        Assert.Contains("Chủ Trì K20 " + s.Suffix, text);
-        Assert.Contains("(kèm theo Quyết định số 21-QĐ/CB ngày 22/09/", text);
+            Assert.StartsWith("Quyet dinh xep loai_", response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+            Assert.Contains(committeeUpper + " QUYẾT ĐỊNH", text);
+            Assert.DoesNotContain(s.CellAName.ToUpperInvariant(), text);
+            Assert.DoesNotContain("ĐẢNG ỦY BỘ PHẬN", text);
+            Assert.DoesNotContain("Trích danh sách", text);
+            Assert.Contains("T/M ĐẢNG ỦY", text);
+            Assert.Contains("Số 21-QĐ/ĐU", text);
+            Assert.Contains("ngày 22 tháng 09 năm", text);
+            Assert.Contains("ngày 21/09/", text);
+            Assert.Contains("Chủ Trì K20 " + s.Suffix, text);
+            Assert.Contains("(kèm theo Quyết định số 21-QĐ/ĐU ngày 22/09/", text);
 
-        // Phụ lục: hai hồ sơ diện cơ sở đã quyết định; hồ sơ diện cấp trên không vào.
-        var names = rows.Select(r => r[1]).ToList();
-        Assert.Equal(new[] { s.NameD1, s.NameD2 }.OrderBy(n => n, StringComparer.Ordinal), names.OrderBy(n => n, StringComparer.Ordinal));
-        Assert.DoesNotContain(s.NameC1, text);
-        var d1 = rows.Single(r => r[1] == s.NameD1);
-        Assert.Contains("K20 M22 " + s.Suffix, d1[2]);
-        Assert.Equal("Hoàn thành tốt nhiệm vụ", d1[3]);
-        Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[4]);
-        Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[5]);
-        Assert.Equal(string.Empty, d1[6]);
-        Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[7]);
+            // Phụ lục: mọi hồ sơ diện cơ sở đã quyết định của kỳ, kể cả ngoài tổ chức được chọn; không có diện cấp trên.
+            var names = rows.Select(r => r[1]).ToList();
+            Assert.Equal(new[] { s.NameD1, s.NameD2, s.NameD3, s.NameB1 }.OrderBy(n => n, StringComparer.Ordinal), names.OrderBy(n => n, StringComparer.Ordinal));
+            Assert.Equal(new[] { "1", "2", "3", "4" }, rows.Select(r => r[0]));
+            Assert.DoesNotContain(s.NameC1, text);
+            var d1 = rows.Single(r => r[1] == s.NameD1);
+            Assert.Contains("K20 M22 " + s.Suffix, d1[2]);
+            Assert.Equal("Hoàn thành tốt nhiệm vụ", d1[3]);
+            Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[4]);
+            Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[5]);
+            Assert.Equal(string.Empty, d1[6]);
+            Assert.Equal("Hoàn thành xuất sắc nhiệm vụ", d1[7]);
+        }
     }
 
     [SkippableFact]
@@ -62,59 +76,79 @@ public sealed class DecisionDocumentIntegrationTests
         SkipIfNoDatabase();
         var s = await GetScenarioAsync();
 
-        // Toàn Đảng bộ: hồ sơ của Chi bộ B chưa ghi quyết định → 400 nêu tên.
-        var whole = await s.Committee.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}");
-        Assert.Equal(HttpStatusCode.BadRequest, whole.StatusCode);
-        using (var json = JsonDocument.Parse(await whole.Content.ReadAsStringAsync()))
+        // Còn hồ sơ chưa ghi quyết định → 400 nêu tên, kể cả khi chọn tổ chức không chứa hồ sơ đó.
+        foreach (var query in new[] { $"periodId={s.PendingPeriodId}", $"periodId={s.PendingPeriodId}&branchId={s.CellA}" })
         {
+            var whole = await s.Committee.GetAsync($"/api/reports/docx/decision?{query}");
+            Assert.Equal(HttpStatusCode.BadRequest, whole.StatusCode);
+            using var json = JsonDocument.Parse(await whole.Content.ReadAsStringAsync());
             var message = json.RootElement.GetProperty("message").GetString()!;
             Assert.Contains("chưa ghi quyết định", message);
             Assert.Contains(s.NamePending, message);
         }
 
         // Kiểm tra trước (giao diện hiện lý do thay cho nút xuất): cùng quy tắc.
-        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}")).Content.ReadAsStringAsync()))
+        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PendingPeriodId}")).Content.ReadAsStringAsync()))
         {
             var data = json.RootElement.GetProperty("data");
             Assert.False(data.GetProperty("ready").GetBoolean());
             Assert.Contains(s.NamePending, data.GetProperty("message").GetString());
         }
-        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}&branchId={s.CellA}")).Content.ReadAsStringAsync()))
+        using (var json = JsonDocument.Parse(await (await s.Committee.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}")).Content.ReadAsStringAsync()))
             Assert.True(json.RootElement.GetProperty("data").GetProperty("ready").GetBoolean());
 
-        // Chi bộ C chỉ có hồ sơ diện cấp trên → không có Quyết định để lập.
-        var onlySuperior = await s.Committee.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellC}");
+        // Kỳ chỉ có hồ sơ diện cấp trên → không có Quyết định để lập.
+        var onlySuperior = await s.Committee.GetAsync($"/api/reports/docx/decision?periodId={s.SuperiorPeriodId}");
         Assert.Equal(HttpStatusCode.BadRequest, onlySuperior.StatusCode);
         using (var json = JsonDocument.Parse(await onlySuperior.Content.ReadAsStringAsync()))
             Assert.Contains("không có hồ sơ nào thuộc diện", json.RootElement.GetProperty("message").GetString());
     }
 
     [SkippableFact]
-    public async Task D3_Permissions_ReportExportRequired_ScopeByCell()
+    public async Task D3_Permissions_ReportExportCompanyWideRequired()
     {
         SkipIfNoDatabase();
         var s = await GetScenarioAsync();
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.NoExport.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellA}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderA.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellB}")).StatusCode);
-        // Không chọn phạm vi: phạm vi report.export đúng một tổ chức Đảng → tổ chức đó.
-        var (_, rows) = await ReadAsync(await s.CellLeaderA.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}"));
-        Assert.Equal(2, rows.Count);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.NoExport.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}")).StatusCode);
+        // Quyết định gồm cán bộ toàn Đảng bộ: quyền xuất chỉ ở một tổ chức Đảng không đủ.
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderA.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderA.GetAsync($"/api/reports/docx/decision?periodId={s.PeriodId}&branchId={s.CellA}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellLeaderA.GetAsync($"/api/reports/decision/readiness?periodId={s.PeriodId}")).StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task D4_Mau11_FillsColumns5To7_FromRecordedSteps()
+    {
+        SkipIfNoDatabase();
+        var s = await GetScenarioAsync();
+
+        var response = await s.Committee.GetAsync($"/api/reports/docx/mau-11?periodId={s.PeriodId}&branchId={s.CellA}");
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        using var doc = WordprocessingDocument.Open(new MemoryStream(await response.Content.ReadAsByteArrayAsync()), false);
+        var table = doc.MainDocumentPart!.Document!.Body!.Descendants<Table>().Single(t => t.InnerText.Contains("Mức tự xếp loại đề xuất"));
+        var rows = table.Elements<TableRow>().Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList()).ToList();
+
+        // Cột (4c), (5), (6), (7): bước đã ghi nhận in tên mức; bước chưa ghi nhận để trống.
+        var d2 = rows.Single(r => r.Count > 8 && r[1] == s.NameD2);
+        Assert.Equal(new[] { "Hoàn thành tốt nhiệm vụ", "Hoàn thành tốt nhiệm vụ", "Hoàn thành xuất sắc nhiệm vụ", "Hoàn thành nhiệm vụ" }, d2.Skip(5).Take(4));
+        var d3 = rows.Single(r => r.Count > 8 && r[1] == s.NameD3);
+        Assert.Equal(new[] { "Hoàn thành tốt nhiệm vụ", "", "", "" }, d3.Skip(5).Take(4));
     }
 
     #region Dữ liệu
 
     private sealed class Scenario
     {
-        public Guid PeriodId, CellA, CellB, CellC;
-        public string Suffix = string.Empty, CellAName = string.Empty;
-        public string NameD1 = string.Empty, NameD2 = string.Empty, NameC1 = string.Empty, NamePending = string.Empty;
+        public Guid PeriodId, PendingPeriodId, SuperiorPeriodId, CellA, CellA1, CellB, CellC;
+        public string Suffix = string.Empty, CellAName = string.Empty, CellA1Name = string.Empty;
+        public string NameD1 = string.Empty, NameD2 = string.Empty, NameD3 = string.Empty, NameC1 = string.Empty, NameB1 = string.Empty, NamePending = string.Empty;
         public HttpClient Committee = null!, CellLeaderA = null!, NoExport = null!;
     }
 
     /// <summary>
-    /// Kỳ Quý III: Chi bộ A — d1 (M22, quyết định xuất sắc), d2 (quyết định tốt) cùng văn bản "21-QĐ/CB", biên bản B4 có chủ trì;
-    /// c1 (diện cấp trên, đã quyết định). Chi bộ B — p1 (diện cơ sở, chờ quyết định). Chi bộ C — c2 (diện cấp trên).
+    /// Kỳ chính, Quyết định "21-QĐ/ĐU" của Đảng ủy (biên bản B4 cấp Đảng bộ có chủ trì). Đảng bộ bộ phận A — d1 (M22, xuất sắc), d2 (tốt),
+    /// c1 (diện cấp trên); Chi bộ A1 thuộc A — d3; Chi bộ B — b1. Kỳ chờ — p1 (Chi bộ B, chờ quyết định). Kỳ cấp trên — c2 (Chi bộ C).
     /// </summary>
     private async Task<Scenario> GetScenarioAsync()
     {
@@ -134,9 +168,12 @@ public sealed class DecisionDocumentIntegrationTests
         var s = new Scenario();
         var sfx = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         s.Suffix = sfx;
-        s.CellAName = $"Chi bộ K20A {sfx}";
+        s.CellAName = $"Đảng bộ bộ phận K20A {sfx}";
+        s.CellA1Name = $"Chi bộ K20A1 {sfx}";
         s.NameD1 = $"K20 D1 {sfx}";
         s.NameD2 = $"K20 D2 {sfx}";
+        s.NameD3 = $"K20 D3 {sfx}";
+        s.NameB1 = $"K20 B1 {sfx}";
         s.NameC1 = $"K20 C1 {sfx}";
         s.NamePending = $"K20 P1 {sfx}";
 
@@ -145,13 +182,15 @@ public sealed class DecisionDocumentIntegrationTests
         {
             var root = new PartyCell { Code = $"K20-R-{sfx}", Name = $"Đảng bộ K20 {sfx}" };
             root.Path = OrgTree.BuildPath(null, root.Id);
-            PartyCell Child(string code, string name)
+            PartyCell Child(string code, string name, PartyCell? parent = null)
             {
-                var cell = new PartyCell { Code = $"K20-{code}-{sfx}", Name = name, ParentId = root.Id };
-                cell.Path = OrgTree.BuildPath(root.Path, cell.Id);
+                parent ??= root;
+                var cell = new PartyCell { Code = $"K20-{code}-{sfx}", Name = name, ParentId = parent.Id };
+                cell.Path = OrgTree.BuildPath(parent.Path, cell.Id);
                 return cell;
             }
             var cellA = Child("A", s.CellAName);
+            var cellA1 = Child("A1", s.CellA1Name, cellA);
             var cellB = Child("B", $"Chi bộ K20B {sfx}");
             var cellC = Child("C", $"Chi bộ K20C {sfx}");
             var dept = new AdministrativeDepartment { Code = $"K20-D-{sfx}", Name = $"Phòng K20 {sfx}" };
@@ -162,19 +201,29 @@ public sealed class DecisionDocumentIntegrationTests
                 StartDate = DateTime.UtcNow.AddDays(-30), EndDate = DateTime.UtcNow.AddDays(30), Status = PeriodStatus.Open,
                 CriteriaSnapshot = CriteriaTestData.Snapshot()
             };
+            EvaluationPeriod OtherPeriod(string name) => new()
+            {
+                Year = period.Year, Quarter = EvaluationQuarter.Quy2, Name = $"{name} K20 {sfx}", StartDate = period.StartDate, EndDate = period.EndDate,
+                Status = PeriodStatus.Open, CriteriaSnapshot = CriteriaTestData.Snapshot()
+            };
+            var pendingPeriod = OtherPeriod("Kỳ chờ");
+            var superiorPeriod = OtherPeriod("Kỳ cấp trên");
             var position = new Position
             {
                 Name = $"K20 M22 {sfx}", StatCode = "M22", DefaultApprovalAuthority = ApprovalAuthority.CoSo, IsLeadership = true,
                 Side = PositionSide.Party
             };
-            db.AddRange(root, cellA, cellB, cellC, dept, period, position);
+            db.AddRange(root, cellA, cellA1, cellB, cellC, dept, period, pendingPeriod, superiorPeriod, position);
             await db.SaveChangesAsync();
-            (deptId, positionId, s.CellA, s.CellB, s.CellC, s.PeriodId) = (dept.Id, position.Id, cellA.Id, cellB.Id, cellC.Id, period.Id);
+            (deptId, positionId, s.CellA, s.CellA1, s.CellB, s.CellC, s.PeriodId) = (dept.Id, position.Id, cellA.Id, cellA1.Id, cellB.Id, cellC.Id, period.Id);
+            (s.PendingPeriodId, s.SuperiorPeriodId) = (pendingPeriod.Id, superiorPeriod.Id);
         });
 
         var d1 = await _factory.CreateUserAsync(deptId, s.CellA, fullName: s.NameD1);
         var d2 = await _factory.CreateUserAsync(deptId, s.CellA, fullName: s.NameD2);
+        var d3 = await _factory.CreateUserAsync(deptId, s.CellA1, fullName: s.NameD3);
         var c1 = await _factory.CreateUserAsync(deptId, s.CellA, ApprovalAuthority.CapTren, s.NameC1);
+        var b1 = await _factory.CreateUserAsync(deptId, s.CellB, fullName: s.NameB1);
         var p1 = await _factory.CreateUserAsync(deptId, s.CellB, fullName: s.NamePending);
         var c2 = await _factory.CreateUserAsync(deptId, s.CellC, ApprovalAuthority.CapTren, $"K20 C2 {sfx}");
 
@@ -183,32 +232,41 @@ public sealed class DecisionDocumentIntegrationTests
             db.Add(new MemberPosition { UserId = d1.Id, PositionId = positionId, IsPrimary = true, ValidFrom = DateTime.UtcNow.AddYears(-1) });
             var meeting = new EvaluationMeeting
             {
-                PeriodId = s.PeriodId, PartyCellId = s.CellA, Stage = WorkflowStep.B4_DECISION, MeetingType = "Hội nghị Chi bộ",
+                PeriodId = s.PeriodId, Stage = WorkflowStep.B4_DECISION, MeetingType = "Hội nghị Đảng ủy",
                 StartedAt = new DateTime(2026, 9, 21, 1, 0, 0, DateTimeKind.Utc), ChairName = $"Chủ Trì K20 {sfx}"
             };
             db.Add(meeting);
 
-            EvaluationRecord Record(TestUser owner, Guid cell, ApprovalAuthority authority, EvaluationGrade? final) => new()
+            EvaluationRecord Record(TestUser owner, Guid cell, ApprovalAuthority authority, EvaluationGrade? final, Guid? periodId = null) => new()
             {
-                PeriodId = s.PeriodId, MemberId = owner.Id, DepartmentId = deptId, PartyCellId = cell, ApprovalAuthority = authority,
+                PeriodId = periodId ?? s.PeriodId, MemberId = owner.Id, DepartmentId = deptId, PartyCellId = cell, ApprovalAuthority = authority,
                 Status = final.HasValue ? RecordStatus.AwaitingPublish : RecordStatus.AwaitingDecision,
                 WeightFrameCode = "K2", GeneralCriteriaScore = 28, TasksScore = 60, TotalSelfScore = 88, SelfScoredAt = DateTime.UtcNow,
                 SelfProposedGrade = EvaluationGrade.HoanThanhTot, CollectiveProposedGrade = EvaluationGrade.HoanThanhTot,
                 FinalGrade = final ?? EvaluationGrade.ChuaXepLoai, UpdatedAt = DateTime.UtcNow,
                 DecisionRecordedAt = final.HasValue ? DateTime.UtcNow : null,
-                DecisionDocumentNumber = final.HasValue ? "21-QĐ/CB" : null,
+                DecisionDocumentNumber = final.HasValue ? "21-QĐ/ĐU" : null,
                 DecisionDocumentDate = final.HasValue ? new DateTime(2026, 9, 22, 0, 0, 0, DateTimeKind.Utc) : null,
-                DecisionMeetingId = final.HasValue && cell == s.CellA ? meeting.Id : null
+                DecisionMeetingId = final.HasValue ? meeting.Id : null
             };
             var rd1 = Record(d1, s.CellA, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhXuatSac);
             rd1.CollectiveProposedGrade = EvaluationGrade.HoanThanhXuatSac;
             rd1.AppraisalProposedGrade = EvaluationGrade.HoanThanhXuatSac;
+            // d2 đã qua đủ B3a, B3b, B3c (Mẫu 11 cột 5–7); d3 có mức tập thể nhưng chưa ghi nhận.
+            var rd2 = Record(d2, s.CellA, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhTot);
+            rd2.CollectiveRecordedAt = DateTime.UtcNow;
+            rd2.AppraisalProposedGrade = EvaluationGrade.HoanThanhXuatSac;
+            rd2.AppraisedAt = DateTime.UtcNow;
+            rd2.DirectorProposedGrade = EvaluationGrade.HoanThanh;
+            rd2.DirectorReviewedAt = DateTime.UtcNow;
             db.AddRange(
                 rd1,
-                Record(d2, s.CellA, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhTot),
+                rd2,
+                Record(d3, s.CellA1, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhTot),
+                Record(b1, s.CellB, ApprovalAuthority.CoSo, EvaluationGrade.HoanThanhTot),
                 Record(c1, s.CellA, ApprovalAuthority.CapTren, EvaluationGrade.HoanThanhTot),
-                Record(p1, s.CellB, ApprovalAuthority.CoSo, null),
-                Record(c2, s.CellC, ApprovalAuthority.CapTren, EvaluationGrade.HoanThanhTot));
+                Record(p1, s.CellB, ApprovalAuthority.CoSo, null, s.PendingPeriodId),
+                Record(c2, s.CellC, ApprovalAuthority.CapTren, EvaluationGrade.HoanThanhTot, s.SuperiorPeriodId));
             await db.SaveChangesAsync();
         });
 
@@ -227,6 +285,12 @@ public sealed class DecisionDocumentIntegrationTests
     #endregion
 
     #region Hỗ trợ
+
+    private async Task<CongTacDang.Application.DTOs.OrganizationSettingsDto> OrgSettingsAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<IOrganizationSettingsService>().GetAsync();
+    }
 
     /// <summary>Tải .docx, kiểm tra hợp lệ; trả toàn văn và các dòng dữ liệu của bảng Phụ lục (bỏ 2 dòng tiêu đề).</summary>
     private static async Task<(string Text, List<List<string>> Rows)> ReadAsync(HttpResponseMessage response)

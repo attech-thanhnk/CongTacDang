@@ -17,6 +17,8 @@ import {
 import { useCriteria } from "./useCriteria";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { DateField } from "@/components/evaluations/DateField";
+import { AttachmentList } from "@/components/attachments/AttachmentList";
+import { attachmentService } from "@/services/attachmentService";
 
 const STATUS_CLASS: Record<string, string> = { Pending: "t-wait", Approved: "t-ok", Rejected: "t-bad" };
 
@@ -199,6 +201,18 @@ function RequestItem({
           <span className="fw-semibold">{item.decidedByName}</span>
           <span className="text-secondary"> · {formatDateTime(item.decidedAt)}</span>
           {item.decisionComment && <div style={{ whiteSpace: "pre-wrap" }}>{item.decisionComment}</div>}
+          {item.attachmentId && (
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0"
+              onClick={() => {
+                attachmentService.downloadById(item.attachmentId as string)
+                  .catch((error: unknown) => toast.error(errorMessage(error, "Tải văn bản phê duyệt không thành công.")));
+              }}
+            >
+              <i className="fa-solid fa-paperclip me-1" aria-hidden="true" />Văn bản phê duyệt
+            </button>
+          )}
         </div>
       )}
       {item.canDecide && !deciding && (
@@ -257,6 +271,7 @@ function TaskChangeForm({
   const [authority, setAuthority] = useState(defaultAuthority);
   const [documentNumber, setDocumentNumber] = useState("");
   const [documentDate, setDocumentDate] = useState("");
+  const [attachment, setAttachment] = useState<{ id: string; fileName: string; fileSize?: number } | null>(null);
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
   const axes = criteria?.content.axes ?? [];
@@ -322,8 +337,15 @@ function TaskChangeForm({
           : undefined;
     onSubmit({
       type, taskId: type === "Urgent" ? null : taskId, proposal: body, weights: map, reason: reason.trim(),
-      externalApproval: external ? { authorityName: authority.trim(), documentNumber: documentNumber.trim(), documentDate } : undefined,
+      externalApproval: external
+        ? { authorityName: authority.trim(), documentNumber: documentNumber.trim(), documentDate, attachmentId: attachment?.id ?? null }
+        : undefined,
     });
+  };
+
+  const uploadDocument = async (file: File) => {
+    const created = await attachmentService.uploadAttachment(file, "CAPTREN", `Văn bản phê duyệt điều chỉnh việc — ${record.fullName}`.slice(0, 500));
+    setAttachment({ id: created.id, fileName: created.fileName, fileSize: created.fileSize });
   };
 
   const input = (key: keyof TaskChangeProposal, label: string, multiline = false) => (
@@ -448,6 +470,20 @@ function TaskChangeForm({
           <div className="col-6 col-md-3">
             <label className="form-label small mb-1">Ngày văn bản</label>
             <DateField value={documentDate} onChange={setDocumentDate} aria-label="Ngày văn bản" />
+          </div>
+          <div className="col-12 col-md-8">
+            <div className="form-label small mb-1">Văn bản phê duyệt (tùy chọn)</div>
+            <AttachmentList
+              files={attachment ? [attachment] : []}
+              context="Văn bản phê duyệt"
+              max={1}
+              emptyText={null}
+              addLabel="Đính kèm văn bản"
+              confirmRemove={false}
+              onAdd={uploadDocument}
+              onReplace={(_, file) => uploadDocument(file)}
+              onRemove={() => setAttachment(null)}
+            />
           </div>
         </div>
       )}

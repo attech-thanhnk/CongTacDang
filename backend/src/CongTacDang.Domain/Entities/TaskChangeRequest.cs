@@ -89,6 +89,9 @@ public class TaskChangeRequest : IAuditableEntity, ISoftDeletable, IVersioned
     /// <summary>Việc mới được thêm khi duyệt việc đột xuất.</summary>
     public Guid? ResultTaskId { get; set; }
 
+    /// <summary>Văn bản phê duyệt của cấp trên (tệp đính kèm), khi điều chỉnh ghi theo quyết định cấp trên.</summary>
+    public Guid? AttachmentId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }

@@ -12,7 +12,10 @@ public enum AttachmentLinkKind
     Task,
 
     /// <summary>Văn bản cấp trên (EvaluationExternalResult.AttachmentId) — người ghi nhận quản lý, người xem hồ sơ xem được.</summary>
-    ExternalResult
+    ExternalResult,
+
+    /// <summary>Văn bản cấp trên phê duyệt điều chỉnh việc (TaskChangeRequest.AttachmentId) — chủ hồ sơ hoặc người cập nhật thay quản lý, người xem hồ sơ xem được.</summary>
+    TaskChange
 }
 
 /// <param name="Record">Nạp kèm Member.</param>

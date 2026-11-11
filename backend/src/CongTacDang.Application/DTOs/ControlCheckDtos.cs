@@ -69,6 +69,8 @@ public class ControlCheckDto : ControlCheckSummaryDto
     public int ItemsVersion { get; set; }
     public string? NeedsWorkContent { get; set; }
     public string? ReturnReason { get; set; }
+    /// <summary>Kết luận mâu thuẫn với kết quả các mục (phiếu đang soạn); gửi xác nhận sẽ bị chặn.</summary>
+    public string? ConclusionWarning { get; set; }
     public List<ControlCheckItemDto> Items { get; set; } = new();
     public List<ControlCheckRecordDto> Records { get; set; } = new();
     public List<ControlCheckHistoryDto> History { get; set; } = new();

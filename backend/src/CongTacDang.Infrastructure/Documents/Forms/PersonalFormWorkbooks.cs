@@ -50,7 +50,7 @@ public static class PersonalFormWorkbooks
         var ws = workbook.Worksheets.Add("Mẫu 01");
         var last = Form01Columns.Length;
         SetWidths(ws, 5, 34, 9, 10, 10, 9, 13, 22, 22, 20, 16);
-        var row = WriteHeader(ws, last, "Mẫu số 01", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
+        var row = WriteHeader(ws, last, "Mẫu số 01", 3, CompanyHeader(org, data.AdminParentUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
         TitleRow(ws, row++, last, "PHIẾU GIAO / ĐĂNG KÝ SẢN PHẨM, CÔNG VIỆC CHUYÊN MÔN HẰNG QUÝ", bold: true);
         TextRow(ws, row++, last, "(Dùng để thống nhất đầu ra, mốc quý, tiêu chuẩn và trọng số. Thông thường 03-07 sản phẩm/nhóm công việc; tổng trọng số cố định là 70 điểm.)", italic: true);
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
@@ -97,7 +97,7 @@ public static class PersonalFormWorkbooks
         var ws = workbook.Worksheets.Add("Mẫu 02");
         var last = Form02Columns.Length;
         SetWidths(ws, 5, 34, 9, 11, 12, 10, 12, 11, 10, 14, 22);
-        var row = WriteHeader(ws, last, "Mẫu số 02", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
+        var row = WriteHeader(ws, last, "Mẫu số 02", 3, CompanyHeader(org, data.AdminParentUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
         TitleRow(ws, row++, last, "PHIẾU TỰ ĐÁNH GIÁ KẾT QUẢ THỰC HIỆN SẢN PHẨM, CÔNG VIỆC HẰNG QUÝ", bold: true);
         TextRow(ws, row++, last, "(Sai sót hoặc sự cố chỉ ghi nhận bất lợi khi đã xác định trách nhiệm; hành động báo cáo/dừng/điều chỉnh đúng quy trình vì an toàn không bị trừ điểm)", italic: true);
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
@@ -151,7 +151,7 @@ public static class PersonalFormWorkbooks
         var ws = workbook.Worksheets.Add("Mẫu 09A");
         var last = Form09AColumns.Length;
         SetWidths(ws, 6, 48, 10, 11, 9, 14, 30);
-        var row = WriteHeader(ws, last, "Mẫu số 09A", 2, PartyHeaderLines(org, data.PartyCell),
+        var row = WriteHeader(ws, last, "Mẫu số 09A", 2, PartyHeaderLines(org, data.PartyParentUpper, data.PartyCell),
             new[] { new ExcelHeaderLine("ĐẢNG CỘNG SẢN VIỆT NAM", Bold: true), new ExcelHeaderLine(DateText(org, data.DateLine), Italic: true) }) + 1;
         TitleRow(ws, row++, last, "PHIẾU TỰ CHẤM ĐIỂM ĐÁNH GIÁ, XẾP LOẠI CHẤT LƯỢNG HẰNG QUÝ", bold: true);
         TitleRow(ws, row++, last, "ĐỐI VỚI CÁ NHÂN GIỮ CHỨC VỤ LÃNH ĐẠO, QUẢN LÝ", bold: true);
@@ -242,7 +242,7 @@ public static class PersonalFormWorkbooks
         var right = new List<ExcelHeaderLine> { new("ĐẢNG CỘNG SẢN VIỆT NAM", Bold: true) };
         if (data.HasDateLine)
             right.Add(new ExcelHeaderLine(DateText(org, data.DateLine), Italic: true));
-        var row = WriteHeader(ws, last, "Mẫu số 09D", 2, PartyHeaderLines(org, data.PartyCell), right) + 1;
+        var row = WriteHeader(ws, last, "Mẫu số 09D", 2, PartyHeaderLines(org, data.PartyParentUpper, data.PartyCell), right) + 1;
         TitleRow(ws, row++, last, "PHỤ LỤC", bold: true);
         TitleRow(ws, row++, last, $"KẾT QUẢ THỰC HIỆN NHIỆM VỤ, CÔNG VIỆC ĐƯỢC GIAO TRONG QUÝ{data.Quarter ?? "…."} NĂM{data.Year ?? "….."}", bold: true);
         TitleRow(ws, row++, last, "-----", bold: false);
@@ -367,15 +367,24 @@ public static class PersonalFormWorkbooks
         return Save(workbook, ws, head, landscape: false);
     }
 
-    /// <summary>Tiêu đề trái Mẫu 01/02: tên công ty (in hoa) rồi đơn vị của hồ sơ; đơn vị gốc chỉ in tên công ty như bản Word.</summary>
-    private static ExcelHeaderLine[] CompanyHeader(string? companyUpper, string fallback, string? department, bool hasDepartment) => hasDepartment
-        ? new[] { new ExcelHeaderLine(companyUpper ?? fallback), new ExcelHeaderLine(department ?? "................", Bold: true) }
-        : new[] { new ExcelHeaderLine(companyUpper ?? fallback) };
-
-    /// <summary>Tiêu đề trái Mẫu 09A/9D: tên Đảng bộ rồi tên Chi bộ của hồ sơ.</summary>
-    private static ExcelHeaderLine[] PartyHeaderLines(OrganizationTemplateFields org, string? partyCell) => new[]
+    /// <summary>
+    /// Tiêu đề trái Mẫu 01/02 như bản Word: cơ quan chủ quản trực tiếp (mặc định tên công ty, in hoa) rồi đơn vị của hồ sơ;
+    /// hồ sơ thuộc chính đơn vị gốc in tên đơn vị chủ quản rồi tên công ty (đậm), cài đặt chưa có đơn vị chủ quản thì chỉ tên công ty.
+    /// </summary>
+    private static ExcelHeaderLine[] CompanyHeader(OrganizationTemplateFields org, string? parentUpper, string fallback, string? department, bool hasDepartment)
     {
-        new ExcelHeaderLine(org.PartyCommitteeName ?? "ĐẢNG BỘ…"),
+        var company = org.CompanyNameUpper ?? fallback;
+        if (hasDepartment)
+            return new[] { new ExcelHeaderLine(parentUpper ?? company), new ExcelHeaderLine(department ?? "................", Bold: true) };
+        return org.ParentCompanyNameUpper is { } group
+            ? new[] { new ExcelHeaderLine(group), new ExcelHeaderLine(company, Bold: true) }
+            : new[] { new ExcelHeaderLine(company) };
+    }
+
+    /// <summary>Tiêu đề trái Mẫu 09A/9D: tổ chức Đảng cấp trên trực tiếp (như bản Word) rồi tên Chi bộ của hồ sơ.</summary>
+    private static ExcelHeaderLine[] PartyHeaderLines(OrganizationTemplateFields org, string? parentUpper, string? partyCell) => new[]
+    {
+        new ExcelHeaderLine(parentUpper ?? org.PartyCommitteeName ?? "ĐẢNG BỘ…"),
         new ExcelHeaderLine(partyCell ?? "CHI BỘ …", Bold: true)
     };
 

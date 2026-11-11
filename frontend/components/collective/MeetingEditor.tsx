@@ -316,7 +316,7 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           )}
           <div className="col-12">
             <label className="form-label" htmlFor="mt-rules">Căn cứ Quy chế làm việc của</label>
-            <input id="mt-rules" className="form-control form-control-sm" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
+            <input id="mt-rules" className="form-control form-control-sm" placeholder="Tên tập thể hoặc cấp ủy và nhiệm kỳ, vd. Đảng ủy Công ty nhiệm kỳ 2025-2030" value={workingRules} onChange={(e) => setWorkingRules(e.target.value)} />
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-start">Bắt đầu</label>
@@ -337,21 +337,21 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
         <h3 className={styles.legend}>Thành phần</h3>
         <div className="row g-2">
           <div className="col-4">
-            <label className="form-label" htmlFor="mt-invited">Triệu tập</label>
+            <label className="form-label" htmlFor="mt-invited">Số được triệu tập</label>
             <input id="mt-invited" type="number" min={0} inputMode="numeric" className="form-control form-control-sm" value={invited} onChange={(e) => setInvited(Number(e.target.value))} />
           </div>
           <div className="col-4">
-            <label className="form-label" htmlFor="mt-present">Có mặt</label>
+            <label className="form-label" htmlFor="mt-present">Số có mặt</label>
             <input id="mt-present" type="number" min={0} inputMode="numeric" className={`form-control form-control-sm${presentTooMany ? " is-invalid" : ""}`} value={present} onChange={(e) => setPresent(Number(e.target.value))} />
             {presentTooMany && <div className="invalid-feedback">Vượt số triệu tập.</div>}
           </div>
           <div className="col-4">
-            <label className="form-label" htmlFor="mt-absent">Vắng mặt</label>
+            <label className="form-label" htmlFor="mt-absent">Số vắng mặt</label>
             <input id="mt-absent" className="form-control form-control-sm" readOnly value={Math.max(invited - present, 0)} />
           </div>
           <div className="col-12">
             <label className="form-label" htmlFor="mt-absent-reasons">Lý do vắng mặt</label>
-            <input id="mt-absent-reasons" className="form-control form-control-sm" value={absentReasons} onChange={(e) => setAbsentReasons(e.target.value)} />
+            <input id="mt-absent-reasons" className="form-control form-control-sm" disabled={invited - present <= 0} value={absentReasons} onChange={(e) => setAbsentReasons(e.target.value)} />
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-chair">Chủ trì hội nghị</label>
@@ -364,16 +364,16 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
             <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ thư ký" value={secretaryTitle} onChange={(e) => setSecretaryTitle(e.target.value)} />
           </div>
           <div className="col-12">
-            <div className="form-label">Cán bộ, đảng viên khác được cử tham dự</div>
+            <div className="form-label">Cán bộ, đảng viên khác được cử dự để ghi chép, báo cáo, phục vụ hội nghị <span className="text-secondary fw-normal">(không ghi người được triệu tập, chủ trì)</span></div>
             {attendees.map((attendee, index) => (
               <div key={index} className={styles.repeatRow}>
-                <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên người dự" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
-                <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ người dự" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
-                {removeButton("Bỏ người dự", () => setAttendees(attendees.filter((_, i) => i !== index)))}
+                <input className="form-control form-control-sm" placeholder="Họ và tên" aria-label="Họ và tên người được cử dự" value={attendee.name} onChange={(e) => setAttendee(index, { name: e.target.value })} />
+                <input className="form-control form-control-sm" placeholder="Chức vụ" aria-label="Chức vụ người được cử dự" value={attendee.title} onChange={(e) => setAttendee(index, { title: e.target.value })} />
+                {removeButton("Bỏ người được cử dự", () => setAttendees(attendees.filter((_, i) => i !== index)))}
               </div>
             ))}
             <Button type="button" size="sm" variant="outline-secondary" icon="fa-plus" onClick={() => setAttendees([...attendees, { name: "", title: "" }])}>
-              Thêm người dự
+              Thêm người được cử dự
             </Button>
           </div>
         </div>

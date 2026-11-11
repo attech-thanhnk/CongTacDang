@@ -117,6 +117,13 @@ public sealed class EvaluationWorkflowRepository : IEvaluationWorkflowRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public Task<List<string>> GetAllProductCodesAsync(Guid recordId, CancellationToken ct = default) =>
+        _db.EvaluationTasks.IgnoreQueryFilters()
+            .Where(t => t.RecordId == recordId && t.ProductCode != null)
+            .Select(t => t.ProductCode!)
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public void AddHistory(EvaluationRecordHistory history) => _db.EvaluationRecordHistories.Add(history);
 
     /// <inheritdoc />

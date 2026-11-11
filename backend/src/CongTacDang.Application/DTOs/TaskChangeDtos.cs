@@ -42,6 +42,8 @@ public class TaskChangeRequestDto
     public bool CanDecide { get; set; }
     /// <summary>Ghi theo văn bản phê duyệt của cấp trên (người duyệt là tên cơ quan).</summary>
     public bool ApprovedExternally { get; set; }
+    /// <summary>Văn bản phê duyệt của cấp trên đính kèm (nếu có).</summary>
+    public Guid? AttachmentId { get; set; }
 }
 
 /// <summary>Khối "Điều chỉnh việc trong quý" của hồ sơ: danh sách đề nghị và cờ hành động.</summary>
@@ -75,7 +77,7 @@ public class CreateTaskChangeRequestDto : WorkflowRequestDto
     public Dictionary<Guid, double>? Weights { get; set; }
     /// <summary>Nguyên nhân khách quan; bắt buộc.</summary>
     public string? Reason { get; set; }
-    /// <summary>Chỉ khi cấp trên duyệt danh mục ngoài hệ thống.</summary>
+    /// <summary>Bắt buộc khi cấp trên duyệt danh mục ngoài hệ thống; diện duyệt trong hệ thống không nhận.</summary>
     public TaskChangeExternalApprovalDto? ExternalApproval { get; set; }
 }
 
@@ -94,4 +96,6 @@ public class TaskChangeExternalApprovalDto
     public string? AuthorityName { get; set; }
     public string? DocumentNumber { get; set; }
     public DateTime? DocumentDate { get; set; }
+    /// <summary>Tệp đã tải lên (chưa gắn) của văn bản phê duyệt; tùy chọn.</summary>
+    public Guid? AttachmentId { get; set; }
 }

@@ -186,6 +186,12 @@ public static class TaskChangeRules
         if (contentError != null)
             return contentError;
 
+        // Mã mới không được trùng mã của sản phẩm khác trong hồ sơ.
+        if ((type is TaskChangeType.Adjust or TaskChangeType.Urgent) && !string.IsNullOrWhiteSpace(proposal.ProductCode)
+            && tasks.Any(t => !t.IsDeleted && t.Id != target?.Id
+                && string.Equals(t.ProductCode?.Trim(), proposal.ProductCode.Trim(), StringComparison.OrdinalIgnoreCase)))
+            return $"Mã sản phẩm {proposal.ProductCode.Trim()} bị trùng với sản phẩm khác của hồ sơ.";
+
         // Việc bị loại trừ / chuyển tiếp về 0, bỏ qua trọng số trong bảng.
         var remaining = active.Where(t => !(MarkOf(type) != null && t.Id == target!.Id)).ToList();
         // Báo rõ cách xử lý thay cho lỗi chung về số sản phẩm đăng ký.
@@ -296,13 +302,14 @@ public static class TaskChangeRules
     #region Áp đề nghị
 
     /// <summary>Áp đề nghị đã kiểm tra; điểm tạm của việc đổi trọng số tính lại theo khung của hồ sơ.
-    /// Trả lỗi (không thay đổi gì) hoặc việc mới (đột xuất).</summary>
+    /// Trả lỗi (không thay đổi gì) hoặc việc mới (đột xuất). <paramref name="usedCodes"/>: mọi mã sản phẩm từng có trong hồ sơ (kể cả đã xóa).</summary>
     public static (string? Error, EvaluationTask? NewTask) Apply(
         TaskChangeRequest request,
         IReadOnlyList<EvaluationTask> tasks,
         CriteriaSetContent criteria,
         DateTime defaultDeadline,
-        WeightFrame? frame)
+        WeightFrame? frame,
+        IEnumerable<string?>? usedCodes = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         var proposal = ProposalFromJson(request.Proposal);
@@ -367,6 +374,12 @@ public static class TaskChangeRules
                 SelfScore = 0 // Chưa tự chấm (như nhiệm vụ đăng ký, xem TaskSelfScores.IsPending): nộp phiếu bắt buộc nhập tỷ lệ A-B-C-D.
             };
         }
+
+        // Sản phẩm mới hoặc bị xóa mã được đánh mã tiếp theo; usedCodes gồm mã của sản phẩm đã xóa.
+        var ordered = tasks.Where(t => !t.IsDeleted).OrderBy(t => t.TaskOrder).ToList();
+        if (created != null)
+            ordered.Add(created);
+        ProductCodes.AssignMissing(ordered, usedCodes);
 
         return (null, created);
     }

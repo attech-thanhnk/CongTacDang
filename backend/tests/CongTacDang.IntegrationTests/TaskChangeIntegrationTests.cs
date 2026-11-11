@@ -1,7 +1,11 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
+using Microsoft.EntityFrameworkCore;
 using CongTacDang.IntegrationTests.Infrastructure;
 using DocumentFormat.OpenXml.Packaging;
 using Xunit;
@@ -87,7 +91,9 @@ public sealed class TaskChangeIntegrationTests
             proposal = new { taskName = "Xử lý sự cố đột xuất", targetOutput = "Khắc phục trong 10 ngày", axisCode = "T1", weight = 10.0 },
             weights = new Dictionary<Guid, double> { [ids[0]] = 15 }, reason = "Nhiệm vụ phát sinh theo chỉ đạo"
         }))).GetProperty("requests")[0];
-        await Data(await Decide(w.LeadC, recordId, urgent.GetProperty("id").GetGuid(), "approve", urgent.GetProperty("version").GetUInt32(), null));
+        var urgentDecided = (await Data(await Decide(w.LeadC, recordId, urgent.GetProperty("id").GetGuid(), "approve", urgent.GetProperty("version").GetUInt32(), null)))
+            .GetProperty("requests").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == urgent.GetProperty("id").GetGuid());
+        var urgentApprover = urgentDecided.GetProperty("decidedByName").GetString();
 
         // 3. Loại trừ việc 2 → không duyệt (có lý do) rồi gửi lại và duyệt.
         var exclude = new
@@ -131,6 +137,8 @@ public sealed class TaskChangeIntegrationTests
         var urgentText = await DocxTextAsync(w.OwnerC, $"/api/reports/docx/record/{recordId}/05/{requestForms[1].GetProperty("requestId").GetGuid()}");
         Assert.Contains("Xử lý sự cố đột xuất", urgentText);
         Assert.Contains("Khắc phục trong 10 ngày", urgentText);
+        // Duyệt trong hệ thống: ô cấp giao việc là tên người duyệt.
+        Assert.Contains($"Cấp có thẩm quyền giao việc{urgentApprover}", urgentText);
         Assert.Equal(HttpStatusCode.Conflict, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/05/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/09A/{adjustForm.GetProperty("requestId").GetGuid()}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await w.OwnerC.GetAsync($"/api/reports/docx/record/{recordId}/04/{Guid.NewGuid()}")).StatusCode);
@@ -215,25 +223,146 @@ public sealed class TaskChangeIntegrationTests
         Assert.Equal(authority, block.GetProperty("defaultAuthorityName").GetString());
         var ids = (await Data(w.ManagerC, $"/api/evaluations/records/{upperId}")).GetProperty("tasks").EnumerateArray()
             .OrderBy(t => t.GetProperty("taskOrder").GetInt32()).Select(t => t.GetProperty("id").GetGuid()).ToArray();
-        object Adjust(string? number) => new
+        object Adjust(string? number, Guid? attachmentId = null) => new
         {
             type = "Adjust", taskId = ids[1], proposal = new { taskName = "Sản phẩm 2 (điều chỉnh)" },
             weights = new Dictionary<Guid, double> { [ids[1]] = 20, [ids[3]] = 10 }, reason = "Theo văn bản của cấp trên",
-            externalApproval = new { documentNumber = number, documentDate = DateTime.UtcNow.Date }
+            externalApproval = new { documentNumber = number, documentDate = DateTime.UtcNow.Date, attachmentId }
         };
+
+        // Không kèm văn bản phê duyệt → 400, không tạo đề nghị chờ duyệt (cả chủ hồ sơ lẫn người cập nhật thay).
+        const string missingApproval = "Ghi điều chỉnh không thành công: hãy nhập số, ngày văn bản phê duyệt của cấp trên.";
+        var withoutApproval = new
+        {
+            type = "Adjust", taskId = ids[1], proposal = new { taskName = "Sản phẩm 2 (điều chỉnh)" },
+            weights = new Dictionary<Guid, double> { [ids[1]] = 20, [ids[3]] = 10 }, reason = "Theo văn bản của cấp trên"
+        };
+        foreach (var client in new[] { w.ManagerC, w.UpperC })
+        {
+            var rejectedCreate = await CreateAsync(w, client, upperId, withoutApproval);
+            Assert.Equal(HttpStatusCode.BadRequest, rejectedCreate.StatusCode);
+            using var error = JsonDocument.Parse(await rejectedCreate.Content.ReadAsStringAsync());
+            Assert.Equal(missingApproval, error.RootElement.GetProperty("message").GetString());
+        }
+        Assert.Empty((await Data(w.ManagerC, $"/api/evaluations/records/{upperId}/task-changes")).GetProperty("requests").EnumerateArray());
+
+        // Đề nghị chờ duyệt lập từ trước vẫn được người ghi nhận kết quả cấp trên xử lý như cũ.
+        var legacyId = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var current = await db.EvaluationTasks.Where(t => t.RecordId == upperId).ToDictionaryAsync(t => t.Id, t => t.Weight);
+            var legacy = new TaskChangeRequest
+            {
+                RecordId = upperId, Type = TaskChangeType.Adjust, TaskId = ids[2], TaskNameSnapshot = "Sản phẩm 3",
+                Proposal = TaskChangeRules.ProposalToJson(new TaskChangeProposal { TaskName = "Sản phẩm 3 (đề nghị cũ)" }),
+                Weights = TaskChangeRules.WeightsToJson(current), WeightsBefore = TaskChangeRules.WeightsToJson(current),
+                Reason = "Đề nghị lập trước đây", RequestedByName = "Chủ hồ sơ"
+            };
+            db.Add(legacy);
+            await db.SaveChangesAsync();
+            legacyId = legacy.Id;
+        });
+        var legacyItem = (await Data(w.OfficeC, $"/api/evaluations/records/{upperId}/task-changes")).GetProperty("requests").EnumerateArray()
+            .Single(r => r.GetProperty("id").GetGuid() == legacyId);
+        Assert.True(legacyItem.GetProperty("canDecide").GetBoolean());
+        var legacyDone = await Data(await Decide(w.OfficeC, upperId, legacyId, "approve", legacyItem.GetProperty("version").GetUInt32(), null));
+        Assert.Equal("Approved", legacyDone.GetProperty("requests").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == legacyId).GetProperty("status").GetString());
+
         Assert.Equal(HttpStatusCode.BadRequest, (await CreateAsync(w, w.ManagerC, upperId, Adjust(null))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await CreateAsync(w, w.ReaderC, upperId, Adjust("45/QĐ"))).StatusCode);
-        var applied = (await Data(await CreateAsync(w, w.ManagerC, upperId, Adjust("45/QĐ")))).GetProperty("requests")[0];
+        // Không gắn được tệp chưa gắn của người khác.
+        var othersFile = (await Data(await UploadAsync(w.OwnerC))).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Forbidden, (await CreateAsync(w, w.ManagerC, upperId, Adjust("45/QĐ", othersFile))).StatusCode);
+        var fileId = (await Data(await UploadAsync(w.ManagerC))).GetProperty("id").GetGuid();
+        var applied = (await Data(await CreateAsync(w, w.ManagerC, upperId, Adjust("45/QĐ", fileId)))).GetProperty("requests").EnumerateArray()
+            .Single(r => r.GetProperty("id").GetGuid() != legacyId);
         Assert.Equal("Approved", applied.GetProperty("status").GetString());
         Assert.True(applied.GetProperty("approvedExternally").GetBoolean());
         Assert.Equal(authority, applied.GetProperty("decidedByName").GetString());
         Assert.Contains("45/QĐ", applied.GetProperty("decisionComment").GetString());
+        Assert.Equal(fileId, applied.GetProperty("attachmentId").GetGuid());
         var tasks = (await Data(w.UpperC, $"/api/evaluations/records/{upperId}")).GetProperty("tasks").EnumerateArray().ToList();
         Assert.Contains(tasks, t => t.GetProperty("taskName").GetString() == "Sản phẩm 2 (điều chỉnh)" && t.GetProperty("weight").GetDouble() == 20);
+
+        // Ai xem được hồ sơ thì tải được văn bản; tệp nằm trong danh sách tệp của hồ sơ.
+        foreach (var client in new[] { w.ReaderC, w.UpperC, w.LeadC, w.ManagerC })
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.OwnerC.GetAsync($"/api/attachments/{fileId}/download")).StatusCode);
+        var files = await Data(w.ReaderC, $"/api/attachments?ownerType=EvaluationRecord&ownerId={upperId}");
+        Assert.Contains(files.EnumerateArray(), f => f.GetProperty("id").GetGuid() == fileId);
+        // Chỉ người được ghi (chủ hồ sơ, người cập nhật thay) mới thay phiên bản.
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadAsync(w.ReaderC, $"/api/attachments/{fileId}/versions")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await UploadAsync(w.LeadC, $"/api/attachments/{fileId}/versions")).StatusCode);
+        Assert.Equal(2, (await Data(await UploadAsync(w.ManagerC, $"/api/attachments/{fileId}/versions"))).GetProperty("versionNumber").GetInt32());
 
         var text = await DocxTextAsync(w.UpperC, $"/api/reports/docx/record/{upperId}/04/{applied.GetProperty("id").GetGuid()}");
         Assert.Contains(authority, text);
         Assert.Contains("Văn bản số 45/QĐ", text);
+
+        // Mẫu 05 ghi theo quyết định cấp trên: ô cấp giao việc là cơ quan kèm số, ngày văn bản.
+        var urgent = (await Data(await CreateAsync(w, w.UpperC, upperId, new
+        {
+            type = "Urgent",
+            proposal = new { taskName = "Việc cấp trên giao thêm", targetOutput = "Hoàn thành trong quý", axisCode = "T1", weight = 5.0 },
+            weights = new Dictionary<Guid, double> { [ids[0]] = 20 }, reason = "Cấp trên giao bổ sung",
+            externalApproval = new { documentNumber = "46/QĐ", documentDate = DateTime.UtcNow.Date }
+        }))).GetProperty("requests").EnumerateArray().Single(r => r.GetProperty("type").GetString() == "Urgent");
+        var urgentText = await DocxTextAsync(w.UpperC, $"/api/reports/docx/record/{upperId}/05/{urgent.GetProperty("id").GetGuid()}");
+        Assert.Contains($"Cấp có thẩm quyền giao việc{authority}(Văn bản số 46/QĐ", urgentText);
+    }
+
+    [SkippableFact]
+    public async Task ProductCodes_AutoAssigned_KeepTyped_NotReusedAfterDelete_DuplicateRejected_AndAddedViaChange()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w);
+        var recordId = await RecordOfAsync(w, periodId, w.Owner.Id);
+        object Row(string name, double weight, string? code) => new
+        {
+            taskName = name, targetOutput = "Kết quả", weight, axisCode = "T1", kind = "ThuongXuyen", role = "ChuTri",
+            exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản", confirmer = "Giám đốc", productCode = code
+        };
+        static string?[] Codes(JsonElement record) => record.GetProperty("tasks").EnumerateArray()
+            .OrderBy(t => t.GetProperty("taskOrder").GetInt32()).Select(t => t.GetProperty("productCode").GetString()).ToArray();
+
+        // Trùng mã (không phân biệt hoa thường) → 400, danh mục không lưu.
+        var duplicate = await Post(w.OwnerC, recordId, "tasks/submit",
+            new { tasks = new[] { Row("A", 30, "KT-1"), Row("B", 20, "kt-1"), Row("C", 20, null) } }, await VersionAsync(w, recordId));
+        Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        using (var error = JsonDocument.Parse(await duplicate.Content.ReadAsStringAsync()))
+            Assert.Equal("Lưu danh mục không thành công: mã sản phẩm kt-1 bị trùng.", error.RootElement.GetProperty("message").GetString());
+
+        // Mã trống được đánh SP01, SP02 theo thứ tự; mã người dùng gõ giữ nguyên.
+        var submitted = await Data(await Post(w.OwnerC, recordId, "tasks/submit",
+            new { tasks = new[] { Row("A", 30, null), Row("B", 20, "KT-02"), Row("C", 20, " ") } }, await VersionAsync(w, recordId)));
+        Assert.Equal(new[] { "SP01", "KT-02", "SP02" }, Codes(submitted));
+
+        // Trả lại rồi bỏ sản phẩm SP02, thêm sản phẩm mới: không dùng lại SP02.
+        await Ok(await Post(w.LeadC, recordId, "tasks/forward/return", new { reason = "Bổ sung sản phẩm" }, await VersionAsync(w, recordId)));
+        var resubmitted = await Data(await Post(w.OwnerC, recordId, "tasks/submit",
+            new { tasks = new[] { Row("A", 30, "SP01"), Row("B", 20, "KT-02"), Row("D", 20, null) } }, await VersionAsync(w, recordId)));
+        Assert.Equal(new[] { "SP01", "KT-02", "SP03" }, Codes(resubmitted));
+
+        await Ok(await Post(w.LeadC, recordId, "tasks/forward", new { comment = "" }, await VersionAsync(w, recordId)));
+        await Ok(await Post(w.ManagerC, recordId, "tasks/review", new { comment = "" }, await VersionAsync(w, recordId)));
+        await Ok(await Post(w.LeadC, recordId, "tasks/approve", new { comment = "Đồng ý" }, await VersionAsync(w, recordId)));
+        var ids = (await Data(w.OwnerC, $"/api/evaluations/records/{recordId}")).GetProperty("tasks").EnumerateArray()
+            .OrderBy(t => t.GetProperty("taskOrder").GetInt32()).Select(t => t.GetProperty("id").GetGuid()).ToArray();
+
+        // Điều chỉnh đặt mã trùng sản phẩm khác → 400; việc đột xuất không nhập mã được đánh SP04.
+        Assert.Equal(HttpStatusCode.BadRequest, (await CreateAsync(w, w.OwnerC, recordId, new
+        {
+            type = "Adjust", taskId = ids[0], proposal = new { productCode = "KT-02" },
+            weights = new Dictionary<Guid, double>(), reason = "Đổi mã"
+        })).StatusCode);
+        var urgent = (await Data(await CreateAsync(w, w.LeadC, recordId, new
+        {
+            type = "Urgent",
+            proposal = new { taskName = "Việc phát sinh", targetOutput = "Hoàn thành", axisCode = "T1", weight = 10.0 },
+            weights = new Dictionary<Guid, double> { [ids[0]] = 20 }, reason = "Phát sinh"
+        }))).GetProperty("requests")[0];
+        await Data(await Decide(w.LeadC, recordId, urgent.GetProperty("id").GetGuid(), "approve", urgent.GetProperty("version").GetUInt32(), null));
+        Assert.Equal(new[] { "SP01", "KT-02", "SP03", "SP04" }, Codes(await Data(w.OwnerC, $"/api/evaluations/records/{recordId}")));
     }
 
     #region Hỗ trợ
@@ -344,6 +473,16 @@ public sealed class TaskChangeIntegrationTests
 
     private static Task<HttpResponseMessage> Decide(HttpClient client, Guid recordId, Guid changeId, string action, uint version, string? comment) =>
         client.PostAsJsonAsync($"/api/evaluations/records/{recordId}/task-changes/{changeId}/{action}", new { version, comment });
+
+    private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, string url = "/api/attachments/upload")
+    {
+        using var content = new MultipartFormDataContent();
+        var file = new ByteArrayContent("%PDF-1.4 van ban phe duyet"u8.ToArray());
+        file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(file, "file", "van-ban-phe-duyet.pdf");
+        content.Add(new StringContent("CAPTREN"), "formCode");
+        return await client.PostAsync(url, content);
+    }
 
     private static async Task Ok(HttpResponseMessage response) => await Data(response);
 

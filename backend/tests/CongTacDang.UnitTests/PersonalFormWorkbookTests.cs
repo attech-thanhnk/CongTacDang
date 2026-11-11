@@ -23,7 +23,9 @@ public class PersonalFormWorkbookTests
         var ws = wb.Worksheet(1);
 
         Assert.Equal("Mẫu số 01", ws.Cell(1, 11).GetString());
-        Assert.Equal("CÔNG TY A", ws.Cell(2, 1).GetString());
+        // Hồ sơ thuộc chính đơn vị gốc: đơn vị chủ quản rồi tên công ty.
+        Assert.Equal("TỔNG CÔNG TY B", ws.Cell(2, 1).GetString());
+        Assert.Equal("CÔNG TY A", ws.Cell(3, 1).GetString());
         Assert.Contains("Hà Nội, ngày 03 tháng 07 năm 2026", Texts(ws));
         Assert.Contains("PHIẾU GIAO / ĐĂNG KÝ SẢN PHẨM, CÔNG VIỆC CHUYÊN MÔN HẰNG QUÝ", Texts(ws));
         Assert.Contains("Họ và tên cán bộ: Nguyễn Văn A", Texts(ws));
@@ -76,6 +78,21 @@ public class PersonalFormWorkbookTests
         Assert.Equal(65.4, ws.Cell(total, 9).GetDouble(), 3);
         Assert.Equal("1 SP", ws.Cell(total, 10).GetString());
         Assert.Contains("CÁ NHÂN TỰ ĐÁNH GIÁ", Texts(ws));
+    }
+
+    [Fact]
+    public void Mau09A_9D_HeaderLine1_IsDirectParentOfPartyCell()
+    {
+        var source = Source() with
+        {
+            PartyParent = IndividualFormSource.PartyParentLine("Đảng bộ bộ phận Trung tâm Bảo đảm kỹ thuật", parentIsRoot: false, "Đảng bộ A")
+        };
+        foreach (var bytes in new[] { PersonalFormWorkbooks.Mau09A(Mau09AData.From(source), Org), PersonalFormWorkbooks.Mau9D(Mau9DData.From(source), Org) })
+        {
+            using var wb = Open(bytes);
+            Assert.Equal("ĐẢNG BỘ BỘ PHẬN TRUNG TÂM BẢO ĐẢM KỸ THUẬT", wb.Worksheet(1).Cell(2, 1).GetString());
+            Assert.Equal("CHI BỘ KỸ THUẬT", wb.Worksheet(1).Cell(3, 1).GetString());
+        }
     }
 
     [Fact]

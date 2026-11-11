@@ -38,6 +38,9 @@ public sealed class Mau12Data
     [TemplateField("PRESENT")] public string? Present { get; init; }
     [TemplateField("ABSENT")] public string? Absent { get; init; }
 
+    /// <summary>Sau số vắng mặt: không ai vắng → trống; có ghi lý do → " (có lý do: …)"; chưa ghi → giữ " (có lý do)".</summary>
+    [TemplateField("ABSENT_NOTE")] public string? AbsentNote { get; init; }
+
     /// <summary>Người được cử ghi chép, phục vụ hội nghị.</summary>
     [TemplateCollection("ATTENDEES")] public List<Mau12Attendee> Attendees { get; init; } = new();
 
@@ -71,8 +74,8 @@ public sealed class Mau12Data
 
     public const string ProposalChairSignNote = "(ký, ghi rõ họ tên)";
 
-    /// <summary>Chỗ điền của template liền sau dấu "-" nên có khoảng trắng đầu.</summary>
-    public const string EmptyAttendeeTitle = " … (ghi rõ chức vụ Đảng, chính quyền)";
+    /// <summary>Chức vụ chưa ghi: dòng chấm thay cho chữ hướng dẫn của mẫu gốc; liền sau dấu "-" nên có khoảng trắng đầu.</summary>
+    public const string EmptyAttendeeTitle = " ……………………";
 
     /// <summary><paramref name="unitName"/>: đơn vị tổ chức hội nghị; <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản.</summary>
     public static Mau12Data From(EvaluationMeeting meeting, PartyHeader header, string? unitName, string? archiveUnit, MeetingDetailsDto details)
@@ -83,7 +86,12 @@ public sealed class Mau12Data
         var isDecision = meeting.Stage == WorkflowStep.B4_DECISION;
         var content = string.Join("\n", new[] { meeting.MinutesContent, meeting.OutcomeContent }
             .Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()));
-        var attendees = details.Attendees.Where(a => !string.IsNullOrWhiteSpace(a.Name)).ToList();
+        // Chủ trì thuộc thành phần được triệu tập, đã có ở mục 4 nên không in lại ở mục 3.2.
+        var chair = FormText.OrNull(meeting.ChairName?.Trim());
+        var attendees = details.Attendees
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name)
+                && !string.Equals(a.Name.Trim(), chair, System.StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
         return new Mau12Data
         {
@@ -94,7 +102,7 @@ public sealed class Mau12Data
                 : isDecision ? "Hội nghị " + CollectiveFormText.CommitteeInSentence(unit)
                 : null,
             PeriodText = period == null ? null : " " + CollectiveFormText.RomanQuarter(period.Quarter) + "/" + FormText.Year(period.Year),
-            WorkingRules = CollectiveFormText.Spaced(details.WorkingRules),
+            WorkingRules = CollectiveFormText.Spaced(WorkingRulesText(details.WorkingRules, isDecision ? archiveUnit : null, period?.Year)),
             Organizer = unit == null ? null
                 : isProposal ? "Tập thể lãnh đạo, quản lý " + unit
                 : isDecision ? CollectiveFormText.CommitteeInSentence(unit)
@@ -112,20 +120,21 @@ public sealed class Mau12Data
             Invited = meeting.InvitedCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Present = meeting.PresentCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Absent = meeting.AbsentCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            // Không có người dự khác: giữ dòng mẫu "(1) Đồng chí … - … (ghi rõ chức vụ …)" như biểu mẫu gốc.
+            AbsentNote = AbsentNoteText(meeting.AbsentCount, meeting.AbsentReasons),
+            // Không có người được cử dự: in dòng chấm "(1) Đồng chí … - ……" để ghi tay.
             Attendees = attendees.Count == 0
                 ? new List<Mau12Attendee> { new() { Title = EmptyAttendeeTitle } }
                 : attendees.Select((a, i) => new Mau12Attendee
                 {
                     Order = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
                     Name = a.Name.Trim(),
-                    Title = CollectiveFormText.Spaced(a.Title)
+                    Title = CollectiveFormText.Spaced(a.Title) ?? EmptyAttendeeTitle
                 }).ToList(),
             HasAttendees = attendees.Count > 0,
             ChairName = FormText.OrNull(meeting.ChairName),
-            ChairTitle = CollectiveFormText.Spaced(details.ChairTitle),
+            ChairTitle = CollectiveFormText.Spaced(details.ChairTitle) ?? EmptyAttendeeTitle,
             SecretaryName = FormText.OrNull(meeting.SecretaryName),
-            SecretaryTitle = CollectiveFormText.Spaced(details.SecretaryTitle),
+            SecretaryTitle = CollectiveFormText.Spaced(details.SecretaryTitle) ?? EmptyAttendeeTitle,
             ReportingUnit = CollectiveFormText.Spaced(details.ReportingUnit ?? unit),
             HasContent = content.Length > 0,
             Content = FormText.OrNull(content),
@@ -136,6 +145,36 @@ public sealed class Mau12Data
             ChairSignTitle = PartyHeader.Upper(details.ChairTitle) ?? (isProposal ? string.Empty : null),
             ChairSignNote = isProposal ? ProposalChairSignNote : null
         };
+    }
+
+    /// <summary>
+    /// Phần sau "Quy chế làm việc của": bỏ cụm lặp nếu người dùng gõ cả câu; hội nghị cấp ủy chưa ghi thì lấy cấp ủy và nhiệm kỳ,
+    /// hội nghị tập thể lãnh đạo chưa ghi thì giữ dòng chấm.
+    /// </summary>
+    public static string? WorkingRulesText(string? value, string? committeeUnit, int? year)
+    {
+        var text = FormText.OrNull(value?.Trim());
+        foreach (var prefix in new[] { "Căn cứ ", "Quy chế làm việc ", "của " })
+        {
+            if (text != null && text.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase))
+                text = FormText.OrNull(text[prefix.Length..].Trim());
+        }
+        if (text != null)
+            return text;
+        var committee = CollectiveFormText.CommitteeInSentence(committeeUnit);
+        if (committee == null)
+            return null;
+        var term = year.HasValue ? CollectiveFormText.PartyTerm(year.Value) : null;
+        return committee + " nhiệm kỳ " + (term ?? "…");
+    }
+
+    /// <summary>Chỗ điền liền sau "đồng chí": không ai vắng → trống; có lý do đã ghi → in kèm; chưa ghi → giữ chữ của mẫu.</summary>
+    public static string? AbsentNoteText(int absentCount, string? reasons)
+    {
+        if (absentCount <= 0)
+            return string.Empty;
+        var text = FormText.OrNull(reasons?.Trim())?.TrimEnd('.', ';', ' ');
+        return text == null ? null : " (có lý do: " + text + ")";
     }
 }
 

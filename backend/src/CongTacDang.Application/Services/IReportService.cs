@@ -66,13 +66,13 @@ public interface IReportService
     Task<ReportFileResult> ExportMau16DocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>
-    /// Quyết định xếp loại kèm Phụ lục cho hồ sơ diện cơ sở quyết định; không có hồ sơ hoặc còn hồ sơ chưa ghi quyết định
+    /// Quyết định xếp loại của Đảng ủy cơ sở kèm Phụ lục đủ hồ sơ diện cơ sở quyết định (toàn Đảng bộ); không có hồ sơ hoặc còn hồ sơ chưa ghi quyết định
     /// → <see cref="ArgumentException"/>.
     /// </summary>
-    Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, Guid? partyCellId, ReportFormat format = ReportFormat.Original);
+    Task<ReportFileResult> ExportDecisionDocxAsync(Guid periodId, ReportFormat format = ReportFormat.Original);
 
     /// <summary>Cùng quy tắc với <see cref="ExportDecisionDocxAsync"/>.</summary>
-    Task<DecisionReadinessDto> GetDecisionReadinessAsync(Guid periodId, Guid? partyCellId);
+    Task<DecisionReadinessDto> GetDecisionReadinessAsync(Guid periodId);
 
     /// <summary>Phần nhập tay Mẫu 16 kèm số liệu tổng hợp tự động.</summary>
     Task<Form16DraftDto> GetForm16DraftAsync(Guid periodId, Guid? partyCellId);

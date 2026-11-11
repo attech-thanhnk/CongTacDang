@@ -25,7 +25,10 @@ const periodLabel = (period?: EvaluationPeriodDto | null) =>
   period ? `Quy ${ROMAN[period.quarter] ?? period.quarter}-${period.year}` : "Ky bao cao";
 
 /** Biểu mẫu xuất theo Chi bộ: cần phạm vi tổ chức Đảng hoặc toàn công ty. */
-const BRANCH_REPORTS = new Set(["mau-11", "mau-14", "mau-15a", "mau-15b", "mau-16", "decision", "excellent-quota"]);
+const BRANCH_REPORTS = new Set(["mau-11", "mau-14", "mau-15a", "mau-15b", "mau-16", "excellent-quota"]);
+
+/** Quyết định xếp loại luôn là bản đầy đủ của Đảng ủy: không theo tổ chức Đảng được chọn. */
+const WHOLE_PARTY_REPORTS = new Set(["decision"]);
 
 export default function ReportsPage() {
   const { hasPermission, loading: authLoading } = useAuth();
@@ -63,17 +66,16 @@ export default function ReportsPage() {
   const [decisionBlocked, setDecisionBlocked] = useState<string | null>(null);
   useEffect(() => {
     setDecisionBlocked(null);
-    if (!periodId || !canExport || !scope || noBranchScope) return;
-    if (!canWholeParty && !branchId && scopedBranches.length > 0) return;
+    if (!periodId || !canExport || !canWholeParty) return;
     let active = true;
     reportService
-      .getDecisionReadiness(periodId, branchId || undefined)
+      .getDecisionReadiness(periodId)
       .then((r) => active && setDecisionBlocked(r.ready ? null : r.message || "Chưa lập được Quyết định."))
       .catch(() => active && setDecisionBlocked(null));
     return () => {
       active = false;
     };
-  }, [periodId, branchId, canExport, scope, noBranchScope, canWholeParty, scopedBranches.length]);
+  }, [periodId, canExport, canWholeParty]);
 
   const branch = useMemo(() => branches.find((b) => b.id === branchId), [branches, branchId]);
 
@@ -89,8 +91,10 @@ export default function ReportsPage() {
     setBusy(`${report.id}-${format}`);
     try {
       const extension = report.fileType === "XLSX" ? ".xlsx" : ".docx";
-      const endpoint = report.scope === "period" ? withQuery(report.endpoint, { periodId, branchId: branchId || undefined }) : report.endpoint;
-      const unit = branch?.name || shortName;
+      const wholeParty = WHOLE_PARTY_REPORTS.has(report.id);
+      const reportBranchId = wholeParty ? undefined : branchId || undefined;
+      const endpoint = report.scope === "period" ? withQuery(report.endpoint, { periodId, branchId: reportBranchId }) : report.endpoint;
+      const unit = (!wholeParty && branch?.name) || shortName;
       const fileName = report.id === "cadres"
         ? "DanhSach_CanBo_{SHORT_NAME}.xlsx"
         : report.filePrefix
@@ -119,6 +123,7 @@ export default function ReportsPage() {
   /** Lý do chưa xuất được (hiện dưới tên biểu mẫu, nút xuất bị tắt). */
   const blockedReason = (report: ReportDefinition): string | null => {
     if (noBranchScope && BRANCH_REPORTS.has(report.id)) return "Cần được giao ở Chi bộ hoặc toàn công ty.";
+    if (WHOLE_PARTY_REPORTS.has(report.id) && !canWholeParty) return "Cần được giao toàn công ty.";
     if (report.id === "decision" && decisionBlocked) return decisionBlocked;
     return null;
   };

@@ -227,6 +227,9 @@ public sealed class OrganizationTemplateFields
 
     [TemplateField("ORG_PARENT_COMPANY_NAME_UPPER")] public string? ParentCompanyNameUpper { get; init; }
 
+    /// <summary>Cài đặt có tên đơn vị chủ quản: hồ sơ của lãnh đạo Công ty in hai dòng tổng công ty / công ty (Mẫu 01, 02).</summary>
+    [TemplateCondition("ORG_HAS_PARENT_COMPANY")] public bool HasParentCompany => ParentCompanyNameUpper != null;
+
     [TemplateField("ORG_SHORT_NAME")] public string? ShortName { get; init; }
 
     /// <summary>Địa danh ở dòng "…, ngày … tháng … năm …".</summary>

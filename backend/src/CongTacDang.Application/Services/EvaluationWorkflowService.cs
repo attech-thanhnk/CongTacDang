@@ -145,6 +145,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         if (error != null)
             throw new ValidationException(error);
         ValidateTaskRows(tasks, criteria.Content);
+        if (ProductCodes.FindDuplicate(tasks.Select(t => t.ProductCode)) is { } duplicate)
+            throw new ValidationException($"Lưu danh mục không thành công: mã sản phẩm {duplicate} bị trùng.");
 
         // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
         var existing = (await _repo.GetTasksAsync(record.Id, ct))
@@ -175,6 +177,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             CriteriaD_Ratio = 1.0,
             SelfScore = 0 // Chưa tự chấm (TaskSelfScores.IsPending): phiếu để trống cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D
         }).ToList();
+        // Mẫu 01/04 dẫn chiếu theo mã nên sản phẩm nào cũng phải có mã; không dùng lại mã của sản phẩm đã xóa.
+        ProductCodes.AssignMissing(newTasks, await _repo.GetAllProductCodesAsync(record.Id, ct));
         await _repo.ReplaceTasksAsync(record.Id, newTasks, ct);
     }
 

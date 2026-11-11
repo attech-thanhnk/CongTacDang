@@ -349,10 +349,17 @@ public sealed class Quarter4ScenarioTests
             Assert.Contains(name, m14.Sheets[0]);
         foreach (var name in new[] { w.Ct.Name, w.Gd.Name, w.Ksv.Name, w.Pgd.Name })
             Assert.Contains(name, m14.Sheets[1]);
-        // Bí thư Chi bộ là nhân viên: đề xuất của Trưởng phòng ở cột 8 (trước thẩm định) ghi rõ chủ thể; Mẫu 10 không in là ý kiến người trực tiếp sử dụng.
-        Assert.Contains("(Trưởng đơn vị đề xuất)", m14.Sheets[0]);
-        Assert.DoesNotContain("(Trưởng đơn vị đề xuất)", m14.Sheets[1]);
-        Assert.DoesNotContain("Trưởng phòng đề xuất trên ý kiến các Phó trưởng phòng", printed.Single(x => x.Name == $"10 {w.Bt.Name}").Text);
+        // Bí thư Chi bộ là nhân viên: đề xuất của Trưởng phòng là của cấp trực tiếp sử dụng — Mẫu 14 cột 10 (cột 8 trống), Mẫu 10 ô người trực tiếp sử dụng.
+        Assert.DoesNotContain("(Trưởng đơn vị đề xuất)", m14.Text);
+        using (var book14 = new XLWorkbook(new MemoryStream(m14.Bytes)))
+        {
+            var btRow = book14.Worksheet(1).RowsUsed().Single(r => r.Cell(2).GetString() == w.Bt.Name);
+            Assert.Equal(string.Empty, btRow.Cell(8).GetString());
+            Assert.Equal("Hoàn thành tốt nhiệm vụ", btRow.Cell(10).GetString());
+        }
+        var bt10 = printed.Single(x => x.Name == $"10 {w.Bt.Name}").Text;
+        Assert.Contains("Trưởng phòng đề xuất trên ý kiến các Phó trưởng phòng", bt10);
+        Assert.Contains(w.Tp.Name, bt10);
         Assert.DoesNotContain(w.Tp.Name, m14.Sheets[1]);
         Assert.DoesNotContain(w.Gd.Name, m14.Sheets[0]);
         using (var book15a = new XLWorkbook(new MemoryStream(m15a.Bytes)))

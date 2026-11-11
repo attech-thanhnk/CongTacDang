@@ -4,12 +4,13 @@ using System.Globalization;
 using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
 /// <summary>
 /// Mục I (cấp trên quyết định) / II (cơ sở); mục rỗng không in, cả hai rỗng → in phiếu trắng.
-/// Cột (5)–(7) là mức đã ghi nhận của từng bước; chưa ghi nhận thì để trống.
+/// Cột (5)–(7) là mức đã ghi nhận của từng bước; chưa ghi nhận thì để trống. Diện Trưởng đơn vị đề xuất: mức ở cột (7), cột (5) trống.
 /// </summary>
 public sealed class Mau11Data
 {
@@ -47,9 +48,10 @@ public sealed class Mau11Data
     public static Mau11Data From(EvaluationPeriod period, IReadOnlyList<Mau11Line> lines, string? issuer,
         string? archiveUnit = null, DateTime? meetingAt = null)
     {
+        var settings = ProposalColumns.SettingsOrNull(period);
         List<Mau11Row> Rows(ApprovalAuthority authority) => lines
             .Where(l => l.Record.ApprovalAuthority == authority)
-            .Select((l, i) => Row(l, i + 1))
+            .Select((l, i) => Row(l, i + 1, ProposalColumns.IsUnitLeaderProposal(l.Record, settings)))
             .ToList();
 
         var superior = Rows(ApprovalAuthority.CapTren);
@@ -79,7 +81,7 @@ public sealed class Mau11Data
         return FormText.OrNull(text);
     }
 
-    private static Mau11Row Row(Mau11Line line, int order)
+    private static Mau11Row Row(Mau11Line line, int order, bool unitLeaderProposal)
     {
         var r = line.Record;
         var scored = r.SelfScoredAt.HasValue;
@@ -91,15 +93,15 @@ public sealed class Mau11Data
             GeneralScore = scored ? CollectiveFormText.Score(r.GeneralCriteriaScore) : string.Empty,
             TasksScore = scored ? CollectiveFormText.Score(r.TasksScore) : string.Empty,
             SelfGrade = scored ? FormText.Grade(r.SelfProposedGrade) : string.Empty,
-            CollectiveGrade = Recorded(r.CollectiveRecordedAt, r.CollectiveProposedGrade),
-            AppraisalGrade = Recorded(r.AppraisedAt, r.ReviewedGrade()),
-            DirectorGrade = Recorded(r.DirectorReviewedAt, r.DirectorProposedGrade)
+            CollectiveGrade = Recorded(ProposalColumns.Collective(r, unitLeaderProposal)),
+            AppraisalGrade = Recorded(new StepProposal(r.ReviewedGrade(), r.AppraisedAt, null, null, null)),
+            DirectorGrade = Recorded(ProposalColumns.DirectSupervisor(r, unitLeaderProposal))
         };
     }
 
     /// <summary>Bước đã ghi nhận (kể cả kết quả của cấp trên) → tên mức; chưa → trống.</summary>
-    private static string Recorded(DateTime? recordedAt, EvaluationGrade grade) =>
-        recordedAt.HasValue ? FormText.Grade(grade) : string.Empty;
+    private static string Recorded(StepProposal step) =>
+        step.RecordedAt.HasValue ? FormText.Grade(step.Grade) : string.Empty;
 }
 
 public sealed record Mau11Line(EvaluationRecord Record, string? PositionAndUnit);

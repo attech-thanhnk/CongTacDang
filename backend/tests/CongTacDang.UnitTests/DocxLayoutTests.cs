@@ -11,11 +11,12 @@ namespace CongTacDang.UnitTests;
 public class DocxLayoutTests
 {
     [Theory]
-    [InlineData("ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM", "ĐẢNG BỘ TỔNG CÔNG TY\nQUẢN LÝ BAY VIỆT NAM")]
-    [InlineData("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", "ĐẢNG BỘ CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY")]
+    [InlineData("ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM", "ĐẢNG BỘ TỔNG CÔNG TY QUẢN LÝ BAY VIỆT NAM")]
+    [InlineData("ĐẢNG BỘ BỘ PHẬN TRUNG TÂM BẢO ĐẢM KỸ THUẬT", "ĐẢNG BỘ BỘ PHẬN TRUNG TÂM BẢO ĐẢM KỸ THUẬT")]
+    [InlineData("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY VÀ DỊCH VỤ HÀNG KHÔNG", "ĐẢNG BỘ CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY VÀ DỊCH VỤ HÀNG KHÔNG")]
     [InlineData("CHI BỘ KỸ THUẬT", "CHI BỘ KỸ THUẬT")]
     [InlineData(null, null)]
-    public void PartyHeaderLines_SplitsLongNamesIntoTwoBalancedLines(string? name, string? expected) =>
+    public void PartyHeaderLines_OneLineUnlessTooLong(string? name, string? expected) =>
         Assert.Equal(expected, PartyHeader.Lines(name));
 
     [Fact]

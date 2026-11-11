@@ -2,7 +2,7 @@
 
 Dành cho cán bộ Văn phòng được giao: chốt biên bản họp thống nhất, xác nhận phiếu kiểm tra, ghi quyết định, ghi nhận kết quả của cấp trên, công bố, xử lý kiến nghị, xuất báo cáo và biểu mẫu.
 
-Cán bộ công tác Đảng được phân công giúp việc đánh giá (thư ký hội nghị cấp Công ty, rà soát, thẩm định): xem [Hướng dẫn cho thư ký hội nghị](thu-ky.md) và [Hướng dẫn cho Phòng TCCB-LĐ](tham-dinh.md).
+Cán bộ công tác Đảng được gán vai trò **Cán bộ giúp việc Đảng ủy** (thư ký hội nghị cấp Công ty, thẩm định, lập Mẫu 06, 07, 08): xem [Hướng dẫn cho Phòng TCCB-LĐ](tham-dinh.md), Phần G.
 
 Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx`.
 
@@ -50,6 +50,8 @@ Hồ sơ trong biên bản đã có quyết định thì không áp lại mức;
 6. **Biên bản hội nghị (Mẫu 12/13)**: chọn biên bản hội nghị Đảng ủy nếu đã lập.
 7. Bấm **Ghi nhận quyết định** → **Đồng ý**.
 
+Trước khi ghi, đọc khối **Ý kiến và giải trình**: cán bộ có thể đã ghi giải trình sau thẩm định.
+
 ![Ghi quyết định](anh/van-phong-09-quyet-dinh.png)
 
 **Xong thì thấy:** hồ sơ chuyển sang nhóm **Công bố và lưu trữ kết quả**.
@@ -76,7 +78,7 @@ Với cán bộ thuộc diện cấp trên duyệt, thẩm định, nhận xét 
 3. Bấm **Lưu danh mục** → **Đồng ý**. Hồ sơ vẫn ở bước duyệt danh mục; lịch sử ghi **Cập nhật danh mục theo kết quả duyệt** kèm tên bạn.
 4. Ghi nhận kết quả duyệt ở khung **Ghi nhận kết quả của cấp trên** như trên.
 
-**Cấp trên duyệt điều chỉnh sau khi danh mục đã duyệt:** khối **Điều chỉnh việc trong quý** → **Ghi điều chỉnh đã duyệt** (hoặc **Ghi nhận việc đột xuất**) → nhập nội dung, bảng trọng số, lý do → nhập **Cơ quan phê duyệt** (điền sẵn cơ quan đã duyệt danh mục), **Số văn bản**, **Ngày văn bản** → **Ghi và áp dụng**. Danh mục cập nhật ngay, đề nghị có nhãn **Đã duyệt**; phiếu Mẫu 04/05 in cơ quan kèm số, ngày văn bản ở ô người phê duyệt.
+**Cấp trên duyệt điều chỉnh sau khi danh mục đã duyệt:** khối **Điều chỉnh việc trong quý** → **Ghi điều chỉnh đã duyệt** (hoặc **Ghi nhận việc đột xuất**) → nhập nội dung, bảng trọng số, lý do → nhập **Cơ quan phê duyệt** (điền sẵn cơ quan đã duyệt danh mục), **Số văn bản**, **Ngày văn bản**, đính kèm văn bản nếu có → **Ghi và áp dụng**. Danh mục cập nhật ngay, đề nghị có nhãn **Đã duyệt**; phiếu Mẫu 04/05 in cơ quan kèm số, ngày văn bản ở ô người phê duyệt.
 
 ## 5. Công bố kết quả
 
@@ -119,12 +121,16 @@ Menu **Báo cáo**. Ô ở góc phải bảng chọn phạm vi: **Toàn Đảng 
 |---|---|
 | Mẫu 14, 15A, 15B | Bấm **Tải Excel**. |
 | Mẫu 16 | Bấm **Soạn báo cáo** → điền phần nhập tay → **Lưu nháp** → **Tải Word**. Còn thay đổi chưa lưu thì nút tải bị khóa. |
-| Quyết định | Quyết định xếp loại kèm Phụ lục kết quả: **Tải Word**. |
+| Quyết định | Quyết định xếp loại kèm Phụ lục kết quả: **Tải Word**. Luôn là bản đầy đủ của Đảng ủy Công ty, không theo ô phạm vi; cần được giao toàn công ty. Đơn vị xem phần của mình bằng Mẫu 14. |
 | Mẫu 11 | Phiếu kín trắng: **Tải Word**. |
 | Mẫu 06, 07, 08, 12, 13 | Bấm **Đến Đánh giá tập thể**, tải ở đó. |
 
 Bản PDF: nút **⋯** cạnh nút tải. Phần **Báo cáo nội bộ** có **Danh sách cán bộ**, **Bảng tổng hợp xếp loại** và bảng kiểm soát tỷ lệ **Hoàn thành xuất sắc nhiệm vụ** theo tổ chức Đảng.
 
 Người chưa có quyết định được tính theo mức đề xuất gần nhất.
+
+Với cán bộ diện Trưởng đơn vị đề xuất (Bí thư, Phó Bí thư chi bộ là nhân viên đơn vị), mức Trưởng đơn vị đề xuất được in ở cột đề xuất của cấp trực tiếp sử dụng (Mẫu 14 cột 10, Mẫu 11 cột 7).
+
+Văn bản của Đảng ủy in tiêu đề **ĐẢNG ỦY …**. Ô ký Mẫu 06, 07, 08 tự in **T/M CHI BỘ** hoặc **T/M ĐẢNG ỦY** theo tổ chức Đảng.
 
 Phiếu của từng cán bộ (Mẫu 01, 02, 09A, 09C, 9D, 10…): mở hồ sơ → nút **Biểu mẫu** ở đầu trang → **Tải Word**.

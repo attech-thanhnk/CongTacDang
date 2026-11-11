@@ -22,7 +22,7 @@ public sealed class Mau05Data
     [TemplateField("POSITION")] public string? Position { get; init; }
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
 
-    /// <summary>Cấp giao việc chưa lưu theo đề nghị → giữ chữ mặc định.</summary>
+    /// <summary>Như ô ký người phê duyệt; chưa duyệt → giữ dòng chấm của template.</summary>
     [TemplateField("ASSIGNER")] public string? Assigner { get; init; }
 
     /// <summary>Căn cứ, lý do nhập khi ghi nhận.</summary>
@@ -73,6 +73,7 @@ public sealed class Mau05Data
             Deadline = TaskChangeFormSource.DeadlineLine(proposal.Deadline ?? created?.Deadline),
             BoxRebalance = reduced ? CheckedBox : null,
             NewWeight = reduced && proposal.Weight.HasValue ? TaskChangeFormSource.Weight(proposal.Weight.Value) : null,
+            Assigner = source.ApproverSign,
             AssigneeSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(record.Member?.FullName) : null,
             ApproverSign = source.ApproverSign
         };

@@ -296,6 +296,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
       message: `Tổng điểm tự chấm ${fmt(total)}, mức tự đề xuất: ${gradeLabel}.`
         + (missing.length ? ` Chưa nhập ${missing.join(" và ")}.` : "")
         + (noEvidence.length ? ` Sản phẩm chưa có minh chứng: ${taskNames(noEvidence)}.` : "")
+        + (grade === "HoanThanhXuatSac" && !noCap ? " Chưa đánh dấu cam kết không thuộc trường hợp bị khống chế mức xếp loại." : "")
         + " Sau khi nộp, bạn không sửa được trừ khi bị trả lại.",
       confirmText: "Nộp phiếu",
       isDanger: false,
@@ -527,6 +528,12 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
             <input type="checkbox" className="form-check-input" checked={noCap} onChange={(e) => setNoCap(e.target.checked)} />{" "}
             <span className="form-check-label">Tôi không thuộc trường hợp bị khống chế mức xếp loại (kỷ luật, vi phạm, sự cố an toàn do lỗi chủ quan)</span>
           </label>
+          {grade === "HoanThanhXuatSac" && !noCap && (
+            <div className="form-text text-warning-emphasis" role="status">
+              <i className="fa-solid fa-triangle-exclamation me-1" aria-hidden="true" />
+              Đề xuất mức &quot;{GRADE_LABELS.HoanThanhXuatSac}&quot; nhưng chưa đánh dấu cam kết không thuộc trường hợp bị khống chế mức xếp loại.
+            </div>
+          )}
         </div>
         {(gradeCheck || gradeReason) && (
           <div className="col-12 order-md-last">

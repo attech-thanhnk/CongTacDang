@@ -81,6 +81,32 @@ public sealed class ControlCheckRulesTests
         Assert.Null(ControlCheckRules.ValidateForSubmit(Items(), ControlConclusion.NeedsWork, "Cập nhật kế hoạch phát triển"));
     }
 
+    [Fact]
+    public void ConclusionWarning_EligibleWithFailedItems_ListsCodes()
+    {
+        var failing = Items(null, ("K05", ControlItemResult.Fail, null), ("K03", ControlItemResult.Fail, "Thiếu"))
+            .Select(i => (i.Code, i.Result)).ToList();
+
+        var warning = ControlCheckRules.ConclusionWarning(failing, ControlConclusion.Eligible);
+        Assert.NotNull(warning);
+        Assert.Contains("K03, K05", warning);
+        Assert.Contains("Cần hoàn thiện", warning);
+
+        Assert.Null(ControlCheckRules.ConclusionWarning(failing, ControlConclusion.NeedsWork));
+        Assert.Null(ControlCheckRules.ConclusionWarning(failing, null));
+        Assert.Null(ControlCheckRules.ConclusionWarning(Items().Select(i => (i.Code, i.Result)).ToList(), ControlConclusion.Eligible));
+    }
+
+    [Fact]
+    public void Submit_EligibleWithFailedItem_ReportsConclusionMismatchFirst()
+    {
+        // Mục chưa đạt thiếu minh chứng: vẫn báo mâu thuẫn kết luận trước.
+        var error = ControlCheckRules.ValidateForSubmit(
+            Items(overrides: ("K04", ControlItemResult.Fail, null)), ControlConclusion.Eligible, null);
+        Assert.Equal(ControlCheckRules.ConclusionWarning(
+            Items(overrides: ("K04", ControlItemResult.Fail, null)).Select(i => (i.Code, i.Result)).ToList(), ControlConclusion.Eligible), error);
+    }
+
     private static EvaluationRecordHistory History(DateTime at, WorkflowAction action, double? before = 80, double? after = 80,
         EvaluationGrade? gradeBefore = null, EvaluationGrade? gradeAfter = null) => new()
     {

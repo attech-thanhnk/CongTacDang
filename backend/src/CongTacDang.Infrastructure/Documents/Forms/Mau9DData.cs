@@ -12,6 +12,9 @@ public sealed class Mau9DData
 {
     public const string TemplateFileName = "Mau_9D_PhuLucKetQuaNhiemVu.docx";
 
+    /// <summary>Tổ chức Đảng cấp trên trực tiếp của Chi bộ, in hoa.</summary>
+    [TemplateField("PARTY_PARENT_UPPER")] public string? PartyParentUpper { get; init; }
+
     /// <summary>In hoa.</summary>
     [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
 
@@ -72,6 +75,7 @@ public sealed class Mau9DData
         var lines = Mau09Shared.PositionLines(source);
         return new Mau9DData
         {
+            PartyParentUpper = Mau09Shared.PartyParentUpper(source),
             PartyCell = Mau09Shared.PartyCellUpper(record),
             Quarter = record.Period != null ? " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = FormText.Spaced(Mau09Shared.Year(record)),

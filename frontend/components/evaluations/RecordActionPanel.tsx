@@ -1025,6 +1025,11 @@ function TasksForm({ record, criteria, busy, onSubmit, submitText = "Nộp danh 
                 <label className="form-label small mb-0" htmlFor={`t${i}-deadline`}>Thời hạn / mốc quý</label>
                 <DateField id={`t${i}-deadline`} value={t.deadline || ""} onChange={(v) => update(i, "deadline", v)} />
               </div>
+              <div className="col-md-6">
+                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã sản phẩm</label>
+                <input id={`t${i}-code`} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50}
+                  placeholder="Để trống: hệ thống tự đánh SP01, SP02…" onChange={(e) => update(i, "productCode", e.target.value)} />
+              </div>
               <div className="col-12">
                 <label className="form-label small mb-0" htmlFor={`t${i}-standard`}>Chuẩn đạt</label>
                 <textarea id={`t${i}-standard`} className="form-control form-control-sm" rows={2} maxLength={2000} required value={t.targetOutput} onChange={(e) => update(i, "targetOutput", e.target.value)} />
@@ -1049,10 +1054,6 @@ function TasksForm({ record, criteria, busy, onSubmit, submitText = "Nộp danh 
               <div className="col-md-6">
                 <label className="form-label small mb-0" htmlFor={`t${i}-confirmer`}>Thẩm quyền xác nhận</label>
                 <input id={`t${i}-confirmer`} data-task={i} className="form-control form-control-sm" maxLength={500} required value={t.confirmer || ""} onChange={(e) => update(i, "confirmer", e.target.value)} />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label small mb-0" htmlFor={`t${i}-code`}>Mã sản phẩm (nếu có)</label>
-                <input id={`t${i}-code`} data-task={i} className="form-control form-control-sm" value={t.productCode || ""} maxLength={50} onChange={(e) => update(i, "productCode", e.target.value)} />
               </div>
             </div>
           </fieldset>
@@ -1096,7 +1097,7 @@ function UpdateTasksForm({ record, criteria, busy, onSubmit }: { record: Evaluat
 export default RecordActionPanel;
 
 /** Sản phẩm đã có dữ liệu ở phần "Thêm chi tiết". */
-const hasTaskDetails = (t: TaskInputDto) => !!(t.exceedCriteria || t.evidenceSource || t.confirmer || t.productCode);
+const hasTaskDetails = (t: TaskInputDto) => !!(t.exceedCriteria || t.evidenceSource || t.confirmer);
 
 /** Cột 13 Mẫu 14 (tùy chọn, ghi ở bước quyết định). */
 function CadreProposalInput({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {

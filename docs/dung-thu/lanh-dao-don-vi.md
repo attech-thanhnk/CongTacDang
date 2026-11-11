@@ -57,7 +57,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Trưởng đơn vị đề xuất mức](anh/lanh-dao-09-truong-don-vi-de-xuat.png)
 
-**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ. Trên hồ sơ, phần đề xuất ghi mức và **Lý do, nhận xét của Trưởng đơn vị**.
+**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ. Trên hồ sơ, phần đề xuất ghi mức và **Lý do, nhận xét của Trưởng đơn vị**. Với diện này, đề xuất của bạn là đề xuất của cấp trực tiếp sử dụng: in ở Mẫu 14 cột 10, Mẫu 11 cột 7 và ô **Người trực tiếp sử dụng** của Mẫu 10.
 
 **Nút Ghi nhận đề xuất bị khóa:** dưới ô biên bản ghi "Chưa có biên bản họp ở bước này" thì nhờ thư ký lập biên bản trước. Ô biên bản không có dấu \* thì không bắt buộc gắn biên bản.
 
@@ -75,4 +75,4 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 **Xong thì thấy:** kế hoạch ở trạng thái **Đang lập**, dòng "Kế hoạch do bạn lập, chờ người khác duyệt." Cần sửa thì bấm **Sửa kế hoạch** khi chưa duyệt. Người lập không tự duyệt; cấp trên bấm **Duyệt kế hoạch**, sau đó cán bộ xác nhận cam kết.
 
-**Sau mỗi mốc:** mở lại khối kế hoạch, chọn kết quả của mốc, ghi ghi chú → bấm **Ghi kết quả**. Ở mốc cuối, nút là **Ghi kết quả & đóng kế hoạch**.
+**Sau mỗi mốc:** mở lại khối kế hoạch, chọn kết quả của mốc, ghi ghi chú → bấm **Ghi kết quả**. Ghi lần lượt từng mốc; chưa tới **Ngày bắt đầu** thì chưa ghi được. Ở mốc cuối, nút là **Ghi kết quả & đóng kế hoạch**. Bản in Mẫu 17 ghi ngày bắt đầu và hạn của từng mốc.

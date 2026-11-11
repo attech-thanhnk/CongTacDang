@@ -143,18 +143,22 @@ public static class ExcelFormLayout
         ws.Cell(1, lastColumn).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
 
         var rightStart = Math.Max(leftColumns + 2, lastColumn - 4);
-        void Block(IReadOnlyList<ExcelHeaderLine> lines, int first, int last)
+        void Block(IReadOnlyList<ExcelHeaderLine> lines, int first, int last, bool oneLine)
         {
             for (var i = 0; i < lines.Count; i++)
             {
-                ws.Cell(2 + i, first).Value = lines[i].Text;
-                ws.Range(2 + i, first, 2 + i, last).Merge().Style
-                    .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Alignment.SetWrapText(true)
+                ws.Cell(2 + i, first).Value = oneLine ? lines[i].Text.Replace('\n', ' ') : lines[i].Text;
+                var style = ws.Range(2 + i, first, 2 + i, last).Merge().Style
+                    .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Alignment.SetWrapText(!oneLine)
                     .Font.SetBold(lines[i].Bold).Font.SetItalic(lines[i].Italic);
+                // Tên tổ chức in một dòng: không ngắt chữ, cột hẹp thì thu nhỏ cho vừa.
+                if (oneLine)
+                    style.Alignment.SetShrinkToFit(true);
             }
         }
-        Block(left, 1, leftColumns);
-        Block(right, rightStart, lastColumn);
+        // Khối trái gộp hết các cột trước khối phải để tên tổ chức dài vẫn nằm trên một dòng.
+        Block(left, 1, rightStart - 1, oneLine: true);
+        Block(right, rightStart, lastColumn, oneLine: false);
         return 2 + Math.Max(left.Count, right.Count);
     }
 

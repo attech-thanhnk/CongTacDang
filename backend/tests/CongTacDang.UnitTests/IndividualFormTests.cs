@@ -250,6 +250,41 @@ public class IndividualFormTests
 
     #region Template 09A/09C/9D
 
+    [Fact]
+    public void PartyParentLine_DirectParent_OrCompanyCommittee()
+    {
+        // Chi bộ thuộc Đảng bộ bộ phận: dòng 1 là Đảng bộ bộ phận, một dòng.
+        Assert.Equal("ĐẢNG BỘ BỘ PHẬN TRUNG TÂM BẢO ĐẢM KỸ THUẬT",
+            IndividualFormSource.PartyParentLine("Đảng bộ bộ phận Trung tâm Bảo đảm kỹ thuật", parentIsRoot: false, "Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay"));
+        // Chi bộ trực thuộc gốc cây hoặc không có cấp trên: tên Đảng bộ Công ty một dòng như trước.
+        Assert.Equal("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY",
+            IndividualFormSource.PartyParentLine("Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay", parentIsRoot: true, "Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay"));
+        Assert.Equal("ĐẢNG BỘ CÔNG TY A", IndividualFormSource.PartyParentLine(null, parentIsRoot: true, "Đảng bộ Công ty A"));
+        Assert.Null(IndividualFormSource.PartyParentLine(null, parentIsRoot: true, null));
+    }
+
+    [Fact]
+    public void PersonalForms_HeaderLine1_IsDirectParentOfPartyCell()
+    {
+        var source = Source() with
+        {
+            PartyParent = IndividualFormSource.PartyParentLine("Đảng bộ bộ phận Trung tâm Bảo đảm kỹ thuật", parentIsRoot: false, "Đảng bộ Thử nghiệm")
+        };
+        foreach (var (file, data) in new (string, object)[]
+                 {
+                     (Mau09AData.TemplateFileName, Mau09AData.From(source)),
+                     (Mau09CData.TemplateFileName, Mau09CData.From(source)),
+                     (Mau9DData.TemplateFileName, Mau9DData.From(source))
+                 })
+        {
+            var text = Render(file, data, out _);
+            Assert.Contains("ĐẢNG BỘ BỘ PHẬN", text);
+            Assert.Contains("TRUNG TÂM BẢO ĐẢM KỸ THUẬT", text);
+            Assert.Contains("CHI BỘ KỸ THUẬT", text);
+            Assert.DoesNotContain("ĐẢNG BỘ THỬ NGHIỆM", text);
+        }
+    }
+
     public static IEnumerable<object[]> Forms()
     {
         var source = Source();
@@ -780,7 +815,9 @@ public class IndividualFormTests
             (PositionSide.Administrative, "Trưởng phòng"),
             (PositionSide.MassOrganization, "Chủ tịch Công đoàn")
         });
-        return new IndividualFormSource(record, criteria, positions);
+        // Chi bộ trực thuộc Đảng bộ Công ty: dòng 1 là tên Đảng bộ trong cài đặt đơn vị.
+        return new IndividualFormSource(record, criteria, positions,
+            PartyParent: IndividualFormSource.PartyParentLine("Đảng bộ Thử nghiệm", parentIsRoot: true, "Đảng bộ Thử nghiệm"));
     }
 
     #endregion

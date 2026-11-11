@@ -15,6 +15,9 @@ public sealed class Mau09AData
     private const string Checked = "☒";
     private const string Unchecked = "☐";
 
+    /// <summary>Tổ chức Đảng cấp trên trực tiếp của Chi bộ, in hoa.</summary>
+    [TemplateField("PARTY_PARENT_UPPER")] public string? PartyParentUpper { get; init; }
+
     /// <summary>In hoa.</summary>
     [TemplateField("PARTY_CELL")] public string? PartyCell { get; init; }
 
@@ -75,6 +78,7 @@ public sealed class Mau09AData
 
         return new Mau09AData
         {
+            PartyParentUpper = Mau09Shared.PartyParentUpper(source),
             PartyCell = Mau09Shared.PartyCellUpper(record),
             DateLine = Mau09Shared.DateLine(source),
             Quarter = FormText.Spaced(Mau09Shared.Quarter(record)),

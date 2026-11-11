@@ -344,8 +344,19 @@ public static class EvaluationMapping
         var warnings = GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content)).ToList();
         if (ExcellenceConditions.ExceedsCap(grade, r.AppraisalGradeCap))
             warnings.Add(CapWarning(r.AppraisalGradeCap!.Value));
+        if (MissingNoCapDeclaration(r, grade))
+            warnings.Add(NoCapDeclarationWarning);
         return warnings;
     }
+
+    public const string NoCapDeclarationWarning =
+        "Đề xuất mức \"Hoàn thành xuất sắc nhiệm vụ\" nhưng chưa đánh dấu cam kết không thuộc trường hợp bị khống chế mức xếp loại.";
+
+    /// <summary>Cam kết là của chính cán bộ nên chỉ xét khi Xuất sắc đến từ mức tự đề xuất; chỉ cảnh báo, không chặn.</summary>
+    public static bool MissingNoCapDeclaration(EvaluationRecord r, EvaluationGrade grade) =>
+        grade == EvaluationGrade.HoanThanhXuatSac
+        && r.SelfProposedGrade == EvaluationGrade.HoanThanhXuatSac
+        && r.SelfDeclaresNoCap != true;
 
     public static EvaluationTaskDto ToTaskDto(EvaluationTask t, IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence)
     {

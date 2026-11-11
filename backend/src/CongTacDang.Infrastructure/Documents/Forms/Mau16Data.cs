@@ -43,8 +43,21 @@ public sealed class Mau16Data
     [TemplateField("PROPOSAL_3")] public string? Proposal3 { get; init; }
     [TemplateField("SIGNER_NAME")] public string? SignerName { get; init; }
 
-    /// <summary>Trường trống → giữ chữ mẫu của biểu mẫu.</summary>
-    public static Mau16Data From(EvaluationPeriod period, PartyHeader header, Form16DraftDto draft)
+    /// <summary>Đảng ủy cơ sở ở mục III.1 khi chưa nhập đề xuất.</summary>
+    [TemplateField("BASE_COMMITTEE")] public string? BaseCommittee { get; init; }
+
+    /// <summary>Nơi nhận: "Các Chi ủy viên" (chi bộ) hoặc "Các Ủy viên BCH".</summary>
+    [TemplateField("MEMBERS_RECEIVER")] public string? MembersReceiver { get; init; }
+
+    /// <summary>"T/M ĐẢNG ỦY" / "T/M CHI BỘ".</summary>
+    [TemplateField("SIGN_ON_BEHALF")] public string? SignOnBehalf { get; init; }
+
+    /// <summary>
+    /// Trường trống → nơi nhận, đảng ủy cơ sở lấy theo cấp tổ chức (<paramref name="recipient"/>, <paramref name="baseCommittee"/>);
+    /// còn lại giữ chữ của biểu mẫu hoặc dòng chấm.
+    /// </summary>
+    public static Mau16Data From(EvaluationPeriod period, PartyHeader header, Form16DraftDto draft,
+        string? recipient = null, string? baseCommittee = null)
     {
         var c = draft.Content;
         string? Numbered(string number, string? text) => FormText.OrNull(text) is { } t ? number + ". " + t.Trim() : null;
@@ -56,8 +69,8 @@ public sealed class Mau16Data
             DocumentNumber = FormText.OrNull(c.DocumentNumber),
             Quarter = " " + CollectiveFormText.RomanQuarter(period.Quarter),
             Year = " " + FormText.Year(period.Year),
-            Recipient = FormText.OrNull(c.Recipient),
-            WorkingRules = FormText.OrNull(c.WorkingRules),
+            Recipient = FormText.OrNull(c.Recipient) ?? FormText.OrNull(recipient?.Trim()),
+            WorkingRules = Mau12Data.WorkingRulesText(c.WorkingRules, header.UnitName, period.Year),
             MeetingDate = CollectiveFormText.Spaced(c.MeetingDate ?? draft.SuggestedMeetingDate),
             // Hội nghị, đề xuất là của cấp ủy ("Đảng ủy …"), không phải "Đảng bộ …".
             Organizer = FormText.OrNull(c.Organizer) ?? CollectiveFormText.CommitteeInSentence(header.UnitName),
@@ -67,7 +80,11 @@ public sealed class Mau16Data
             Proposal1 = Numbered("1", c.Proposal1),
             Proposal2 = Numbered("2", c.Proposal2),
             Proposal3 = Numbered("3", c.Proposal3),
-            SignerName = FormText.OrNull(c.SignerName)
+            SignerName = FormText.OrNull(c.SignerName),
+            BaseCommittee = FormText.OrNull(baseCommittee?.Trim()),
+            MembersReceiver = header.Organization == null ? null
+                : header.Organization.StartsWith("CHI BỘ", System.StringComparison.Ordinal) ? "Các Chi ủy viên" : "Các Ủy viên BCH",
+            SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization)
         };
     }
 
