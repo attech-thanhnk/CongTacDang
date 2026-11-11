@@ -615,17 +615,35 @@ public partial class ReportService : IReportService
         record.PartyCellId.HasValue ? PartySecretaryNameAsync(record.Period, record.PartyCellId) : Task.FromResult<string?>(null);
 
     /// <summary>Thủ trưởng đơn vị: người giữ chức vụ đứng đầu (chính quyền) của đơn vị tại thời điểm kỳ, ưu tiên cấp trưởng chính thức.</summary>
-    private async Task<string?> DepartmentHeadNameAsync(EvaluationPeriod period, Guid? departmentId)
+    private async Task<(string? Name, string? Title)> DepartmentHeadAsync(EvaluationPeriod period, Guid? departmentId)
     {
         if (departmentId == null)
-            return null;
+            return (null, null);
         var at = PositionDate(period);
-        return await _db.MemberPositions.AsNoTracking()
+        var head = await _db.MemberPositions.AsNoTracking()
             .Where(mp => mp.DepartmentId == departmentId && mp.Position != null && mp.Position.IsHead && mp.Position.Side == PositionSide.Administrative
                 && mp.ValidFrom <= at && (mp.ValidTo == null || mp.ValidTo > at) && mp.User != null)
-            .OrderBy(mp => mp.IsActing).ThenByDescending(mp => mp.ValidFrom)
-            .Select(mp => mp.User!.FullName)
+            .OrderBy(mp => mp.IsActing).ThenBy(mp => mp.Position!.SortOrder).ThenByDescending(mp => mp.ValidFrom)
+            .Select(mp => new { mp.UserId, mp.User!.FullName })
             .FirstOrDefaultAsync();
+        return head == null ? (null, null) : (head.FullName, await FormPositions.PrimaryTitleAsync(_db, head.UserId, at));
+    }
+
+    /// <summary>Đơn vị chính quyền ứng với tổ chức Đảng: đơn vị chung gần nhất của các đảng viên sinh hoạt trong tổ chức (kể cả tổ chức con).</summary>
+    private async Task<Guid?> CellDepartmentIdAsync(Guid? partyCellId)
+    {
+        if (partyCellId == null)
+            return null;
+        var cellPath = await _db.PartyCells.AsNoTracking().Where(c => c.Id == partyCellId).Select(c => c.Path).FirstOrDefaultAsync();
+        if (string.IsNullOrEmpty(cellPath))
+            return null;
+        var paths = await _db.PartyMemberProfiles.AsNoTracking()
+            .Where(p => p.PartyCell != null && p.PartyCell.Path.StartsWith(cellPath) && p.Department != null)
+            .Select(p => p.Department!.Path).Distinct().ToListAsync();
+        if (paths.Count == 0)
+            return null;
+        var common = paths.Select(p => p.Split('/', StringSplitOptions.RemoveEmptyEntries)).Aggregate((a, b) => a.Zip(b).TakeWhile(x => x.First == x.Second).Select(x => x.First).ToArray());
+        return common.Length > 0 && Guid.TryParse(common[^1], out var id) ? id : null;
     }
 
     private async Task<string?> PartySecretaryNameAsync(EvaluationPeriod period, Guid? partyCellId)
@@ -1314,7 +1332,8 @@ public partial class ReportService : IReportService
         var header = await CollectiveHeaderAsync(record.PartyCell);
         var sections = CollectiveEvaluationService.DeserializeSections(record.Sections);
         var org = await _orgSettings.GetAsync();
-        var bytes = await RenderWordAsync(Mau06Data.TemplateFileName, Mau06Data.From(record, header, sections, await CollectiveSecretaryAsync(record), await DepartmentHeadNameAsync(record.Period, record.DepartmentId)));
+        var head = await DepartmentHeadAsync(record.Period, record.DepartmentId ?? await CellDepartmentIdAsync(record.PartyCellId));
+        var bytes = await RenderWordAsync(Mau06Data.TemplateFileName, Mau06Data.From(record, header, sections, await CollectiveSecretaryAsync(record), head.Name, head.Title));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("06", org.ShortName, record.PartyCell, record.Period, ".docx"), format);
     }
 

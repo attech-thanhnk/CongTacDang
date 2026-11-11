@@ -62,7 +62,7 @@ public sealed class Mau06Data
     [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
     public static Mau06Data From(CollectiveEvaluationRecord record, PartyHeader header, IReadOnlyDictionary<string, string> sections,
-        string? secretaryName = null, string? headName = null)
+        string? secretaryName = null, string? headName = null, string? headTitle = null)
     {
         string? Text(string code) => sections.TryGetValue(code, out var text) ? FormText.OrNull(text?.Trim()) : null;
         int? Count(string code) =>
@@ -81,15 +81,15 @@ public sealed class Mau06Data
             PartyOrganization = PartyHeader.Lines(header.Organization),
             SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization),
             SecretaryName = FormText.OrNull(secretaryName?.Trim()),
-            // Người đứng đầu đã ghi ở mục thông tin của báo cáo, chưa ghi thì theo chức vụ.
-            HeadSignName = Text(Hd03FormCatalog.Form06HeadNameCode) ?? FormText.OrNull(headName?.Trim()),
+            // Người ký theo chức vụ đang giữ; hệ thống chưa có chức vụ đứng đầu thì lấy tên đã ghi ở mục thông tin.
+            HeadSignName = FormText.OrNull(headName?.Trim()) ?? Text(Hd03FormCatalog.Form06HeadNameCode),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             Quarter = CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = FormText.Year(record.Period.Year),
             SubjectName = FormText.OrNull(record.SubjectName),
             HasSubject = FormText.OrNull(record.SubjectName) != null,
-            HeadName = Text(Hd03FormCatalog.Form06HeadNameCode),
-            HeadTitle = Text(Hd03FormCatalog.Form06HeadTitleCode),
+            HeadName = FormText.OrNull(headName?.Trim()) ?? Text(Hd03FormCatalog.Form06HeadNameCode),
+            HeadTitle = headName != null ? FormText.OrNull(headTitle?.Trim()) : Text(Hd03FormCatalog.Form06HeadTitleCode),
             TasksAssigned = Number(assigned),
             TasksOnTime = Number(onTime),
             TasksLate = Number(late),

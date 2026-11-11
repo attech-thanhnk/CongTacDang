@@ -147,8 +147,9 @@ public class CollectiveFormsTemplateTests
         var text06 = BodyText(Render(Mau06Data.TemplateFileName, Mau06Data.From(record, Header, noHead, "Trần Bí Thư", "Lê Thủ Trưởng")).Content);
         Assert.Contains("THỦ TRƯỞNG ĐƠN VỊ\n(Ký, ghi rõ họ tên)\n\n\n\nLê Thủ Trưởng", text06);
         Assert.Contains("BÍ THƯ\n(Ký, ghi rõ họ tên)\n\n\n\nTrần Bí Thư", text06);
-        Assert.Equal("Nguyễn Văn A",
+        Assert.Equal("Lê Thủ Trưởng",
             Mau06Data.From(record, Header, new Dictionary<string, string> { ["H.NAME"] = "Nguyễn Văn A" }, null, "Lê Thủ Trưởng").HeadSignName);
+        Assert.Equal("Nguyễn Văn A", Mau06Data.From(record, Header, new Dictionary<string, string> { ["H.NAME"] = "Nguyễn Văn A" }).HeadSignName);
 
         Assert.Contains("Trần Bí Thư", BodyText(Render(Mau07Data.TemplateFileName, Mau07Data.From(record, Header, noHead, "Trần Bí Thư")).Content));
         Assert.Contains("Trần Bí Thư", BodyText(Render(Mau08Data.TemplateFileName, Mau08Data.From(record, Header, "Trần Bí Thư")).Content));
