@@ -1414,7 +1414,7 @@ function Invoke-CollectiveScenario($manager) {
     foreach ($cell in @($root, $branch, $leaf | Where-Object { $_ })) {
         $dept = Get-CellDepartment $cell $depts $participants
         $unitName = if ($dept) { $dept.name } else { $cell.name }
-        $head = @(Get-People | Where-Object { $_.departmentName -eq $unitName -and $_.positionName -match '^(Giám đốc|Trưởng|Chủ tịch|Chánh)' }) + @(Get-People | Where-Object { $_.departmentName -eq $unitName }) |
+        $head = @(Get-People | Where-Object { $_.departmentName -eq $unitName -and @($_.positionName -split ',\s*' | Where-Object { $_ -match '^(Quyền )?(Giám đốc|Trưởng|Chủ tịch|Chánh)' }).Count -gt 0 }) + @(Get-People | Where-Object { $_.departmentName -eq $unitName }) |
             Select-Object -First 1
         foreach ($form in 'M06', 'M07', 'M08') {
             $key = "tap-the:${form}:$($cell.id)"
