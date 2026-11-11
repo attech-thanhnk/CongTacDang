@@ -490,7 +490,12 @@ public static class DataSeeder
         ["Phó Chánh Văn phòng"] = "Phó Chánh {don_vi}",
         ["Đội trưởng"] = "Đội trưởng {don_vi}",
         ["Đài trưởng"] = "Đài trưởng {don_vi}",
-        ["Trạm trưởng"] = "Trạm trưởng {don_vi}"
+        ["Trạm trưởng"] = "Trạm trưởng {don_vi}",
+        ["Chủ tịch Công đoàn bộ phận"] = "Chủ tịch Công đoàn bộ phận {don_vi}",
+        ["Phó Chủ tịch Công đoàn bộ phận"] = "Phó Chủ tịch Công đoàn bộ phận {don_vi}",
+        ["Bí thư Chi đoàn"] = "Bí thư Chi đoàn {don_vi}",
+        ["Bí thư Đoàn cơ sở"] = "Bí thư Đoàn cơ sở Công ty",
+        ["Ủy viên Ban Chấp hành Đoàn cơ sở"] = "Ủy viên Ban Chấp hành Đoàn cơ sở Công ty"
     };
 
     private sealed record DefaultPosition(string Name, PositionSide Side, string? StatCode, ApprovalAuthority? Authority, bool IsLeadership, bool IsHead = false,

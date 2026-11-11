@@ -219,7 +219,7 @@ public static class PositionRules
     /// <summary>Chức danh in của mọi chức vụ, theo bên (Đảng, Chính quyền, Đoàn thể, Khác) rồi thứ tự danh mục, ngăn cách bằng dấu phẩy.</summary>
     public static string JoinFormTitles(IEnumerable<MemberPosition> positions)
         => string.Join(", ", FormTitles((positions ?? Enumerable.Empty<MemberPosition>()).Where(p => p.Position != null)
-                .OrderBy(p => (int)p.Position!.Side).ThenBy(p => p.Position!.SortOrder))
+                .OrderBy(p => (int)p.Position!.Side).ThenByDescending(p => p.IsPrimary).ThenBy(p => p.Position!.SortOrder))
             .Select(p => p.Title).Where(t => t.Length > 0).Distinct());
 
     /// <summary>Chức vụ "Quyền" có mã thống kê, thẩm quyền như chính chức vụ; tên là chức danh hiển thị.</summary>
