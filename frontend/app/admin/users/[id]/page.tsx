@@ -342,8 +342,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     return (
       <div className="page-wrapper">
         <div className="page-body text-center py-5 text-secondary loading-delay">
-          <span className="spinner-border spinner-border-sm me-2" />
-          Đang tải…
+          <div><span className="spinner-border spinner-border-sm me-2" />Đang tải…</div>
         </div>
       </div>
     );

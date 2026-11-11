@@ -1633,6 +1633,13 @@ header.app-header {
   min-width: 0;
 }
 
+/* Vòng xoay đặt thẳng trong page-body không bị kéo giãn thành vệt ngang. */
+.page-body > .spinner-border,
+.page-body > .spinner-grow {
+  width: var(--bs-spinner-width);
+  align-self: flex-start;
+}
+
 /* Hàng lưới Bootstrap có lề âm: để tự giãn, nếu không cột phải hụt một khoảng gutter. */
 .page-body > .row {
   width: auto;

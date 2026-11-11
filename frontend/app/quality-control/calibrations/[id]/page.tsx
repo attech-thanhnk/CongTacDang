@@ -319,8 +319,7 @@ export default function CalibrationDetailPage() {
     return (
       <div className="page-wrapper">
         <div className="page-body text-secondary loading-delay">
-          <span className="spinner-border spinner-border-sm me-2" />
-          Đang tải...
+          <div><span className="spinner-border spinner-border-sm me-2" />Đang tải...</div>
         </div>
       </div>
     );
