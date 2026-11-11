@@ -9,6 +9,8 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 - Hồ sơ của bạn đi lần lượt qua các bước trên **thanh tiến trình** ở đầu trang hồ sơ. Bước đang chờ ghi **Chờ: …** (ai đang phải làm) và **Hạn**.
 - Bạn chỉ làm các bước của chính mình: đăng ký sản phẩm, đề nghị điều chỉnh việc, tự chấm, giải trình sau thẩm định, gửi kiến nghị, xác nhận kế hoạch khắc phục. Các bước xét duyệt do người khác làm; bạn không bao giờ thấy nút duyệt trên hồ sơ của mình.
 - Nút chỉ hiện khi đến lượt bạn. Không thấy nút: đọc dải vàng trên hồ sơ, thường do chưa tới bước hoặc đã quá hạn.
+- Các bước hồ sơ đi qua tùy **Diện quyết định** của bạn (ghi ở khối **Thông tin** cuối trang hồ sơ). Bước ghi **Cấp trên thực hiện** do cấp trên làm ngoài hệ thống; Văn phòng Đảng ủy ghi lại kết quả, bạn không phải làm gì.
+- Trước khi công bố, bạn xem được mức và nhận xét của các bước đã qua ngay trên hồ sơ của mình.
 
 ## 1. Đăng nhập lần đầu
 
@@ -53,8 +55,9 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
    - **Tên sản phẩm, công việc**;
    - **Loại việc** (Trọng tâm / Thường xuyên), **Vai trò** (Chủ trì / Phối hợp), **Trục kết quả**;
    - **Trọng số (điểm)**, **Thời hạn / mốc quý**;
+   - **Mã sản phẩm**: để trống thì hệ thống tự đánh SP01, SP02… khi lưu; mã đã có giữ nguyên, không trùng nhau trong hồ sơ;
    - **Chuẩn đạt**;
-   - bấm **Thêm chi tiết** rồi điền **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận**, **Mã sản phẩm (nếu có)**.
+   - bấm **Thêm chi tiết** rồi điền **Tiêu chí vượt chuẩn**, **Nguồn dữ liệu / minh chứng**, **Thẩm quyền xác nhận** (cả ba ô bắt buộc).
 3. Cần thêm sản phẩm: bấm **Thêm dòng**. Bỏ một dòng: bấm **Xóa** ở góc dòng đó.
 
 ![Đang nhập sản phẩm](anh/can-bo-06-dang-ky-nhap.png)
@@ -64,19 +67,29 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 ![Xác nhận nộp danh mục](anh/can-bo-08-dang-ky-xac-nhan.png)
 
-**Xong thì thấy:** thanh tiến trình chuyển sang **Gửi danh mục sản phẩm** (bạn là trưởng đơn vị thì sang thẳng **Rà soát, trình duyệt danh mục**). Danh mục đi tiếp: Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt (danh mục của Phó Giám đốc do Chủ tịch duyệt). Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
+**Xong thì thấy:** thanh tiến trình chuyển sang bước kế tiếp. Danh mục đi tiếp theo diện của bạn:
+
+| Bạn là | Danh mục đi qua |
+|---|---|
+| Trưởng phòng, Phó phòng và tương đương; Bí thư, Phó Bí thư chi bộ là nhân viên | Trưởng đơn vị gửi → Phòng TCCB-LĐ rà soát, trình → Giám đốc duyệt. Bạn là trưởng đơn vị thì bỏ qua bước gửi. |
+| Phó Giám đốc | Phòng TCCB-LĐ rà soát, trình → Chủ tịch duyệt. |
+| Chủ tịch, Giám đốc, Kiểm soát viên | Cấp trên duyệt ngoài hệ thống; Văn phòng Đảng ủy ghi nhận kết quả duyệt (xem mục 4, phần **Danh mục do cấp trên duyệt**). |
+
+Khi duyệt xong, thanh tiến trình sang **Tự chấm điểm, đề xuất mức**.
 
 ![Đã nộp danh mục](anh/can-bo-09-dang-ky-xong.png)
 
-**Bị trả lại:** người ở bước nào cũng có thể **Trả lại danh mục** kèm lý do. Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Đăng ký**; sửa theo lý do rồi **Nộp danh mục** lại.
+**Bị trả lại:** người gửi, người rà soát hoặc người duyệt có thể **Trả lại danh mục** kèm lý do. Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Đăng ký**; sửa theo lý do rồi **Nộp danh mục** lại. Danh mục đi lại từ đầu các bước trên.
+
+**Bị thu hồi duyệt:** người duyệt có thể thu hồi ngay sau khi duyệt, khi bạn chưa nộp phiếu tự chấm. Hồ sơ về bước **Đăng ký sản phẩm**, khung đỏ ghi lý do thu hồi; sửa rồi **Nộp danh mục** lại.
 
 ## 4. Điều chỉnh việc trong quý
 
 **Khi nào:** sau khi danh mục đã được duyệt và trước khi nộp phiếu tự chấm, khi việc được giao thay đổi. Mỗi lúc chỉ có một đề nghị chờ duyệt.
 
 1. Mở hồ sơ của bạn → khối **Điều chỉnh việc trong quý** → bấm **Đề nghị điều chỉnh** (việc đã đăng ký) hoặc **Ghi nhận việc đột xuất** (việc mới được giao).
-2. **Đề nghị điều chỉnh:** chọn **Việc** và **Loại đề nghị**: **Điều chỉnh việc**, **Chuyển tiếp sang quý sau** hoặc **Loại trừ việc**. Với **Điều chỉnh việc**, sửa nội dung cần đổi (tên việc, chuẩn đạt, trục, vai trò, thời hạn…).
-3. **Việc đột xuất:** điền tên việc, chuẩn đạt, trục, vai trò, thời hạn và trọng số của việc mới.
+2. **Đề nghị điều chỉnh (Mẫu 04):** chọn **Việc** và **Loại đề nghị**: **Điều chỉnh việc**, **Chuyển tiếp sang quý sau** hoặc **Loại trừ việc**. Với **Điều chỉnh việc**, sửa nội dung cần đổi (tên việc, chuẩn đạt, trục, vai trò, thời hạn…). Có giấy tờ chứng minh thì ở **Hồ sơ, minh chứng kèm theo (tùy chọn)** bấm **Đính kèm minh chứng**.
+3. **Việc đột xuất (Mẫu 05):** điền tên việc, chuẩn đạt, trục, vai trò, thời hạn và trọng số của việc mới. Việc mới được tự đánh mã sản phẩm tiếp theo. Cấp giao việc cũng có thể ghi nhận việc đột xuất trên hồ sơ của bạn.
 
 ![Đề nghị điều chỉnh](anh/can-bo-11-dieu-chinh-nhap.png)
 
@@ -85,7 +98,7 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 ![Trọng số sau điều chỉnh](anh/can-bo-12-dieu-chinh-trong-so.png)
 
-**Xong thì thấy:** đề nghị hiện trong khối với nhãn **Chờ duyệt**. Giám đốc (Phó Giám đốc: Chủ tịch) duyệt; khi duyệt, danh mục của bạn cập nhật ngay và nhãn đổi thành **Đã duyệt**. Không duyệt thì nhãn **Không duyệt** kèm lý do.
+**Xong thì thấy:** đề nghị hiện trong khối với nhãn **Chờ duyệt**. Người duyệt danh mục của bạn duyệt (Giám đốc; hồ sơ Phó Giám đốc: Chủ tịch); khi duyệt, danh mục cập nhật ngay và nhãn đổi thành **Đã duyệt**. Không duyệt thì nhãn **Không duyệt** kèm lý do. Việc loại trừ hoặc chuyển tiếp vẫn hiện trên phiếu nhưng không chấm điểm. Mỗi đề nghị có phiếu Mẫu 04 (hoặc Mẫu 05) trong danh sách **Biểu mẫu** của hồ sơ.
 
 ![Đề nghị đã gửi](anh/can-bo-13-dieu-chinh-da-gui.png)
 
@@ -134,6 +147,10 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 Chọn tệp trên máy. Nhận tệp PDF, Word, Excel, JPG, PNG, tối đa 25 MB mỗi tệp. Tệp đã gắn hiện tên kèm nút **Thay** (đổi tệp khác) và **Gỡ** (bỏ tệp).
 
+- Trước khi nộp phiếu (kể cả khi bị trả lại): thêm, thay, gỡ tự do.
+- Đã nộp phiếu: chỉ thêm được tệp mới, không thay, không gỡ tệp cũ.
+- Kỳ đã khóa dữ liệu (trừ khi hồ sơ được mở riêng) hoặc hồ sơ đã công bố: không đính kèm được nữa. Sau công bố, cần bổ sung thì gửi tệp kèm kiến nghị (mục 10).
+
 **Lỗi thường gặp:** báo tệp không đúng định dạng thì lưu lại thành PDF hoặc ảnh rồi đính kèm lại.
 
 ## 7. Khi hồ sơ bị trả lại
@@ -143,6 +160,8 @@ Chi bộ hoặc Phòng TCCB-LĐ có thể trả lại phiếu để bạn sửa.
 - Đầu trang hồ sơ hiện khung đỏ **Bị trả lại:** kèm lý do.
 - Hồ sơ hiện lại ở **Việc cần xử lý** với nút **Tự chấm**.
 - Sửa theo lý do → **Nộp phiếu** lại.
+- Nộp lại sau khi bị trả lại ở bước thẩm định: hồ sơ đi lại từ bước Chi bộ xác nhận, rồi đề xuất của tập thể, rồi thẩm định.
+- Kỳ đã khóa dữ liệu mà hồ sơ được trả lại: đầu trang ghi **Hồ sơ được mở riêng đến …**. Sửa và nộp trước thời hạn đó; quá hạn thì báo Phòng TCCB-LĐ gia hạn.
 
 ## 8. Giải trình sau thẩm định
 
@@ -190,4 +209,4 @@ Sau khi Văn phòng Đảng ủy công bố:
 
 ## 12. Tải biểu mẫu
 
-Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Bản PDF ở nút **⋯** cạnh đó. **Xem bản in** mở bản xem trước trên màn hình. Hồ sơ do cấp trên thẩm định thì không có phiếu thẩm định (Mẫu 10).
+Bấm nút **Biểu mẫu** ở đầu trang hồ sơ (cạnh họ tên) để mở danh sách biểu mẫu, rồi bấm **Tải Word** cạnh mẫu cần tải. Nút **⋯** cạnh đó có **Tải PDF** và, với Mẫu 01, 02, 09A, 9D, 10, có thêm **Excel**. **Xem bản in** mở bản xem trước trên màn hình. Danh sách có thêm phiếu Mẫu 04, 05 cho mỗi đề nghị điều chỉnh, việc đột xuất. Hồ sơ không qua thẩm định trong hệ thống (do cấp trên thẩm định) thì không có phiếu thẩm định (Mẫu 10).

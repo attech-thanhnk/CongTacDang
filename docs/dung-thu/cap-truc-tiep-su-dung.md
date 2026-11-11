@@ -34,9 +34,11 @@ Danh mục của Phó Giám đốc do Chủ tịch duyệt, cách làm như trê
 
 ![Chủ tịch duyệt danh mục Phó Giám đốc](anh/cap-tren-06-chu-tich-duyet.png)
 
-**Xong thì thấy:** thanh tiến trình chuyển sang **Tự chấm điểm, đề xuất mức**; dưới danh mục ghi **Duyệt:** tên bạn. Duyệt nhầm khi cán bộ chưa nộp phiếu tự chấm: khung **Thu hồi duyệt danh mục** → **Thu hồi duyệt**.
+**Xong thì thấy:** thanh tiến trình chuyển sang **Tự chấm điểm, đề xuất mức**; dưới danh mục ghi **Duyệt:** tên bạn.
 
-**Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**.
+**Duyệt nhầm:** mở lại hồ sơ → khung **Thu hồi duyệt danh mục** → **Thu hồi duyệt** → **Đồng ý**. Chỉ người đã bấm duyệt làm được, khi kỳ đang mở, ngay sau khi duyệt và trước khi cán bộ nộp phiếu tự chấm (chưa có điều chỉnh việc nào). Hồ sơ về cán bộ ở bước đăng ký; cán bộ nộp lại thì danh mục đi lại các bước gửi, rà soát, duyệt.
+
+**Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**. Hồ sơ về cán bộ để sửa và nộp lại.
 
 ### Duyệt điều chỉnh việc trong quý
 
@@ -49,21 +51,25 @@ Khi cán bộ gửi đề nghị điều chỉnh việc, việc hiện ở **Vi�
 
 **Xong thì thấy:** đề nghị đổi nhãn **Đã duyệt**, danh mục của cán bộ cập nhật ngay.
 
+**Giao việc đột xuất (Mẫu 05):** khi bạn giao thêm việc cho cán bộ sau khi danh mục đã duyệt, mở hồ sơ cán bộ → khối **Điều chỉnh việc trong quý** → **Ghi nhận việc đột xuất** → điền việc mới, bảng **Trọng số sau điều chỉnh**, **Lý do / nguyên nhân** → **Gửi đề nghị**, rồi bấm **Duyệt** đề nghị đó.
+
 ## 2. Nhận xét của cấp trực tiếp sử dụng
 
-**Khi nào:** sau khi Phòng TCCB-LĐ thẩm định.
+**Khi nào:** sau khi Phòng TCCB-LĐ thẩm định. Hồ sơ Phó Giám đốc không thẩm định trong hệ thống: Chủ tịch nhận xét ngay sau đề xuất của tập thể lãnh đạo Công ty. Hồ sơ Bí thư, Phó Bí thư chi bộ là nhân viên không có bước này.
 
 1. **Việc cần xử lý** → nhóm **Nhận xét của cấp trực tiếp sử dụng** → dòng cán bộ → bấm **Nhận xét**.
 
 ![Việc chờ nhận xét](anh/cap-tren-01-viec-can-xu-ly.png)
 
 2. Xem các khối bên dưới: **Phiếu tự chấm (Mẫu 09A)**, **Xác nhận của Chi bộ**, **Đề xuất của tập thể lãnh đạo**, **Thẩm định**. Bấm tiêu đề khối để mở. Kết luận điều kiện Hoàn thành xuất sắc và khống chế mức xem ở phiếu thẩm định (nút **Biểu mẫu** → Mẫu 10). Cán bộ đã giải trình thì đọc ở khối **Ý kiến và giải trình**.
-3. Trong khung **Nhận xét**: ô **Mức đề xuất** đã điền sẵn mức thẩm định, đổi nếu bạn đề xuất khác; ghi **Nhận xét**.
+3. Trong khung **Nhận xét**: ô **Mức đề xuất** đã điền sẵn mức thẩm định (hoặc mức sau họp thống nhất), đổi nếu bạn đề xuất khác; ghi **Nhận xét**. Ô **Nhận xét** có dấu \* thì phải nêu lý do vì mức khác mức theo điểm.
 4. Bấm **Ghi nhận nhận xét** → **Đồng ý**.
 
 ![Khung nhận xét](anh/cap-tren-02-nhan-xet.png)
 
-**Xong thì thấy:** hồ sơ chuyển sang **Quyết định mức xếp loại**, chờ Văn phòng Đảng ủy.
+**Xong thì thấy:** hồ sơ chuyển sang **Quyết định mức xếp loại**, chờ Văn phòng Đảng ủy (hồ sơ Phó Giám đốc: chờ Văn phòng Đảng ủy ghi nhận quyết định của cấp trên).
+
+Hồ sơ Chủ tịch, Giám đốc, Kiểm soát viên: duyệt danh mục, thẩm định, nhận xét, quyết định đều do cấp trên làm; Văn phòng Đảng ủy ghi nhận kết quả, bạn không làm bước nào trên các hồ sơ này.
 
 ## 3. Duyệt kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 

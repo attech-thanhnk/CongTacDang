@@ -25,12 +25,12 @@ Tìm tên mình ở bảng dưới, đọc các tệp ở cột "Đọc". Ngư�
 | Tệp | Cho ai | Việc chính |
 |---|---|---|
 | [can-bo.md](can-bo.md) | Người được đánh giá | Đăng nhập, đổi mật khẩu, đăng ký sản phẩm, điều chỉnh việc, tự chấm, minh chứng, giải trình sau thẩm định, kết quả, kiến nghị, kế hoạch khắc phục |
-| [lanh-dao-don-vi.md](lanh-dao-don-vi.md) | Trưởng phòng, Trưởng trung tâm | Gửi danh mục, đề xuất mức cho Bí thư chi bộ là nhân viên (sau họp, kiểm phiếu), lập kế hoạch khắc phục |
-| [chi-bo.md](chi-bo.md) | Bí thư, Phó Bí thư chi bộ | Xác nhận hoặc trả lại phiếu tự chấm |
-| [thu-ky.md](thu-ky.md) | Thư ký hội nghị (cấp Công ty: Cán bộ giúp việc đánh giá) | Biên bản hội nghị, kiểm phiếu, ghi đề xuất tập thể |
-| [tham-dinh.md](tham-dinh.md) | Phòng TCCB-LĐ, Cán bộ giúp việc Đảng ủy | Lập, mở kỳ; cổng biên bản họp tập thể; rà soát, cập nhật danh mục; thẩm định (điều kiện Hoàn thành xuất sắc, khống chế mức); biên bản họp thống nhất; phiếu kiểm tra; Chưa xếp loại; hồ sơ tập thể Mẫu 06, 07, 08 |
-| [cap-truc-tiep-su-dung.md](cap-truc-tiep-su-dung.md) | Giám đốc, Chủ tịch, Phó Giám đốc phụ trách | Duyệt danh mục, duyệt điều chỉnh việc, nhận xét, duyệt kế hoạch khắc phục, ghi ý kiến |
-| [van-phong-dang-uy.md](van-phong-dang-uy.md) | Văn phòng Đảng ủy | Chốt biên bản, xác nhận phiếu kiểm tra, quyết định, ghi nhận kết quả cấp trên, cập nhật danh mục do cấp trên duyệt, công bố, kiến nghị, báo cáo, Quyết định và Mẫu 14 |
-| [quan-tri.md](quan-tri.md) | Quản trị | Mật khẩu, mở khóa, vai trò và phạm vi, người thực hiện |
+| [lanh-dao-don-vi.md](lanh-dao-don-vi.md) | Trưởng phòng, Trưởng trung tâm; phòng, đơn vị chuyên môn (Cơ quan chuyên môn) | Gửi danh mục, đề xuất mức cho Bí thư chi bộ là nhân viên (sau họp, kiểm phiếu), lập kế hoạch khắc phục, lập và xác nhận phiếu xác nhận số liệu (Mẫu 03) |
+| [chi-bo.md](chi-bo.md) | Bí thư, Phó Bí thư chi bộ | Xác nhận hoặc trả lại phiếu tự chấm, hồ sơ tập thể Mẫu 06, 07, 08, phiếu kín trắng Mẫu 11 |
+| [thu-ky.md](thu-ky.md) | Thư ký hội nghị (cấp Công ty: Cán bộ giúp việc đánh giá, Cán bộ giúp việc Đảng ủy) | Phiếu kín trắng Mẫu 11, biên bản hội nghị Mẫu 12, 13 (cả hội nghị Đảng ủy), kiểm phiếu, ghi đề xuất tập thể |
+| [tham-dinh.md](tham-dinh.md) | Phòng TCCB-LĐ, Cán bộ giúp việc Đảng ủy | Bộ tiêu chí; lập, mở kỳ; diện quyết định và các cổng; rà soát, cập nhật danh mục; thẩm định (điều kiện Hoàn thành xuất sắc, khống chế mức, yêu cầu xác nhận số liệu Mẫu 03); biên bản họp thống nhất; phiếu kiểm tra; Chưa xếp loại; khóa kỳ, mở riêng hồ sơ; hồ sơ tập thể Mẫu 06, 07, 08 |
+| [cap-truc-tiep-su-dung.md](cap-truc-tiep-su-dung.md) | Giám đốc, Chủ tịch, Phó Giám đốc phụ trách | Duyệt, trả lại, thu hồi duyệt danh mục; duyệt điều chỉnh việc, giao việc đột xuất; nhận xét; duyệt kế hoạch khắc phục; ghi ý kiến |
+| [van-phong-dang-uy.md](van-phong-dang-uy.md) | Văn phòng Đảng ủy | Chốt, mở lại biên bản họp thống nhất; xác nhận phiếu kiểm tra, phiếu xác nhận số liệu của cơ quan ngoài hệ thống; quyết định; ghi nhận kết quả cấp trên; cập nhật danh mục do cấp trên duyệt; công bố, mở lại hồ sơ; kiến nghị; báo cáo, Quyết định và Mẫu 14 |
+| [quan-tri.md](quan-tri.md) | Quản trị | Mật khẩu, mở khóa, vai trò và phạm vi, người thực hiện, chức vụ và mã số cán bộ, danh mục tổ chức, nhập dữ liệu, thông tin đơn vị, file mẫu Word |
 
 Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý [phieu-gop-y.xlsx](phieu-gop-y.xlsx).

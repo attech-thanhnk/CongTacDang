@@ -38,3 +38,18 @@ Phiếu còn sai, thiếu:
 ![Trả lại phiếu tự chấm](anh/chi-bo-04-tra-lai.png)
 
 **Xong thì thấy:** hồ sơ quay về cán bộ ở bước tự chấm, kèm lý do bạn ghi. Khi cán bộ nộp lại, hồ sơ lại hiện ở **Việc cần xử lý** của bạn.
+
+## 3. Hồ sơ tập thể của Chi bộ (Mẫu 06, 07, 08)
+
+Chi bộ lập báo cáo tự đánh giá của tập thể (Mẫu 07) và các báo cáo tập thể khác của mình.
+
+1. Menu **Đánh giá tập thể** → thẻ **Hồ sơ tập thể** → bấm **Lập hồ sơ**.
+2. Chọn **Biểu mẫu**; ở **Thuộc** chọn **Tổ chức Đảng** rồi chọn Chi bộ của bạn (Mẫu 07 chỉ lập cho tổ chức Đảng).
+3. Nhập nội dung theo từng mục của biểu mẫu → bấm **Lưu**.
+4. Tải bản in: nút **⋯** ở dòng hồ sơ → **Tải Word** (Mẫu 08 có thêm **Tải Excel**).
+
+Mẫu 06 có số nhiệm vụ được giao và hoàn thành đúng hạn của đơn vị, dùng khi xét điều kiện Hoàn thành xuất sắc của người đứng đầu; nên nhập trước khi thẩm định.
+
+## 4. In phiếu kín trắng (Mẫu 11)
+
+Menu **Báo cáo** → dòng **Mẫu 11** → **Tải Word**.

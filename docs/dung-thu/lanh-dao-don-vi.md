@@ -4,7 +4,8 @@ Dành cho Trưởng phòng, Trưởng trung tâm và tương đương. Việc c�
 
 - gửi danh mục sản phẩm của cán bộ lên Phòng TCCB-LĐ (mục 2);
 - đề xuất mức cho người là Bí thư/Phó Bí thư chi bộ đồng thời là nhân viên đơn vị, sau khi tập thể lãnh đạo họp, kiểm phiếu (mục 3);
-- lập kế hoạch khắc phục 30-60-90 ngày cho người xếp loại thấp (mục 4).
+- lập kế hoạch khắc phục 30-60-90 ngày cho người xếp loại thấp (mục 4);
+- với phòng, đơn vị chuyên môn: lập, xác nhận phiếu xác nhận số liệu (Mẫu 03) khi được yêu cầu (mục 5).
 
 Hồ sơ của chính bạn: làm theo [Hướng dẫn cho người được đánh giá](can-bo.md).
 
@@ -44,7 +45,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ## 3. Trưởng đơn vị đề xuất mức
 
-**Khi nào:** với cán bộ là Bí thư hoặc Phó Bí thư chi bộ đồng thời là nhân viên của đơn vị (ví dụ Đài trưởng kiêm Bí thư chi bộ). Tập thể lãnh đạo đơn vị họp, kiểm phiếu người đó cùng hội nghị và cùng biên bản với các cán bộ khác; sau đó bạn (ví dụ Trưởng trung tâm Bảo đảm kỹ thuật) đề xuất mức.
+**Khi nào:** với cán bộ là Bí thư hoặc Phó Bí thư chi bộ đồng thời là nhân viên của đơn vị (ví dụ Đài trưởng kiêm Bí thư chi bộ), sau khi Chi bộ xác nhận phiếu tự chấm. Tập thể lãnh đạo đơn vị họp, kiểm phiếu người đó cùng hội nghị và cùng biên bản với các cán bộ khác; sau đó bạn, với tư cách Trưởng đơn vị, đề xuất mức.
 
 **Trước khi làm:** thư ký hội nghị đã lập biên bản (Mẫu 12/13) của đơn vị, xem [Hướng dẫn cho thư ký hội nghị](thu-ky.md).
 
@@ -57,9 +58,9 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Trưởng đơn vị đề xuất mức](anh/lanh-dao-09-truong-don-vi-de-xuat.png)
 
-**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ. Trên hồ sơ, phần đề xuất ghi mức và **Lý do, nhận xét của Trưởng đơn vị**. Với diện này, đề xuất của bạn là đề xuất của cấp trực tiếp sử dụng: in ở Mẫu 14 cột 10, Mẫu 11 cột 7 và ô **Người trực tiếp sử dụng** của Mẫu 10.
+**Xong thì thấy:** hồ sơ chuyển sang **Thẩm định**, chờ Phòng TCCB-LĐ; diện này không có bước nhận xét của cấp trực tiếp sử dụng, sau thẩm định là quyết định. Trên hồ sơ, phần đề xuất ghi mức và **Lý do, nhận xét của Trưởng đơn vị**. Với diện này, đề xuất của bạn là đề xuất của cấp trực tiếp sử dụng: in ở Mẫu 14 cột 10, Mẫu 11 cột 7 và ô **Người trực tiếp sử dụng** của Mẫu 10.
 
-**Nút Ghi nhận đề xuất bị khóa:** dưới ô biên bản ghi "Chưa có biên bản họp ở bước này" thì nhờ thư ký lập biên bản trước. Ô biên bản không có dấu \* thì không bắt buộc gắn biên bản.
+**Nút Ghi nhận đề xuất bị khóa:** dưới ô biên bản ghi "Chưa có biên bản họp ở bước này" thì nhờ thư ký lập biên bản trước. Ô biên bản không có dấu \* thì không bắt buộc gắn biên bản; kỳ tắt biên bản họp tập thể thì không có ô này.
 
 ## 4. Lập kế hoạch khắc phục 30-60-90 ngày (Mẫu 17)
 
@@ -76,3 +77,25 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 **Xong thì thấy:** kế hoạch ở trạng thái **Đang lập**, dòng "Kế hoạch do bạn lập, chờ người khác duyệt." Cần sửa thì bấm **Sửa kế hoạch** khi chưa duyệt. Người lập không tự duyệt; cấp trên bấm **Duyệt kế hoạch**, sau đó cán bộ xác nhận cam kết.
 
 **Sau mỗi mốc:** mở lại khối kế hoạch, chọn kết quả của mốc, ghi ghi chú → bấm **Ghi kết quả**. Ghi lần lượt từng mốc; chưa tới **Ngày bắt đầu** thì chưa ghi được. Ở mốc cuối, nút là **Ghi kết quả & đóng kế hoạch**. Bản in Mẫu 17 ghi ngày bắt đầu và hạn của từng mốc.
+
+## 5. Phiếu xác nhận số liệu (Mẫu 03)
+
+Dành cho phòng, đơn vị chuyên môn (ví dụ an toàn - chất lượng, tài chính, kế hoạch): người được gán vai trò **Cơ quan chuyên môn** lập phiếu; người khác trong đơn vị (thường là lãnh đạo) xác nhận. Người lập không tự xác nhận.
+
+**Khi nào:** khi Phòng TCCB-LĐ cần đơn vị bạn xác nhận số liệu của một cán bộ trong lúc thẩm định. Hồ sơ đó chưa thẩm định xong được cho tới khi phiếu được xác nhận hoặc hủy.
+
+**Lập phiếu:**
+
+1. **Việc cần xử lý** → nhóm **Phiếu xác nhận số liệu chờ lập, xác nhận** → bấm **Lập phiếu** (hoặc menu **Xác nhận số liệu** → bấm vào phiếu).
+2. Đọc khối **Yêu cầu xác nhận**: cán bộ, lĩnh vực, **Nội dung yêu cầu**.
+3. Khối **Kết quả xác nhận**: nhập **Ngày lập phiếu**; với từng chỉ tiêu nhập **Số liệu gốc xác nhận**, chọn **Kết quả** (**Đạt chuẩn**, **Vượt chuẩn**, **Có khiếm khuyết**), **Đề xuất tăng/giảm điểm** (giảm điểm thì ghi **Số điểm giảm**), ghi **Căn cứ / xác nhận chuyên môn**, **Văn bản số**, **Ngày văn bản**, **Cơ quan ban hành**. Chỉ tiêu không áp dụng thì tích **Không áp dụng**. Có khiếm khuyết hoặc đề xuất điểm thì phải ghi căn cứ.
+4. Bấm **Lưu kết quả**. Đính kèm văn bản căn cứ ở phần **Căn cứ, minh chứng** nếu có.
+5. Bấm **Gửi xác nhận** → **Gửi xác nhận**.
+
+**Xác nhận phiếu:**
+
+1. **Việc cần xử lý** → cùng nhóm trên → bấm **Xác nhận**.
+2. Đọc kết quả → bấm **Xác nhận** → **Xác nhận**. Phiếu đã xác nhận không sửa được nữa.
+3. Cần sửa: nút **⋯** → **Trả lại** → ghi lý do → **Trả lại**; phiếu về người lập.
+
+Tải bản in: nút **⋯** → **Tải Word** hoặc **Tải PDF**.

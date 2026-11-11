@@ -1,6 +1,6 @@
 # Hướng dẫn cho Quản trị
 
-Dành cho bộ phận CNTT hỗ trợ nhóm dùng thử: cấp và đặt lại mật khẩu, mở khóa, gán vai trò, xem ai làm việc gì ở từng đơn vị.
+Dành cho bộ phận CNTT: cấp và đặt lại mật khẩu, mở khóa, gán vai trò, xem ai làm việc gì ở từng đơn vị; khai báo cán bộ, chức vụ, danh mục tổ chức, vai trò; nhập dữ liệu, thông tin đơn vị, file mẫu Word.
 
 Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx`.
 
@@ -17,7 +17,7 @@ Gặp lỗi hoặc chỗ khó hiểu: ghi vào phiếu góp ý `phieu-gop-y.xlsx
 
 ![Danh sách tài khoản](anh/quan-tri-01-tai-khoan.png)
 
-Trang tài khoản có các thẻ **Thông tin**, **Chức vụ**, **Vai trò & phạm vi**. Phần **Thông tin** cho biết **Đăng nhập cuối**, **Khóa tạm đến**, **Số lần nhập sai liên tiếp**.
+Trang tài khoản có các thẻ **Thông tin**, **Chức vụ**, **Vai trò & phạm vi**, **Người này làm được gì**. Thẻ **Thông tin** cho biết **Đăng nhập cuối**, **Khóa tạm đến**, **Số lần nhập sai liên tiếp**.
 
 ## 2. Cấp hoặc đặt lại mật khẩu tạm
 
@@ -54,7 +54,7 @@ Người dùng không nhớ mật khẩu thì đặt lại mật khẩu (mục 2
 
 ![Phân công vai trò](anh/quan-tri-04-phan-cong.png)
 
-**Xong thì thấy:** dòng mới trong **Phân công đang và sắp hiệu lực**. Phần **Người này làm được gì** liệt kê quyền đang có hiệu lực.
+**Xong thì thấy:** dòng mới trong **Phân công đang và sắp hiệu lực**. Thẻ **Người này làm được gì** liệt kê quyền đang có hiệu lực. Phân công có **Hiệu lực từ ngày** ở tương lai thì đến ngày đó mới có quyền; qua **Đến hết ngày** thì tự hết quyền.
 
 - Sửa thời hạn: bấm **Sửa thời hạn, ghi chú** ở dòng phân công → **Lưu**.
 - Thôi giao: **Kết thúc phân công** → **Kết thúc**. Gán nhầm: **Gỡ phân công** → **Gỡ**.
@@ -103,3 +103,64 @@ Người có quyền **Quản lý tài khoản** thấy khối **Quản trị c�
 Người quản lý kỳ toàn công ty không có quyền Quản lý tài khoản chỉ thấy khối **Kỳ đánh giá cần xử lý**, khi kỳ đang mở còn bước chưa có người thực hiện.
 
 Bấm một mục để mở trang **Tài khoản** đã lọc sẵn (ô **Cần xử lý**) hoặc trang kỳ, với danh sách bước thiếu người đã mở sẵn ở thẻ **Tiến độ**. Dòng trên cùng ghi số tài khoản đã đăng nhập trong 7 ngày. Người có quyền xem nhật ký thấy thêm **Hoạt động gần đây** bên dưới.
+
+Nhóm **Kiến nghị chưa có người xử lý** ở **Việc cần xử lý**: kiến nghị mà không còn ai ngoài người liên quan có quyền xử lý. Bấm **Gán vai trò** để mở trang **Người thực hiện** và thêm người.
+
+## 7. Thông tin cán bộ và chức vụ
+
+**Thông tin cán bộ:** mở tài khoản → bấm **Sửa** ở đầu trang. Nhập **Mã số cán bộ** (in trên biểu mẫu), **Đơn vị công tác chính**, **Nơi sinh hoạt Đảng**, **Khung tỷ trọng mặc định** → **Lưu**.
+
+**Chức vụ:** thẻ **Chức vụ** → **Thêm chức vụ**:
+
+1. Chọn chức vụ, **Nơi giữ chức vụ**, **Từ ngày**, **Đến hết ngày** (để trống là không thời hạn).
+2. Tích **Chức vụ chính (bỏ đánh dấu = kiêm nhiệm)** cho chức vụ chính. Một người giữ được nhiều chức vụ; chức vụ chính in trước.
+3. Bấm **Lưu**. Thôi giữ chức vụ: nút **⋯** ở dòng → **Kết thúc**. Nhập nhầm: **⋯** → **Xóa (nhập nhầm)**.
+
+**Thẩm quyền** (Đảng ủy cơ sở quyết định hay cấp trên quyết định) tự suy ra từ chức vụ. Cần đặt khác: bấm **Thay đổi** cạnh ô **Thẩm quyền**, chọn thẩm quyền, ghi **Lý do** → **Lưu**. Chọn **Theo chức vụ** để trả về như cũ.
+
+Đổi chức vụ, thẩm quyền sau khi người đó đã ở trong kỳ đang chạy không tự đổi hồ sơ trong kỳ; Phòng TCCB-LĐ sửa trên trang kỳ nếu cần.
+
+## 8. Danh mục tổ chức
+
+Menu **Danh mục tổ chức** (nhóm **Thiết lập**), các thẻ:
+
+- **Đơn vị chính quyền**, **Tổ chức Đảng**: cây nhiều cấp. **Thêm … gốc**, hoặc **⋯** ở một dòng → **Thêm … cấp dưới**; **Sửa** để đổi tên hoặc đổi cấp trên.
+- **Loại đơn vị**: các loại dùng cho hai cây trên.
+- **Chức vụ**: **Thêm chức vụ** hoặc **Sửa**. Các ô chính:
+  - **Chức danh khi in**: chữ in trên biểu mẫu, dùng `{don_vi}` cho tên đơn vị gắn với chức vụ (ví dụ `Trưởng {don_vi}`); để trống thì in tên chức vụ;
+  - **Mã chức danh** (M1–M26), dùng cho Mẫu 15A, 15B và trần Xuất sắc;
+  - **Thẩm quyền quyết định xếp loại mặc định**, **Diện quyết định khi thêm vào kỳ**;
+  - **Kiểu trình bày biểu mẫu tự đánh giá** (Mẫu 09C, 9D).
+- **Kiểu trình bày biểu mẫu**: cách in Mẫu 09C, 9D.
+- **Ngày nghỉ**: ngày lễ, Tết để tính hạn các bước.
+
+## 9. Vai trò
+
+Menu **Hệ thống** → **Vai trò**. Bấm **Phân quyền** ở dòng vai trò để tích, bỏ quyền → **Lưu quyền**. Vai trò mới: **Tạo vai trò**. Đổi quyền của vai trò có hiệu lực ngay với mọi người đang được gán vai trò đó.
+
+## 10. Nhập dữ liệu từ Excel
+
+1. Menu **Hệ thống** → **Nhập dữ liệu**.
+2. Chọn loại dữ liệu → **Tải file mẫu**, điền theo mẫu.
+3. Chọn file → **Kiểm tra file**. Bảng kết quả ghi từng dòng **Tạo mới**, **Cập nhật** hoặc **Lỗi**. Còn dòng lỗi thì sửa file rồi kiểm tra lại.
+4. Bấm **Nhập dữ liệu** → **Nhập dữ liệu**.
+5. Có tài khoản mới: bấm **Tải file mật khẩu tạm** ngay; file chỉ tải được một lần.
+
+## 11. Thông tin đơn vị
+
+Menu **Hệ thống** → **Thông tin đơn vị**: **Tên tổ chức Đảng cấp trên**, **Tên Đảng bộ**, **Tên đầy đủ của công ty**, **Tên đơn vị chủ quản cấp trên**, **Tên viết tắt**, **Địa danh**, **Cơ quan thẩm định**, **Số văn bản hướng dẫn**, **Ngày văn bản hướng dẫn** → **Lưu**. Các tên này in trên mọi biểu mẫu, báo cáo.
+
+## 12. File mẫu Word
+
+Menu **Hệ thống** → **Biểu mẫu Word**.
+
+1. Ở dòng biểu mẫu, bấm **Tải lên**.
+2. Chọn file `.docx` → **Kiểm tra**. Hệ thống báo tag thiếu (chặn) và cảnh báo (không chặn).
+3. Để tích **Kích hoạt ngay** nếu muốn dùng ngay → **Tải lên**.
+
+Dòng biểu mẫu có nút **⋯**: **Lịch sử phiên bản** (bấm **Kích hoạt** để dùng lại bản cũ), **Danh mục tag**, **Tải file gốc**, **Dùng file gốc**.
+
+## 13. Nhật ký và sao lưu
+
+- **Nhật ký hệ thống** (menu **Hệ thống**): ai đã sửa gì, lúc nào; lọc theo **Đối tượng**, **Thao tác**.
+- Sao lưu và khôi phục dữ liệu làm trên máy chủ, không có trên giao diện. Người vận hành máy chủ làm theo tài liệu vận hành; trước mỗi lần nâng cấp phải có bản sao lưu mới.
