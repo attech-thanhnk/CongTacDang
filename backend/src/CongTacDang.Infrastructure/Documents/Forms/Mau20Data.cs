@@ -45,6 +45,9 @@ public sealed class Mau20Data
 
     [TemplateCollection("CASES")] public List<Mau20CaseRow> Cases { get; init; } = new();
 
+    /// <summary>Không có trường hợp nào → dòng "Không có …" của bảng mục 2.</summary>
+    [TemplateCondition("HAS_CASES")] public bool HasCases { get; init; }
+
     [TemplateCollection("MEMBERS")] public List<Mau20MemberRow> Members { get; init; } = new();
 
     public static Mau20Data From(CalibrationSessionDto session)
@@ -69,6 +72,7 @@ public sealed class Mau20Data
             Draft = !concluded,
             Summary = session.Summary.Select(r => Mau20SummaryRow.From(r, concluded)).ToList(),
             Cases = session.Cases.OrderBy(c => c.Order).Select((c, index) => Mau20CaseRow.From(c, index + 1)).ToList(),
+            HasCases = session.Cases.Count > 0,
             Members = session.Attendees.OrderBy(a => a.Order).Select(Mau20MemberRow.From).ToList()
         };
     }

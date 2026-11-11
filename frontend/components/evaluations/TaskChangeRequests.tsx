@@ -95,7 +95,7 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
             busy={busy}
             onCancel={() => setForm(null)}
             onSubmit={(body) =>
-              run(() => taskChangeService.create(record.id, { ...body, version: record.version ?? 0 }), "Đã gửi đề nghị.")
+              run(() => taskChangeService.create(record.id, { ...body, version: record.version ?? 0 }), form === "urgent" ? "Đã gửi đề nghị ghi nhận việc đột xuất." : "Đã gửi đề nghị.")
             }
           />
         )}
@@ -278,7 +278,7 @@ function TaskChangeForm({
   const minTasks = criteria?.content.parameters.minTasks ?? 3;
   const maxTasks = criteria?.content.parameters.maxTasks ?? 7;
   const countError = removes && tasks.length <= minTasks
-    ? `Cần giữ tối thiểu ${minTasks} việc: chỉ chọn Điều chỉnh.`
+    ? `Cần giữ tối thiểu ${minTasks} việc: hãy ghi nhận việc đột xuất trước rồi mới loại trừ hoặc chuyển tiếp.`
     : type === "Urgent" && tasks.length >= maxTasks
       ? `Đã đủ tối đa ${maxTasks} việc.`
       : null;

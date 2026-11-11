@@ -251,7 +251,7 @@ Trước hết mở hồ sơ, đọc thanh tiến trình: bước đang chờ v�
 | Báo "Bạn chưa được cấp quyền "…". Hãy liên hệ quản trị hệ thống" (màn hình "Không có quyền truy cập") | Trang yêu cầu quyền người dùng chưa có | Phân công vai trò có quyền đó |
 | Không thấy mục menu cần dùng | Menu hiện theo quyền | Kiểm tra "Người này làm được gì". Vừa phân công mà menu chưa đổi: tải lại trang hoặc đăng xuất rồi đăng nhập lại |
 | Cán bộ không thấy hồ sơ của mình | Chưa được thêm vào kỳ, hoặc đang chọn nhầm kỳ ở ô chọn kỳ trên thanh trên | Thẻ "Người được đánh giá" của kỳ, "Thêm người"; hoặc chọn đúng kỳ |
-| Tải PDF báo "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF…" (lỗi 503) | Máy chủ chưa có LibreOffice | Người dùng tải bản Word hoặc Excel; CNTT cài LibreOffice theo mục "LibreOffice (xuất PDF)" của [Triển khai](deployment.md) |
+| Tải PDF báo "Xuất PDF không thành công: máy chủ chưa cài LibreOffice…" (lỗi 503) | Máy chủ chưa có LibreOffice | Người dùng tải bản Word hoặc Excel; CNTT cài LibreOffice theo mục "LibreOffice (xuất PDF)" của [Triển khai](deployment.md) |
 | Biểu mẫu thiếu hoặc sai họ tên, ngày sinh, chức vụ, tên Đảng bộ | Dữ liệu nguồn thiếu | Ngày sinh, chức vụ: sửa ở chi tiết "Tài khoản". Tên Đảng bộ, công ty, địa danh: sửa ở "Thông tin đơn vị" |
 | Biểu mẫu Word báo "Thiếu n tag so với file gốc" | File mẫu đang dùng thiếu ô dữ liệu | "Biểu mẫu Word": tải file gốc, sửa lại rồi tải lên; hoặc "Dùng file gốc" |
 | Nút thao tác không hiện, kỳ ở trạng thái "Dự thảo", "Khóa dữ liệu" hoặc "Đã đóng" | Kỳ không cho thao tác | "Mở kỳ" (Dự thảo); "Mở lại kỳ" (Khóa dữ liệu); "Mở lại hồ sơ" (Đã đóng) |

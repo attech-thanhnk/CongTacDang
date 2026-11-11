@@ -39,11 +39,19 @@ public static class ExcelFormLayout
         return 2 + Math.Max(left.Count, right.Count);
     }
 
-    /// <summary>Tiêu đề trái theo tổ chức Đảng, phải "ĐẢNG CỘNG SẢN VIỆT NAM" và ngày lập.</summary>
-    public static void WriteFormHeader(IXLWorksheet ws, int lastColumn, string formLabel, PartyHeader header, string location, int leftColumns) =>
+    /// <summary>
+    /// Tiêu đề trái theo tổ chức Đảng, phải "ĐẢNG CỘNG SẢN VIỆT NAM" và ngày lập; <paramref name="dateLine"/> ("ngày … tháng … năm …")
+    /// như bản Word của mẫu, null → ngày hiện tại.
+    /// </summary>
+    public static void WriteFormHeader(IXLWorksheet ws, int lastColumn, string formLabel, PartyHeader header, string location, int leftColumns,
+        string? dateLine = null) =>
         WriteHeader(ws, lastColumn, formLabel, leftColumns,
             new[] { new ExcelHeaderLine(header.Parent ?? "ĐẢNG BỘ …"), new ExcelHeaderLine(header.Organization ?? "ĐẢNG ỦY (CHI BỘ) …", Bold: true) },
-            new[] { new ExcelHeaderLine("ĐẢNG CỘNG SẢN VIỆT NAM", Bold: true), new ExcelHeaderLine(TodayLine(location), Italic: true) });
+            new[]
+            {
+                new ExcelHeaderLine("ĐẢNG CỘNG SẢN VIỆT NAM", Bold: true),
+                new ExcelHeaderLine(dateLine != null ? $"{location}, {dateLine}" : TodayLine(location), Italic: true)
+            });
 
     /// <summary>"Địa danh, ngày … tháng … năm …" theo ngày hiện tại.</summary>
     public static string TodayLine(string location) =>

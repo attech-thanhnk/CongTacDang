@@ -36,22 +36,35 @@ public sealed class Mau08Data
             Rows = Hd03FormCatalog.Form08Categories.Select(category =>
             {
                 var tasks = items.Where(i => i.Category == category.Code).ToList();
-                var names = tasks.Select(t => t.TaskName?.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList();
                 return new Mau08Row
                 {
                     Order = category.Code,
                     Title = category.Title,
                     // Không có nhiệm vụ: nhóm có dòng "- Nhiệm vụ 1: …" giữ chữ mẫu, nhóm khác để trống.
-                    Tasks = names.Count > 0
-                        ? "\n" + string.Join("\n", names.Select(n => "- " + n))
+                    Tasks = tasks.Count > 0
+                        ? TaskLines(tasks.Select(t => t.TaskName), "…")
                         : category.HasTaskLines ? null : string.Empty,
-                    Plan = CollectiveFormText.Lines(tasks.Select(t => t.PlanOrDirection)),
-                    Result = CollectiveFormText.Lines(tasks.Select(t => t.Result)),
-                    Issues = CollectiveFormText.Lines(tasks.Select(t => t.Limitations)),
-                    Notes = CollectiveFormText.Lines(tasks.Select(t => t.Notes))
+                    Plan = TaskLines(tasks.Select(t => t.PlanOrDirection)),
+                    Result = TaskLines(tasks.Select(t => t.Result)),
+                    Issues = TaskLines(tasks.Select(t => t.Limitations)),
+                    Notes = TaskLines(tasks.Select(t => t.Notes))
                 };
             }).ToList()
         };
+    }
+
+    /// <summary>
+    /// Mỗi nhiệm vụ một dòng "- …" sau dòng tên nhóm, cùng thứ tự ở mọi cột để cột 3–6 thẳng hàng với nhiệm vụ ở cột 2;
+    /// nhiệm vụ chưa nhập ô này để dòng trống (cột 2 in <paramref name="empty"/>). Cả cột chưa nhập → ô trống.
+    /// </summary>
+    public static string TaskLines(IEnumerable<string?> values, string? empty = null)
+    {
+        var list = values.Select(v => FormText.OrNull(v?.Trim())).ToList();
+        if (empty == null && list.All(v => v == null))
+            return string.Empty;
+        // Giá trị nhiều dòng gộp một dòng để không đẩy lệch các nhiệm vụ sau.
+        return string.Concat(list.Select(v => "\n" + (v != null ? "- " + v.Replace("\r", "").Replace('\n', ' ')
+            : empty != null ? "- " + empty : string.Empty)));
     }
 }
 

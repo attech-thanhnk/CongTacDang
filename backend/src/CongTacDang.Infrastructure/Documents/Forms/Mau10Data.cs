@@ -10,6 +10,9 @@ public sealed class Mau10Data
 {
     public const string TemplateFileName = "Mau_10_PhieuThamDinh.docx";
 
+    /// <summary>Ô điểm tự chấm khi chưa tự chấm (chữ mặc định của template là tên trường).</summary>
+    public const string NotScored = "…";
+
     /// <summary>Ngày thẩm định; chưa thẩm định → giữ dòng chấm.</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
@@ -60,9 +63,21 @@ public sealed class Mau10Data
     [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
     [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
+    // Ô ký: bước chưa làm hoặc do cấp trên thực hiện (không có người thực hiện trong hệ thống) → giữ dòng chấm.
+
+    /// <summary>Ô "Người trực tiếp sử dụng": người đã nhận xét, đề xuất ở B3c.</summary>
+    [TemplateField("SUPERVISOR_NAME")] public string? SupervisorName { get; init; }
+
+    /// <summary>Ô "Đại diện cơ quan thẩm định": người đã thẩm định.</summary>
+    [TemplateField("APPRAISER_NAME")] public string? AppraiserName { get; init; }
+
     public static Mau10Data From(EvaluationRecord record)
     {
         string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
+        // Chưa tự chấm (vd Chưa xếp loại): điểm tự chấm và chênh lệch để dòng chấm, không in 0.
+        var scored = record.SelfScoredAt.HasValue || record.TotalSelfScore > 0;
+        string Self(double value) => scored ? CollectiveFormText.Score(value) : NotScored;
+        string? Difference(double? appraisal, double self) => scored ? Diff(appraisal, self) : null;
         return new Mau10Data
         {
             DateLine = CollectiveFormText.DateLine(record.AppraisedAt),
@@ -72,15 +87,15 @@ public sealed class Mau10Data
             Position = FormText.OrNull(record.Member?.PositionTitle),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             // Số nguyên "26", số lẻ một chữ số thập phân "26,5".
-            GeneralSelfScore = CollectiveFormText.Score(record.GeneralCriteriaScore),
-            TasksSelfScore = CollectiveFormText.Score(record.TasksScore),
+            GeneralSelfScore = Self(record.GeneralCriteriaScore),
+            TasksSelfScore = Self(record.TasksScore),
             GeneralAppraisalScore = Score(record.AppraisalGeneralScore),
-            GeneralDiff = Diff(record.AppraisalGeneralScore, record.GeneralCriteriaScore),
+            GeneralDiff = Difference(record.AppraisalGeneralScore, record.GeneralCriteriaScore),
             TasksAppraisalScore = Score(record.AppraisalTasksScore),
-            TasksDiff = Diff(record.AppraisalTasksScore, record.TasksScore),
-            TotalSelfScore = CollectiveFormText.Score(record.TotalSelfScore),
+            TasksDiff = Difference(record.AppraisalTasksScore, record.TasksScore),
+            TotalSelfScore = Self(record.TotalSelfScore),
             TotalAppraisalScore = Score(record.AppraisalScore),
-            TotalDiff = Diff(record.AppraisalScore, record.TotalSelfScore),
+            TotalDiff = Difference(record.AppraisalScore, record.TotalSelfScore),
             TaskLevels = TaskLevelText(record),
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
@@ -88,7 +103,9 @@ public sealed class Mau10Data
             CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),
-            CheckFailed = Box(EvaluationGrade.KhongHoanThanh)
+            CheckFailed = Box(EvaluationGrade.KhongHoanThanh),
+            SupervisorName = record.DirectorReviewedById != null ? FormText.OrNull(record.DirectorReviewedByName) : null,
+            AppraiserName = record.AppraisedById != null ? FormText.OrNull(record.AppraisedByName) : null
         };
     }
 

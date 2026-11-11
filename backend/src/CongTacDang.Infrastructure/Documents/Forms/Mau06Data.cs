@@ -24,6 +24,9 @@ public sealed class Mau06Data
 
     [TemplateField("SUBJECT_NAME")] public string? SubjectName { get; init; }
 
+    /// <summary>Có tên tập thể → chỉ in tên, bỏ chữ gợi ý "Đảng ủy / Chi ủy / Tập thể Lãnh đạo".</summary>
+    [TemplateCondition("HAS_SUBJECT")] public bool HasSubject { get; init; }
+
     [TemplateField("HEAD_NAME")] public string? HeadName { get; init; }
 
     [TemplateField("HEAD_TITLE")] public string? HeadTitle { get; init; }
@@ -70,6 +73,7 @@ public sealed class Mau06Data
             Quarter = CollectiveFormText.RomanQuarter(record.Period.Quarter),
             Year = FormText.Year(record.Period.Year),
             SubjectName = FormText.OrNull(record.SubjectName),
+            HasSubject = FormText.OrNull(record.SubjectName) != null,
             HeadName = Text(Hd03FormCatalog.Form06HeadNameCode),
             HeadTitle = Text(Hd03FormCatalog.Form06HeadTitleCode),
             TasksAssigned = Number(assigned),

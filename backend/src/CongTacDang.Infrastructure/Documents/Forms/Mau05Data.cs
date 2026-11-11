@@ -46,6 +46,9 @@ public sealed class Mau05Data
     /// <summary>Chỉ khi đề nghị đã được duyệt.</summary>
     [TemplateField("ASSIGNEE_SIGN")] public string? AssigneeSign { get; init; }
 
+    /// <summary>Ô "Cấp có thẩm quyền giao việc": người duyệt đề nghị (như Mẫu 04), chỉ khi đã duyệt.</summary>
+    [TemplateField("APPROVER_SIGN")] public string? ApproverSign { get; init; }
+
     public static Mau05Data From(TaskChangeFormSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -61,7 +64,7 @@ public sealed class Mau05Data
             Quarter = Mau09Shared.Quarter(record),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = source.Positions ?? FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             Basis = FormText.OrNull(request.Reason),
             AssignedDate = TaskChangeFormSource.DeadlineLine(CollectiveFormText.ToVietnamTime(request.RequestedAt)),
@@ -70,7 +73,8 @@ public sealed class Mau05Data
             Deadline = TaskChangeFormSource.DeadlineLine(proposal.Deadline ?? created?.Deadline),
             BoxRebalance = reduced ? CheckedBox : null,
             NewWeight = reduced && proposal.Weight.HasValue ? TaskChangeFormSource.Weight(proposal.Weight.Value) : null,
-            AssigneeSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(record.Member?.FullName) : null
+            AssigneeSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(record.Member?.FullName) : null,
+            ApproverSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(request.DecidedByName) : null
         };
     }
 }

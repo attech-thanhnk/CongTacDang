@@ -172,7 +172,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         ChangeAsync(planId, request, ManageRule, (plan, _) =>
         {
             if (plan.Status != ImprovementPlanStatus.Draft)
-                throw new ConflictException("Kế hoạch đã được duyệt nên không sửa nội dung được nữa; chỉ ghi kết quả từng mốc.");
+                throw new ConflictException("Sửa kế hoạch không thành công: kế hoạch đã được duyệt, chỉ còn ghi kết quả từng mốc.");
             plan.Content = BuildContent(ImprovementPlanContent.Parse(plan.Content), request).ToJson();
             if (request.StartDate != plan.StartDate)
                 EnsureStartDate(plan.Record, request.StartDate);
@@ -188,7 +188,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
                 throw new ConflictException("Kế hoạch đã được duyệt trước đó.");
             // Người lập không tự duyệt: cần người thứ hai kiểm soát nội dung kế hoạch.
             if (IsPreparer(plan, _currentUser.UserId))
-                throw new ForbiddenException("Bạn là người lập kế hoạch này nên không tự duyệt được. Kế hoạch cần do người khác có quyền "
+                throw new ForbiddenException("Duyệt kế hoạch không thành công: bạn là người lập kế hoạch này. Kế hoạch cần do người khác có quyền "
                     + $"\"{PermissionCodes.DisplayName(PermissionCodes.EvaluationImprovementApprove)}\" duyệt.");
             var missing = ImprovementPlanContent.Parse(plan.Content).MissingForApproval();
             if (missing.Count > 0)
@@ -211,7 +211,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             if (plan.Status != ImprovementPlanStatus.Approved)
             {
                 throw new ConflictException(plan.Status == ImprovementPlanStatus.Draft
-                    ? "Kế hoạch chưa được thủ trưởng đơn vị duyệt nên chưa xác nhận được."
+                    ? "Xác nhận kế hoạch không thành công: kế hoạch chưa được thủ trưởng đơn vị duyệt."
                     : "Bạn đã xác nhận kế hoạch này.");
             }
             var comment = request.Comment?.Trim();
@@ -228,7 +228,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
         ChangeAsync(planId, request, ManageRule, async (plan, now) =>
         {
             if (plan.Status is ImprovementPlanStatus.Draft)
-                throw new ConflictException("Kế hoạch chưa được duyệt nên chưa ghi kết quả mốc được.");
+                throw new ConflictException("Ghi kết quả mốc không thành công: kế hoạch chưa được duyệt.");
             if (plan.Status is ImprovementPlanStatus.Closed)
                 throw new ConflictException("Kế hoạch đã đóng (đã đánh giá mốc 90 ngày).");
             var code = request.Milestone?.Trim().ToUpperInvariant();
@@ -249,7 +249,7 @@ public sealed class ImprovementPlanService : IImprovementPlanService
                 .ToList();
             if (missingEarlier.Count > 0)
             {
-                throw new ValidationException($"Chưa ghi được kết quả {ImprovementPlanContent.Milestones.First(m => m.Code == code).Name}: "
+                throw new ValidationException($"Ghi kết quả {ImprovementPlanContent.Milestones.First(m => m.Code == code).Name} không thành công: "
                     + $"hãy ghi kết quả theo thứ tự mốc, còn thiếu {string.Join(", ", missingEarlier)}.");
             }
             var stage = content.Stage(code!);

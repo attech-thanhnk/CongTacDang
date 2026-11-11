@@ -52,6 +52,12 @@ public sealed class Mau09AData
     [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
     [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
+    /// <summary>Ô "Cá nhân tự đánh giá": chủ hồ sơ khi đã nộp phiếu tự chấm; chưa nộp → dòng chấm.</summary>
+    [TemplateField("SELF_NAME")] public string? SelfName { get; init; }
+
+    /// <summary>Ô "Xác nhận của Chi bộ": người đã xác nhận trong hệ thống; chưa xác nhận hoặc ghi nhận từ ngoài → dòng chấm.</summary>
+    [TemplateField("CELL_CONFIRMER_NAME")] public string? CellConfirmerName { get; init; }
+
     public static Mau09AData From(IndividualFormSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -85,7 +91,9 @@ public sealed class Mau09AData
             CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),
-            CheckFailed = Box(EvaluationGrade.KhongHoanThanh)
+            CheckFailed = Box(EvaluationGrade.KhongHoanThanh),
+            SelfName = source.HasSelfScore ? FormText.OrNull(record.Member?.FullName) : null,
+            CellConfirmerName = record.CellConfirmedById != null ? FormText.OrNull(record.CellConfirmedByName) : null
         };
     }
 }

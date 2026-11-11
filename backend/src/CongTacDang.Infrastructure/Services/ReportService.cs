@@ -267,7 +267,7 @@ public partial class ReportService : IReportService
 
             var row = numbers + 1;
             var stt = 1;
-            foreach (var r in records.Where(r => r.ApprovalAuthority == authority))
+            foreach (var r in FormOrder(records.Where(r => r.ApprovalAuthority == authority), held))
             {
                 var positions = held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>();
                 var values = new object?[]
@@ -463,6 +463,9 @@ public partial class ReportService : IReportService
     /// <summary>Cột 12 Mẫu 14: căn cứ, lý do khi đề xuất Hoàn thành xuất sắc hoặc Không hoàn thành nhiệm vụ; lý do của cấp quyết định đứng đầu.</summary>
     private static string? Rationale(EvaluationRecord record)
     {
+        // Chưa xếp loại: in lý do như cột Ghi chú của Phụ lục Quyết định.
+        if (record.IsMarkedNotRated())
+            return FormText.OrNull(record.NotRatedReason?.Trim());
         var grade = ReportGrade(record);
         if (grade is not (EvaluationGrade.HoanThanhXuatSac or EvaluationGrade.KhongHoanThanh))
             return null;
@@ -624,7 +627,7 @@ public partial class ReportService : IReportService
         catch (FormatException)
         {
             return (period, new List<EvaluationRecord>(), cell,
-                "Cấu hình của kỳ đánh giá bị lỗi định dạng nên chưa lập được Quyết định. Hãy liên hệ người quản lý kỳ.");
+                "Lập Quyết định không thành công: cấu hình của kỳ đánh giá bị lỗi định dạng. Hãy liên hệ người quản lý kỳ.");
         }
 
         var decided = records
@@ -660,7 +663,7 @@ public partial class ReportService : IReportService
             ? CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName)
             : await ParentNameInSentenceAsync(cell, org);
         var held = await HeldPositionsAsync(decided.Select(r => r.MemberId), PositionDate(period));
-        var lines = decided.Select(r => new MauQdLine(
+        var lines = FormOrder(decided, held).Select(r => new MauQdLine(
             r.Member?.FullName,
             PositionAndUnit(r, held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>()),
             r.SelfProposedGrade,
@@ -670,7 +673,8 @@ public partial class ReportService : IReportService
             r.FinalGrade,
             r.IsMarkedNotRated() ? r.NotRatedReason : null));
 
-        var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period.Id, partyCellId, decided), lines);
+        var guideParty = CollectiveFormText.NameInSentence(org.SuperiorPartyName, org.CompanyName, org.ParentCompanyName);
+        var data = MauQdData.From(period, header, superior, await DecisionInfoAsync(period.Id, partyCellId, decided), lines, guideParty);
         var bytes = await RenderWordAsync(MauQdData.TemplateFileName, data);
         return await ToResultAsync(bytes, DocxMimeType, ScopedFileName("Quyet dinh xep loai", org.ShortName, cell, period, ".docx"), format);
     }
@@ -1086,9 +1090,13 @@ public partial class ReportService : IReportService
         var records = await query.ToListAsync();
 
         var org = await _orgSettings.GetAsync();
-        var (_, unit, _, unitForFile) = await MeetingUnitAsync(meeting, org);
+        // Tiêu đề trái, cấp ủy mục II như Mẫu 13 của cùng biên bản (tổ chức Đảng, không phải đơn vị chính quyền).
+        var (header, _, archive, unitForFile) = await MeetingUnitAsync(meeting, org);
         var lines = await Mau11LinesAsync(meeting.Period, records);
-        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, Mau11Data.From(meeting.Period, lines, unit));
+        var data = TemplateDataBinder.Bind(Mau11Data.From(meeting.Period, lines, header.Organization, archive, meeting.StartedAt));
+        if (header.Parent != null)
+            data.Field("ORG_SUPERIOR_PARTY_NAME", header.Parent);
+        var bytes = await RenderWordAsync(Mau11Data.TemplateFileName, data);
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("11", org.ShortName, unitForFile, meeting.Period, ".docx"), format);
     }
 
@@ -1106,7 +1114,7 @@ public partial class ReportService : IReportService
             ?? throw new KeyNotFoundException("Không tìm thấy biên bản hội nghị.");
         if (meeting.VoteSummaries.Count == 0)
             throw new ArgumentException(
-                "Biên bản chưa có kết quả kiểm phiếu của hồ sơ nào nên chưa lập được Mẫu 13. Hãy ghi kết quả kiểm phiếu khi ghi nhận đề xuất (B3a) hoặc quyết định (B4), hoặc nhập khi lập biên bản kiểm phiếu.");
+                "Lập Mẫu 13 không thành công: biên bản chưa có kết quả kiểm phiếu của hồ sơ nào. Hãy ghi kết quả kiểm phiếu khi ghi nhận đề xuất (B3a) hoặc quyết định (B4), hoặc nhập khi lập biên bản kiểm phiếu.");
 
         var org = await _orgSettings.GetAsync();
         var (header, unit, archive, unitForFile) = await MeetingUnitAsync(meeting, org);
@@ -1130,6 +1138,13 @@ public partial class ReportService : IReportService
         var bytes = await RenderWordAsync(Mau13Data.TemplateFileName, Mau13Data.From(meeting, header, unit, archive, details, lines));
         return await ToResultAsync(bytes, DocxMimeType, Hd03FileName("13", org.ShortName, unitForFile, meeting.Period, ".docx"), format);
     }
+
+    /// <summary>Thứ tự in như Mẫu 11/13: mã chức danh rồi họ tên theo tiếng Việt (không theo collation của CSDL).</summary>
+    private static List<EvaluationRecord> FormOrder(IEnumerable<EvaluationRecord> records, IReadOnlyDictionary<Guid, List<MemberPosition>> held) =>
+        records
+            .OrderBy(r => StatCodeOrder(PositionRules.PersonStatCode((held.GetValueOrDefault(r.MemberId) ?? new List<MemberPosition>()).Select(PositionRules.Held))))
+            .ThenBy(r => r.Member?.FullName, StringComparer.Create(new CultureInfo("vi-VN"), true))
+            .ToList();
 
     /// <summary>Thứ tự mã chức danh M1…M26 (không có mã → cuối).</summary>
     private static int StatCodeOrder(string? code) =>
@@ -1156,7 +1171,11 @@ public partial class ReportService : IReportService
         var record = await LoadRecordAsync(crosscheck.RecordId);
         var held = await HeldPositionsAsync(new[] { record.MemberId }, PositionDate(record.Period));
         var positionDept = PositionAndUnit(record, held.GetValueOrDefault(record.MemberId) ?? new List<MemberPosition>());
-        var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept));
+        // Ô ký lãnh đạo ghi rõ họ tên và chức vụ (chức danh trên hồ sơ cán bộ của người xác nhận).
+        var leaderTitle = crosscheck.ConfirmedById is { } leaderId
+            ? await _db.PartyMemberProfiles.AsNoTracking().Where(m => m.Id == leaderId).Select(m => m.PositionTitle).FirstOrDefaultAsync()
+            : null;
+        var bytes = await RenderWordAsync(Mau03Data.TemplateFileName, Mau03Data.From(crosscheck, positionDept, record.Tasks, leaderTitle));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("03", (await _orgSettings.GetAsync()).ShortName, crosscheck.MemberFullName, record, ".docx"), format);
     }
 
@@ -1252,7 +1271,8 @@ public partial class ReportService : IReportService
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Mẫu 08");
-        WriteFormHeader(ws, last, "Mẫu số 08", header, org.Location, leftColumns: 2);
+        // Ngày tiêu đề như bản Word (lần cập nhật hồ sơ), không phải ngày xuất.
+        WriteFormHeader(ws, last, "Mẫu số 08", header, org.Location, leftColumns: 2, data.DateLine);
         TitleRow(ws, 5, last, $"BÁO CÁO TỔNG HỢP KẾT QUẢ THỰC HIỆN CÁC NHIỆM VỤ CỦA CƠ QUAN, ĐƠN VỊ QUÝ {QuarterYear(record.Period, "/NĂM ")}", bold: true);
         TitleRow(ws, 6, last, "-----", bold: false);
 
@@ -1288,9 +1308,9 @@ public partial class ReportService : IReportService
         }
 
         row++;
-        ws.Cell(row, 2).Value = "Ghi chú: - Các nội dung nêu trên được phân tích, đánh giá trên các khía cạnh sau: (1) Việc xây dựng, thực hiện kế hoạch, chương trình công tác; (2) Việc lãnh đạo, chỉ đạo, phân công, phối hợp thực hiện công việc; (3) Việc đánh giá, xếp loại kết quả thực hiện công việc; (4) Việc khen thưởng, động viên hoặc phê bình, nhắc nhở, kỷ luật tập thể, cá nhân có liên quan.\n- Đồng chí Bí thư - Trưởng các cơ quan/đơn vị trực tiếp chỉ đạo lập, rà soát, ký báo cáo (không ủy quyền cho cấp Phó).";
+        ws.Cell(row, 2).Value = "Ghi chú:\n- Các nội dung nêu trên được phân tích, đánh giá trên các khía cạnh sau: (1) Việc xây dựng, thực hiện kế hoạch, chương trình công tác; (2) Việc lãnh đạo, chỉ đạo, phân công, phối hợp thực hiện công việc; (3) Việc đánh giá, xếp loại kết quả thực hiện công việc; (4) Việc khen thưởng, động viên hoặc phê bình, nhắc nhở, kỷ luật tập thể, cá nhân có liên quan.\n- Đồng chí Bí thư - Trưởng các cơ quan/đơn vị trực tiếp chỉ đạo lập, rà soát, ký báo cáo (không ủy quyền cho cấp Phó).";
         ws.Range(row, 2, row, last).Merge().Style.Alignment.SetWrapText(true).Alignment.SetVertical(XLAlignmentVerticalValues.Top).Font.SetItalic(true);
-        ws.Row(row).Height = 75;
+        ws.Row(row).Height = 90;
         row += 2;
         SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
 
@@ -1350,7 +1370,7 @@ public partial class ReportService : IReportService
     {
         var template = await _templates.LoadAsync(templateFileName);
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync());
-        var data = TemplateDataBinder.Bind(formData).WithShared(TemplateDataBinder.Bind(org));
+        var data = (formData as TemplateData ?? TemplateDataBinder.Bind(formData)).WithShared(TemplateDataBinder.Bind(org));
         return DocxTemplateEngine.Render(template, data).Content;
     }
 

@@ -134,4 +134,19 @@ public static class CrosscheckRules
             _ => "0"
         };
     }
+
+    /// <summary>
+    /// "Dữ liệu cá nhân" mặc định của dòng gắn sản phẩm: kết quả cá nhân tự đánh giá (Mẫu 02); sản phẩm chưa tự chấm → null.
+    /// </summary>
+    public static string? SelfDataOf(EvaluationTask task)
+    {
+        ArgumentNullException.ThrowIfNull(task);
+        if (!TaskChangeRules.IsActive(task) || task.Weight <= 0 || TaskSelfScores.IsPending(task))
+            return null;
+        static string Percent(double ratio) => (ratio * 100).ToString("0.#", Vietnamese) + "%";
+        var result = Math.Round(task.SelfScore / task.Weight * 100, 1).ToString("0.#", Vietnamese);
+        var text = $"Tự đánh giá: A {Percent(task.CriteriaA_Ratio)}, B {Percent(task.CriteriaB_Ratio)}, C {Percent(task.CriteriaC_Ratio)}, "
+            + $"D {Percent(task.CriteriaD_Ratio)}; kết quả {result}%, {task.SelfScore.ToString("0.##", Vietnamese)}/{task.Weight.ToString("0.##", Vietnamese)} điểm";
+        return task.IsExceedStandard ? text + "; đạt vượt chuẩn." : text + ".";
+    }
 }

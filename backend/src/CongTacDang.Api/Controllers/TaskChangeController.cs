@@ -38,7 +38,7 @@ public class TaskChangeController : ControllerBase
     public async Task<IActionResult> Create(Guid recordId, [FromBody] CreateTaskChangeRequestDto dto, CancellationToken ct)
     {
         var data = await _changes.CreateAsync(recordId, dto, ct);
-        return Ok(ApiResponse<RecordTaskChangesDto>.Ok(data, "Đã gửi đề nghị điều chỉnh việc."));
+        return Ok(ApiResponse<RecordTaskChangesDto>.Ok(data, CreatedMessage(dto.Type)));
     }
 
     /// <summary>Duyệt đề nghị (version = phiên bản đề nghị) — áp vào danh mục việc của hồ sơ.</summary>
@@ -56,4 +56,13 @@ public class TaskChangeController : ControllerBase
         var data = await _changes.RejectAsync(recordId, id, dto, ct);
         return Ok(ApiResponse<RecordTaskChangesDto>.Ok(data, "Đã không duyệt đề nghị."));
     }
+
+    /// <summary>Câu báo theo đúng loại đề nghị vừa gửi.</summary>
+    private static string CreatedMessage(string? type) => type?.Trim().ToLowerInvariant() switch
+    {
+        "urgent" => "Đã gửi đề nghị ghi nhận việc đột xuất.",
+        "carryover" => "Đã gửi đề nghị chuyển tiếp việc.",
+        "exclude" => "Đã gửi đề nghị loại trừ việc.",
+        _ => "Đã gửi đề nghị điều chỉnh việc."
+    };
 }

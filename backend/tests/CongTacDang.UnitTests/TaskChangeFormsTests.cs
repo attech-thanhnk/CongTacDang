@@ -123,7 +123,9 @@ public class TaskChangeFormsTests
         Assert.Contains("Hà Nội, ngày 20 tháng 08 năm 2026", text);
         Assert.Contains("Quý III / Năm 2026", text);
         Assert.Contains("Nguyễn Văn A", text);
-        Assert.Contains("Trưởng phòng Kỹ thuật", text);
+        // Chức danh trên hồ sơ cán bộ được ưu tiên hơn chức vụ chính quyền suy ra.
+        Assert.Contains("Trưởng phòng", text);
+        Assert.DoesNotContain("Trưởng phòng Kỹ thuật", text);
         Assert.Contains("Bảo dưỡng hệ thống radar", text);
         Assert.Contains("☒ Điều chỉnh tiến độ/chỉ tiêu", text);
         Assert.Contains("☒ Hiệu chỉnh kỹ thuật trọng số", text);

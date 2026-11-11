@@ -567,7 +567,7 @@ public class IndividualFormTests
         var text = Render(Mau9DData.TemplateFileName, Mau9DData.From(Source() with { Layout = layout }), out _);
 
         Assert.Contains("ĐẢNG CỘNG SẢN VIỆT NAM\n\nHà Nội, ngày 11 tháng 09 năm 2026", text);
-        Assert.Contains("Chức vụ (Đảng, Đoàn thể, Chính quyền): Bí thư Chi bộ, Chủ tịch Công đoàn, Trưởng phòng", text);
+        Assert.Contains("Chức vụ (Đảng, Chính quyền, Đoàn thể): Bí thư Chi bộ, Trưởng phòng, Chủ tịch Công đoàn", text);
         Assert.DoesNotContain("Chức vụ chính quyền:", text);
     }
 

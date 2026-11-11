@@ -258,7 +258,8 @@ public sealed class CollectiveFormsReportsIntegrationTests
             Assert.Equal(6, sheet.Cell(9, 6).GetValue<int>());
             Assert.StartsWith("Thực hiện nhiệm vụ sản xuất, kinh doanh.", sheet.Cell(10, 2).GetString());
             Assert.Contains("- Bảo dưỡng hệ thống radar", sheet.Cell(10, 2).GetString());
-            Assert.Equal("Hoàn thành 100% kế hoạch", sheet.Cell(10, 4).GetString());
+            // Dòng kết quả thẳng hàng với dòng nhiệm vụ (dưới dòng tên nhóm ở cột 2).
+            Assert.Equal("\n- Hoàn thành 100% kế hoạch", sheet.Cell(10, 4).GetString());
             Assert.Contains("- Nhiệm vụ 1: …", sheet.Cell(11, 2).GetString());
             Assert.Equal(13, sheet.Cell(22, 1).GetValue<int>());
             Assert.StartsWith("Nhiệm vụ phát sinh, đột xuất", sheet.Cell(22, 2).GetString());

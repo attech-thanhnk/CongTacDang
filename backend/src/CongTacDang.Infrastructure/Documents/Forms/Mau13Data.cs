@@ -112,8 +112,10 @@ public sealed class Mau13Data
         var blank = superior.Count == 0 && baseRows.Count == 0;
 
         // Ưu tiên số trên biên bản; chưa ghi thì dùng số chung khi mọi dòng kiểm phiếu cùng một số.
+        // Chưa nhập số phiếu phát ra/thu về/hợp lệ thì số không hợp lệ cũng để dòng chấm cho đồng bộ.
         var invalid = details.BallotsInvalid;
-        if (invalid == null)
+        var hasBallotCounts = details.BallotsIssued != null || details.BallotsCollected != null || details.BallotsValid != null;
+        if (invalid == null && hasBallotCounts)
         {
             var values = lines.Select(l => l.Summary.InvalidVotes).Distinct().ToList();
             if (values.Count == 1)

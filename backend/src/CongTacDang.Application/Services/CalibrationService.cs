@@ -777,7 +777,8 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             SecretaryName = s.SecretaryName,
             SecretaryMemberId = s.SecretaryMemberId,
             ScopeNote = s.ScopeNote,
-            ScopeSuggestion = $"Kiểm tra {total} hồ sơ thuộc nhóm \"{s.GroupName}\", {s.Period.Name}.",
+            // Tên kỳ đứng giữa câu nên viết thường chữ đầu ("quý IV/2026").
+            ScopeSuggestion = $"Kiểm tra {total} hồ sơ thuộc nhóm \"{s.GroupName}\", {LowerFirst(s.Period.Name)}.",
             ExtraConclusion = s.ExtraConclusion,
             Status = s.Status.ToString(),
             StatusName = StatusName(s.Status),
@@ -1144,6 +1145,9 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
         var name = id.HasValue ? await _records.GetMemberNameAsync(id.Value, ct) : null;
         return name ?? _currentUser.UserName;
     }
+
+    private static string LowerFirst(string text) =>
+        string.IsNullOrEmpty(text) ? text : char.ToLower(text[0], CultureInfo.GetCultureInfo("vi-VN")) + text[1..];
 
     private static string StatusName(CalibrationStatus status) => status switch
     {

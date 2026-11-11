@@ -155,7 +155,7 @@ public sealed class WordTemplateService : IWordTemplateService
         var version = await Versions.FirstOrDefaultAsync(v => v.Id == versionId && v.TemplateCode == form.Code, ct)
             ?? throw new NotFoundException($"Không tìm thấy phiên bản file mẫu của {form.Name}. Hãy tải lại trang để xem lịch sử mới nhất.");
         if (!_storage.FileExists(version.ObjectKey))
-            throw new ValidationException($"Tệp của phiên bản {version.VersionNumber} không còn trong kho tệp nên không kích hoạt được. Hãy tải lên phiên bản mới.");
+            throw new ValidationException($"Kích hoạt phiên bản {version.VersionNumber} không thành công: tệp không còn trong kho tệp. Hãy tải lên phiên bản mới.");
 
         var (userId, userName) = await CurrentUserAsync(ct);
         await _unitOfWork.ExecuteInTransactionAsync(async () =>

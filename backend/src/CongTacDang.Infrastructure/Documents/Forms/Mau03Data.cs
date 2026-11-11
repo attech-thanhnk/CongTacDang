@@ -46,8 +46,11 @@ public sealed class Mau03Data
 
     [TemplateCollection("ITEMS")] public List<Mau03Row> Items { get; init; } = new();
 
-    public static Mau03Data From(ExpertCrosscheckDto crosscheck, string? positionDept)
+    /// <summary><paramref name="tasks"/>: sản phẩm của hồ sơ, để dòng gắn sản phẩm chưa nhập dữ liệu cá nhân in kết quả tự đánh giá.</summary>
+    public static Mau03Data From(ExpertCrosscheckDto crosscheck, string? positionDept, IEnumerable<EvaluationTask>? tasks = null,
+        string? leaderTitle = null)
     {
+        var taskById = (tasks ?? Enumerable.Empty<EvaluationTask>()).GroupBy(t => t.Id).ToDictionary(g => g.Key, g => g.First());
         ArgumentNullException.ThrowIfNull(crosscheck);
         bool Has(string field) => crosscheck.Fields.Contains(field);
         var issued = crosscheck.IssuedDate is { } date
@@ -67,11 +70,22 @@ public sealed class Mau03Data
             FieldPlanning = Has(CrosscheckFields.PlanningProject),
             FieldFinance = Has(CrosscheckFields.Finance),
             FieldLegal = Has(CrosscheckFields.LegalInspectionAudit),
-            LeaderName = FormText.OrNull(crosscheck.ConfirmedByName),
+            LeaderName = LeaderText(crosscheck.ConfirmedByName, leaderTitle),
             ReviewerName = FormText.OrNull(crosscheck.SubmittedByName),
             Draft = crosscheck.Status != nameof(CrosscheckStatus.Confirmed),
-            Items = crosscheck.Items.OrderBy(i => i.Order).Select((item, index) => Mau03Row.From(item, index + 1)).ToList()
+            Items = crosscheck.Items.OrderBy(i => i.Order)
+                .Select((item, index) => Mau03Row.From(item, index + 1,
+                    item.TaskId is { } id && taskById.TryGetValue(id, out var task) ? CrosscheckRules.SelfDataOf(task) : null))
+                .ToList()
         };
+    }
+
+    /// <summary>Bản gốc "Ký, ghi rõ họ tên và chức vụ": họ tên rồi chức vụ dòng dưới; chưa xác nhận → trống.</summary>
+    private static string? LeaderText(string? name, string? title)
+    {
+        var n = FormText.OrNull(name?.Trim());
+        var t = FormText.OrNull(title?.Trim());
+        return n == null ? null : t == null ? n : n + "\n" + t;
     }
 }
 
@@ -92,11 +106,12 @@ public sealed class Mau03Row
     [TemplateField("I_ADJUST")] public string? Adjust { get; init; }
     [TemplateField("I_BASIS")] public string? Basis { get; init; }
 
-    public static Mau03Row From(ExpertCrosscheckItemDto item, int order) => new()
+    /// <summary><paramref name="selfDefault"/>: kết quả tự đánh giá của sản phẩm, in khi dòng chưa nhập dữ liệu cá nhân.</summary>
+    public static Mau03Row From(ExpertCrosscheckItemDto item, int order, string? selfDefault = null) => new()
     {
         Order = order.ToString(CultureInfo.InvariantCulture),
         Name = item.ItemName,
-        SelfData = item.SelfData,
+        SelfData = string.IsNullOrWhiteSpace(item.SelfData) ? selfDefault ?? item.SelfData : item.SelfData,
         SourceData = item.NotApplicable ? string.Empty : item.SourceData,
         Pass = !item.NotApplicable && item.Result == nameof(CrosscheckResult.Pass),
         Exceed = !item.NotApplicable && item.Result == nameof(CrosscheckResult.Exceed),

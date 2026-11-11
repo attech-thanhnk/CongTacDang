@@ -229,7 +229,13 @@ public class DocumentTemplateTests
 
         // Không thiếu (template có Tag mà lớp dữ liệu không khai báo) và không thừa (khai báo nhưng template không dùng).
         Assert.Empty(templateTags.Except(dataTags.Concat(commonTags), StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
-        Assert.Empty(dataTags.Except(templateTags, StringComparer.OrdinalIgnoreCase).OrderBy(t => t));
+        // Khối điều kiện chỉ cần một nhánh (if: hoặc ifnot:).
+        static string Condition(string tag) => tag.StartsWith(DocxTemplateEngine.IfNotPrefix, StringComparison.OrdinalIgnoreCase)
+            ? tag[DocxTemplateEngine.IfNotPrefix.Length..]
+            : tag.StartsWith(DocxTemplateEngine.IfPrefix, StringComparison.OrdinalIgnoreCase) ? tag[DocxTemplateEngine.IfPrefix.Length..] : tag;
+        var templateConditions = templateTags.Select(Condition).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Empty(dataTags.Except(templateTags, StringComparer.OrdinalIgnoreCase)
+            .Where(t => Condition(t) == t || !templateConditions.Contains(Condition(t))).OrderBy(t => t));
     }
 
     [Theory]

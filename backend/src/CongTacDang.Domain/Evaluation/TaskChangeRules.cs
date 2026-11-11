@@ -160,7 +160,7 @@ public static class TaskChangeRules
             if (target == null)
                 return "Việc được chọn không thuộc danh mục của hồ sơ.";
             if (!IsActive(target))
-                return $"Việc \"{target.TaskName}\" đã được loại trừ hoặc chuyển tiếp, không đề nghị thay đổi được nữa.";
+                return $"Đề nghị thay đổi việc \"{target.TaskName}\" không thành công: việc đã được loại trừ hoặc chuyển tiếp.";
         }
         else if (taskId is { } urgentTask && urgentTask != Guid.Empty)
         {
@@ -178,6 +178,13 @@ public static class TaskChangeRules
 
         // Việc bị loại trừ / chuyển tiếp về 0, bỏ qua trọng số trong bảng.
         var remaining = active.Where(t => !(MarkOf(type) != null && t.Id == target!.Id)).ToList();
+        // Báo rõ cách xử lý thay cho lỗi chung về số sản phẩm đăng ký.
+        if (MarkOf(type) != null && remaining.Count < criteria.Parameters.MinTasks)
+        {
+            var action = type == TaskChangeType.Exclude ? "loại trừ" : "chuyển tiếp";
+            return $"Đề nghị {action} không thành công: danh mục sẽ còn {remaining.Count} việc, dưới số tối thiểu {criteria.Parameters.MinTasks} việc của bộ tiêu chí. "
+                + $"Hãy ghi nhận việc đột xuất trước rồi mới đề nghị {action}.";
+        }
         var allowed = active.Select(t => t.Id).ToHashSet();
         if (weights.Keys.Any(k => !allowed.Contains(k)))
             return "Bảng trọng số sau điều chỉnh có việc không còn hiệu lực trong danh mục của hồ sơ.";

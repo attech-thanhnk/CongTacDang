@@ -81,7 +81,7 @@ public sealed class RecordFormService : IRecordFormService
         }
 
         if (criteria == null)
-            throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa xuất được biểu mẫu tự chấm. Hãy liên hệ người quản lý kỳ.");
+            throw new ConflictException("Xuất biểu mẫu tự chấm không thành công: kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.");
 
         var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
         var (templateFileName, data) = code switch
@@ -104,7 +104,7 @@ public sealed class RecordFormService : IRecordFormService
             return await _reports.ExportPersonalFormExcelAsync(recordId, code);
 
         if (criteria == null)
-            throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí nên chưa xuất được biểu mẫu tự chấm. Hãy liên hệ người quản lý kỳ.");
+            throw new ConflictException("Xuất biểu mẫu tự chấm không thành công: kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.");
         var source = new IndividualFormSource(record, criteria.Content, await PositionsAsync(record, ct), await LayoutAsync(record, ct));
         var org = OrganizationSettingsService.ToTemplateFields(await _orgSettings.GetAsync(ct));
         var bytes = code == RecordFormCodes.Form09A
@@ -166,7 +166,7 @@ public sealed class RecordFormService : IRecordFormService
                 $"Đề nghị \"{TaskChangeRules.TypeName(request.Type)}\" dùng {RecordFormCodes.DisplayName(FormCodeOf(request.Type))}, không dùng {RecordFormCodes.DisplayName(code)}.");
         }
 
-        var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).All());
+        var source = new TaskChangeFormSource(record, request, (await PositionsAsync(record, ct)).Administrative);
         var (templateFileName, data) = code == RecordFormCodes.Form05
             ? (Mau05Data.TemplateFileName, (object)Mau05Data.From(source))
             : (Mau04Data.TemplateFileName, Mau04Data.From(source));

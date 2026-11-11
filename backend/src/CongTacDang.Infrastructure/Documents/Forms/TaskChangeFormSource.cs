@@ -7,7 +7,7 @@ using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
-/// <summary>Nguồn Mẫu 04/05: một đề nghị thay đổi việc và hồ sơ của nó; chỉ đọc giá trị đã lưu.</summary>
+/// <summary>Nguồn Mẫu 04/05: một đề nghị thay đổi việc và hồ sơ của nó; chỉ đọc giá trị đã lưu. Positions: chức vụ chính quyền, dùng khi hồ sơ cán bộ chưa ghi chức danh.</summary>
 public sealed record TaskChangeFormSource(EvaluationRecord Record, TaskChangeRequest Request, string? Positions)
 {
     public TaskChangeProposal Proposal => TaskChangeRules.ProposalFromJson(Request.Proposal);

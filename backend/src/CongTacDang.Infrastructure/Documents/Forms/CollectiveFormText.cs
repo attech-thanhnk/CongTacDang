@@ -21,16 +21,40 @@ public sealed record PartyHeader(string? Parent, string? Organization, string? U
     /// <summary>Tên dài hơn mức này (ký tự) không vừa một dòng ở cột tiêu đề trái.</summary>
     private const int MaxLineLength = 30;
 
-    /// <summary>Tên dài ngắt thành hai dòng cân nhau tại khoảng trắng, tránh Word ngắt lửng một chữ.</summary>
+    /// <summary>Tên đơn vị bắt đầu bằng các từ này: ngắt dòng được ngay trước đó (không tách giữa một từ ghép).</summary>
+    private static readonly string[] UnitWords =
+    {
+        "TỔNG CÔNG TY", "CÔNG TY", "PHÒNG", "BAN", "TRUNG TÂM", "VĂN PHÒNG", "XÍ NGHIỆP", "CHI NHÁNH", "ĐỘI", "BỘ PHẬN", "KHỐI", "TRẠM"
+    };
+
+    /// <summary>Loại hình doanh nghiệp, hoặc "CÔNG TY" đứng ngay trước tên riêng: ngắt dòng được ngay sau đó.</summary>
+    private static readonly string[] AfterWords = { "TNHH", "CỔ PHẦN", "CÔNG TY" };
+
+    /// <summary>
+    /// Tên dài ngắt thành hai dòng ở ranh giới tên đơn vị (trước "PHÒNG", "CÔNG TY"…, sau "TNHH" hoặc "CÔNG TY"), chọn chỗ cân nhất;
+    /// không có ranh giới nào thì để nguyên cho Word tự xuống dòng, tránh tách đôi một từ như "TÀI / CHÍNH".
+    /// </summary>
     public static string? Lines(string? value)
     {
         if (value == null || value.Length <= MaxLineLength || value.Contains('\n'))
             return value;
+        var words = value.Split(' ');
         var best = -1;
-        for (var i = value.IndexOf(' '); i > 0; i = value.IndexOf(' ', i + 1))
+        var position = 0;
+        for (var w = 1; w < words.Length; w++)
         {
-            if (best < 0 || Math.Abs(value.Length - 2 * i) < Math.Abs(value.Length - 2 * best))
-                best = i;
+            position += words[w - 1].Length + 1;
+            var rest = string.Join(' ', words[w..]);
+            var head = string.Join(' ', words[..w]);
+            var before = UnitWords.Any(u => (rest + " ").StartsWith(u + " ", StringComparison.Ordinal))
+                && !(words[w - 1] == "TỔNG" && rest.StartsWith("CÔNG TY", StringComparison.Ordinal));
+            var after = AfterWords.Any(a => head.EndsWith(" " + a, StringComparison.Ordinal))
+                && !AfterWords.Any(a => (rest + " ").StartsWith(a + " ", StringComparison.Ordinal));
+            if (!before && !after)
+                continue;
+            var cut = position - 1;
+            if (best < 0 || Math.Abs(value.Length - 2 * cut) < Math.Abs(value.Length - 2 * best))
+                best = cut;
         }
         return best < 0 ? value : value[..best] + "\n" + value[(best + 1)..];
     }

@@ -100,7 +100,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
 
         var soffice = LibreOfficeLocator.Find(_options.SofficePath)
             ?? throw new ServiceUnavailableException(
-                "Máy chủ chưa cài LibreOffice nên chưa xuất được PDF. Hãy tải bản Word/Excel hoặc liên hệ quản trị hệ thống.");
+                "Xuất PDF không thành công: máy chủ chưa cài LibreOffice. Hãy tải bản Word/Excel hoặc liên hệ quản trị hệ thống.");
 
         await _gate.WaitAsync(cancellationToken);
         var workRoot = string.IsNullOrWhiteSpace(_options.WorkDirectory)
@@ -180,7 +180,7 @@ public sealed class LibreOfficePdfConverter : IPdfConverter, IDisposable
         catch (Win32Exception)
         {
             throw new ServiceUnavailableException(
-                "Chạy LibreOffice (soffice) trên máy chủ không thành công nên chưa xuất được PDF. Kiểm tra cấu hình Documents:Pdf:SofficePath.");
+                "Xuất PDF không thành công: chạy LibreOffice (soffice) trên máy chủ bị lỗi. Kiểm tra cấu hình Documents:Pdf:SofficePath.");
         }
     }
 

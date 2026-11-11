@@ -97,10 +97,10 @@ internal static class Mau09Shared
         return (positions.Party ?? empty, AdministrativePosition(source) ?? empty, positions.MassOrganization ?? empty);
     }
 
-    /// <summary>Null nếu không có chức vụ.</summary>
+    /// <summary>Thứ tự theo nhãn "Chức vụ (Đảng, Chính quyền, Đoàn thể)" của bản gốc 9D; null nếu không có chức vụ.</summary>
     public static string? PositionsOneLine(IndividualFormSource source)
     {
-        var parts = new[] { source.Positions.Party, source.Positions.MassOrganization, AdministrativePosition(source) }
+        var parts = new[] { source.Positions.Party, AdministrativePosition(source), source.Positions.MassOrganization }
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .ToList();
         return parts.Count == 0 ? null : string.Join(", ", parts);

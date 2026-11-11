@@ -59,10 +59,11 @@ public sealed class Mau16Data
             Recipient = FormText.OrNull(c.Recipient),
             WorkingRules = FormText.OrNull(c.WorkingRules),
             MeetingDate = CollectiveFormText.Spaced(c.MeetingDate ?? draft.SuggestedMeetingDate),
-            Organizer = FormText.OrNull(c.Organizer) ?? header.UnitName,
+            // Hội nghị, đề xuất là của cấp ủy ("Đảng ủy …"), không phải "Đảng bộ …".
+            Organizer = FormText.OrNull(c.Organizer) ?? CollectiveFormText.CommitteeInSentence(header.UnitName),
             BaseRows = draft.BaseRows.Select((r, i) => new Mau16BaseRow(Cells(r, i, draft.BaseRows.Count))).ToList(),
             SuperiorRows = draft.SuperiorRows.Select((r, i) => new Mau16SuperiorRow(Cells(r, i, draft.SuperiorRows.Count))).ToList(),
-            Proposer = FormText.OrNull(c.Proposer) ?? header.UnitName,
+            Proposer = FormText.OrNull(c.Proposer) ?? CollectiveFormText.CommitteeInSentence(header.UnitName),
             Proposal1 = Numbered("1", c.Proposal1),
             Proposal2 = Numbered("2", c.Proposal2),
             Proposal3 = Numbered("3", c.Proposal3),

@@ -37,6 +37,9 @@ public sealed class MauQdData
     /// <summary>Nhiệm kỳ ("2025-2030").</summary>
     [TemplateField("TERM")] public string? Term { get; init; }
 
+    /// <summary>Đảng bộ cấp trên ở căn cứ Hướng dẫn ("… quản lý trong Đảng bộ …"), lấy từ cài đặt đơn vị.</summary>
+    [TemplateField("GUIDE_PARTY")] public string? GuideParty { get; init; }
+
     /// <summary>Ngày hội nghị cấp ủy quyết định ("15/09/2026").</summary>
     [TemplateField("MEETING_DATE")] public string? MeetingDate { get; init; }
 
@@ -56,7 +59,7 @@ public sealed class MauQdData
 
     /// <summary>Thiếu dữ liệu → giữ chỗ chấm của template.</summary>
     public static MauQdData From(EvaluationPeriod period, PartyHeader header, string? superiorInSentence,
-        DecisionDocumentInfo info, IEnumerable<MauQdLine> lines)
+        DecisionDocumentInfo info, IEnumerable<MauQdLine> lines, string? guidePartyInSentence = null)
     {
         ArgumentNullException.ThrowIfNull(period);
         ArgumentNullException.ThrowIfNull(header);
@@ -80,6 +83,7 @@ public sealed class MauQdData
             CommitteeUpper = committeeUpper,
             Executive = CollectiveFormText.ExecutiveInSentence(unit),
             Term = CollectiveFormText.PartyTerm(period.Year),
+            GuideParty = FormText.OrNull(guidePartyInSentence?.Trim()),
             MeetingDate = info.MeetingAt.HasValue ? CollectiveFormText.Date(info.MeetingAt.Value) : null,
             SuperiorCommittee = CollectiveFormText.CommitteeInSentence(superiorInSentence),
             SignOnBehalf = CollectiveFormText.SignOnBehalf(committeeUpper),

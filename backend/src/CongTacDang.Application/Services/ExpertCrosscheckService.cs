@@ -600,6 +600,9 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             if (name.Length > CrosscheckRules.MaxNameLength)
                 throw new ValidationException($"Tên chỉ tiêu không được dài quá {CrosscheckRules.MaxNameLength} ký tự.");
             var self = row.SelfData?.Trim() ?? string.Empty;
+            // Dòng gắn sản phẩm chưa nhập: lấy kết quả cá nhân tự đánh giá của sản phẩm (sửa được khi còn ở bước yêu cầu).
+            if (self.Length == 0 && task != null)
+                self = CrosscheckRules.SelfDataOf(task) ?? string.Empty;
             if (self.Length > CrosscheckRules.MaxTextLength)
                 throw new ValidationException($"Dữ liệu tự khai của \"{name}\" không được dài quá {CrosscheckRules.MaxTextLength} ký tự.");
             items.Add(new RequestRow(task?.Id, name, self));
@@ -758,6 +761,7 @@ public sealed class ExpertCrosscheckService : IExpertCrosscheckService, IExpertC
             RequestReason = c.RequestReason,
             EnteredOnBehalf = !c.ExpertDepartmentId.HasValue,
             SubmittedByName = c.SubmittedByName,
+            ConfirmedById = c.ConfirmedById,
             ConfirmedByName = c.ConfirmedByName,
             IssuedDate = c.IssuedDate,
             ReturnReason = c.ReturnReason,

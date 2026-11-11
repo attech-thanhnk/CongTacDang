@@ -369,19 +369,32 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
     }
 }
 
-# Biên bản họp tập thể (Mẫu 12) bước 3a, mỗi đơn vị một biên bản; dùng lại biên bản đã có của lần chạy trước
+# Biên bản họp tập thể (Mẫu 12) bước 3a, mỗi đơn vị một biên bản; dùng lại biên bản đã có của lần chạy trước.
+# Thư ký chỉ có phạm vi chi bộ bị 403 khi lập theo Phòng -> lập theo chi bộ của cán bộ.
 function Get-CollectiveMeeting($record, [string]$owner) {
     $key = if ($record.departmentId) { "d:$($record.departmentId)" } else { "c:$($record.partyCellId)" }
+    $cellKey = "c:$($record.partyCellId)"
     if ($script:Meetings.ContainsKey($key)) { return $script:Meetings[$key] }
+    if ($record.partyCellId -and $script:Meetings.ContainsKey($cellKey)) { return $script:Meetings[$cellKey] }
+    $byCell = [ordered]@{
+        periodId = $record.periodId; departmentId = $null; partyCellId = $record.partyCellId
+        stage = 'B3A_COLLECTIVE'; formCode = 'M12'; meetingType = 'Họp tập thể lãnh đạo đơn vị'
+        invitedCount = 5; presentCount = 5
+    }
     foreach ($user in $MeetingSecretaries) {
         if ($user -eq $owner) { continue }
         $session = Get-Session $user
         $list = Invoke-Api $session 'GET' "/api/evaluations/meetings?periodId=$($record.periodId)"
         if ($list.Ok) {
-            $found = @($list.Data | Where-Object {
-                $_.stage -eq 'B3A_COLLECTIVE' -and $(if ($record.departmentId) { $_.departmentId -eq $record.departmentId } else { -not $_.departmentId -and $_.partyCellId -eq $record.partyCellId })
-            }) | Select-Object -First 1
+            $meetings = @($list.Data | Where-Object { $_.stage -eq 'B3A_COLLECTIVE' })
+            $found = $meetings | Where-Object {
+                $(if ($record.departmentId) { $_.departmentId -eq $record.departmentId } else { -not $_.departmentId -and $_.partyCellId -eq $record.partyCellId })
+            } | Select-Object -First 1
             if ($found) { $script:Meetings[$key] = $found; return $found }
+            if ($record.partyCellId) {
+                $found = $meetings | Where-Object { -not $_.departmentId -and $_.partyCellId -eq $record.partyCellId } | Select-Object -First 1
+                if ($found) { $script:Meetings[$cellKey] = $found; return $found }
+            }
         }
         $body = [ordered]@{
             periodId = $record.periodId; departmentId = $record.departmentId; partyCellId = $(if ($record.departmentId) { $null } else { $record.partyCellId })
@@ -395,8 +408,17 @@ function Get-CollectiveMeeting($record, [string]$owner) {
             return $r.Data
         }
         if ($r.Status -ne 403) { Fail "Lập biên bản họp tập thể của $($record.departmentName) không thành công: HTTP $($r.Status) - $($r.Message)" }
+        if ($record.departmentId -and $record.partyCellId) {
+            $r = Invoke-Api $session 'POST' '/api/evaluations/meetings' $byCell
+            if ($r.Ok) {
+                Write-Host "   Lập biên bản họp tập thể theo chi bộ của $($record.fullName) ($user)" -ForegroundColor DarkCyan
+                $script:Meetings[$cellKey] = $r.Data
+                return $r.Data
+            }
+            if ($r.Status -ne 403) { Fail "Lập biên bản họp tập thể theo chi bộ của $($record.fullName) không thành công: HTTP $($r.Status) - $($r.Message)" }
+        }
     }
-    Fail "Không tài khoản nào trong $($MeetingSecretaries -join ', ') lập được biên bản họp cho $($record.departmentName). Hãy kiểm tra vai trò Thư ký hội nghị."
+    Fail "Lập biên bản họp tập thể cho $($record.departmentName) không thành công: không tài khoản nào trong $($MeetingSecretaries -join ', ') có quyền. Hãy kiểm tra vai trò Thư ký hội nghị."
 }
 
 # Thực hiện bước hiện tại của một hồ sơ bằng tài khoản đầu tiên có nút

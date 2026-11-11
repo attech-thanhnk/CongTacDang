@@ -15,6 +15,9 @@ public sealed class Mau02Data
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
+
+    /// <summary>Đơn vị gốc (chính là công ty) → tiêu đề trái chỉ in tên công ty, không lặp.</summary>
+    [TemplateCondition("HAS_DEPARTMENT")] public bool HasDepartment { get; init; }
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
@@ -28,6 +31,17 @@ public sealed class Mau02Data
     /// <summary>Dòng "CỘNG" ("… SP"); chưa có sản phẩm → giữ dòng chấm.</summary>
     [TemplateField("EXCEED_COUNT")] public string? ExceedCount { get; init; }
 
+    /// <summary>Dòng "CỘNG": tổng trọng số các sản phẩm; chưa có sản phẩm → giữ chữ mặc định.</summary>
+    [TemplateField("TOTAL_WEIGHT")] public string? TotalWeight { get; init; }
+
+    // Ô ký: bước chưa làm hoặc do cấp trên thực hiện → giữ dòng chấm để ký tay (như Mẫu 01).
+
+    /// <summary>Ô "Cá nhân tự đánh giá": chủ hồ sơ khi đã nộp phiếu tự chấm.</summary>
+    [TemplateField("SELF_NAME")] public string? SelfName { get; init; }
+
+    /// <summary>Ô "Đại diện lãnh đạo đơn vị": Trưởng đơn vị đã gửi danh mục (cùng người ký Mẫu 01).</summary>
+    [TemplateField("UNIT_LEADER_NAME")] public string? UnitLeaderName { get; init; }
+
     /// <summary><paramref name="evidenceNames"/>: tên tệp minh chứng (phiên bản hiện hành) theo Id nhiệm vụ.</summary>
     public static Mau02Data From(EvaluationRecord record, IReadOnlyDictionary<Guid, string>? evidenceNames = null)
     {
@@ -38,6 +52,10 @@ public sealed class Mau02Data
         {
             DateLine = CollectiveFormText.DateLine(record.SelfScoredAt),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
+            HasDepartment = Mau09Shared.HasDepartment(record),
+            TotalWeight = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.Weight), 1) : null,
+            SelfName = record.SelfScoredAt.HasValue ? FormText.OrNull(record.Member?.FullName) : null,
+            UnitLeaderName = record.TasksForwardedById != null ? FormText.OrNull(record.TasksForwardedByName) : null,
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),
@@ -51,9 +69,11 @@ public sealed class Mau02Data
                 var pending = TaskSelfScores.IsPending(t);
                 double? resultPct = t.Weight > 0 ? Math.Round(t.SelfScore / t.Weight * 100, 1) : null;
 
+                // Không có tệp minh chứng: in nguồn minh chứng đã đăng ký ở Mẫu 01, không có thì để trống.
                 string? evidence = null;
                 if (evidenceNames != null && evidenceNames.TryGetValue(t.Id, out var name))
                     evidence = FormText.OrNull(name);
+                evidence ??= FormText.OrNull(t.EvidenceSource?.Trim()) ?? string.Empty;
 
                 return new Mau02TaskRow
                 {
@@ -107,6 +127,6 @@ public sealed class Mau02TaskRow
     /// <summary>Chữ hiển thị nằm trong khối <c>if:T_IS_EXCEED</c> / <c>ifnot:T_IS_EXCEED</c> của template.</summary>
     [TemplateCondition("T_IS_EXCEED")] public bool IsExceedStandard { get; init; }
 
-    /// <summary>Không có thì giữ chữ mặc định.</summary>
+    /// <summary>Tên tệp minh chứng, không có thì nguồn minh chứng đã đăng ký; cả hai trống → ô trống.</summary>
     [TemplateField("T_EVIDENCE")] public string? Evidence { get; init; }
 }

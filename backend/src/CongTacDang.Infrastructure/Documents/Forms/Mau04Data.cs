@@ -57,7 +57,8 @@ public sealed class Mau04Data
         var request = source.Request;
         var target = source.Target;
         var name = FormText.OrNull(request.TaskNameSnapshot ?? target?.TaskName);
-        var code = FormText.OrNull(target?.ProductCode);
+        // Mã SP theo bản chụp lúc lập đề nghị: duyệt điều chỉnh có thể đã ghi đè mã trên việc.
+        var code = source.TaskBefore != null ? FormText.OrNull(source.TaskBefore.ProductCode) : FormText.OrNull(target?.ProductCode);
         var weightChanged = source.WeightsChanged;
         var fieldLines = FieldLines(source.Proposal, source.Proposal);
 
@@ -67,7 +68,7 @@ public sealed class Mau04Data
             Quarter = Mau09Shared.Quarter(record),
             Year = Mau09Shared.Year(record),
             FullName = FormText.OrNull(record.Member?.FullName),
-            Position = source.Positions ?? FormText.OrNull(record.Member?.PositionTitle),
+            Position = FormText.OrNull(record.Member?.PositionTitle) ?? source.Positions,
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
             AffectedTask = name == null ? null : code == null ? name : $"{name} (Mã SP: {code})",
             BoxAdjust = request.Type == TaskChangeType.Adjust && (fieldLines.Count > 0 || !weightChanged) ? CheckedBox : null,

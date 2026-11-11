@@ -37,8 +37,15 @@ public sealed class Mau11Data
     /// <summary>Tiêu đề mục II, chữ in hoa; null giữ chữ mặc định.</summary>
     [TemplateField("BASE_AUTHORITY")] public string? BaseAuthority { get; init; }
 
-    /// <summary><paramref name="lines"/> đã xếp thứ tự in, nạp kèm Member.</summary>
-    public static Mau11Data From(EvaluationPeriod period, IReadOnlyList<Mau11Line> lines, string? issuer)
+    /// <summary>Phiếu in theo biên bản: ngày hội nghị; xuất theo kỳ → giữ dòng chấm.</summary>
+    [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
+
+    /// <summary>
+    /// <paramref name="lines"/> đã xếp thứ tự in, nạp kèm Member; <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản
+    /// (tiêu đề mục II như Mẫu 13), null → dựng từ <paramref name="issuer"/>.
+    /// </summary>
+    public static Mau11Data From(EvaluationPeriod period, IReadOnlyList<Mau11Line> lines, string? issuer,
+        string? archiveUnit = null, DateTime? meetingAt = null)
     {
         List<Mau11Row> Rows(ApprovalAuthority authority) => lines
             .Where(l => l.Record.ApprovalAuthority == authority)
@@ -59,7 +66,8 @@ public sealed class Mau11Data
             BaseRows = baseRows,
             HasBaseRows = baseRows.Count > 0,
             ShowBase = baseRows.Count > 0 || blank,
-            BaseAuthority = CollectiveFormText.CommitteeUpper(issuer)
+            BaseAuthority = CollectiveFormText.CommitteeUpper(archiveUnit ?? issuer),
+            DateLine = CollectiveFormText.DateLine(meetingAt)
         };
     }
 

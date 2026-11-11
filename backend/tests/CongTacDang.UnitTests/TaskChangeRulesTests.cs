@@ -88,7 +88,7 @@ public sealed class TaskChangeRulesTests
         Assert.False(TaskChangeRules.IsActive(tasks[3]));
         Assert.Equal(70.0, tasks.Where(TaskChangeRules.IsActive).Sum(t => t.Weight), 6);
 
-        // Việc đã loại trừ không đề nghị thay đổi được nữa và không được có trong bảng trọng số.
+        // Việc đã loại trừ thì không đề nghị thay đổi nữa và không có trong bảng trọng số.
         Assert.Contains("đã được loại trừ", TaskChangeRules.Validate(TaskChangeType.Adjust, tasks[3].Id, new TaskChangeProposal { TaskName = "x" },
             new Dictionary<Guid, double>(), tasks, Criteria));
         Assert.Contains("không còn hiệu lực", TaskChangeRules.Validate(TaskChangeType.Adjust, tasks[0].Id, new TaskChangeProposal { TaskName = "x" },
@@ -101,7 +101,10 @@ public sealed class TaskChangeRulesTests
         var tasks = Tasks(30, 20, 20);
         var weights = new Dictionary<Guid, double> { [tasks[0].Id] = 40, [tasks[1].Id] = 30 };
         var error = TaskChangeRules.Validate(TaskChangeType.Carryover, tasks[2].Id, new TaskChangeProposal(), weights, tasks, Criteria);
-        Assert.Contains("Số sản phẩm", error);
+        // Báo rõ phải ghi nhận việc đột xuất trước.
+        Assert.Contains("dưới số tối thiểu 3 việc", error);
+        Assert.Contains("ghi nhận việc đột xuất trước", error);
+        Assert.Contains("chuyển tiếp", error);
     }
 
     [Fact]

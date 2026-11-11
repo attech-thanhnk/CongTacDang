@@ -73,6 +73,7 @@ public class ExpertCrosscheckDto : ExpertCrosscheckSummaryDto
     /// <summary>Cơ quan ngoài hệ thống: người có quyền yêu cầu nhập thay.</summary>
     public bool EnteredOnBehalf { get; set; }
     public string? SubmittedByName { get; set; }
+    public Guid? ConfirmedById { get; set; }
     public string? ConfirmedByName { get; set; }
     public DateOnly? IssuedDate { get; set; }
     public string? ReturnReason { get; set; }

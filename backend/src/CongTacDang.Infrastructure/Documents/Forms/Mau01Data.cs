@@ -14,6 +14,9 @@ public sealed class Mau01Data
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
     [TemplateField("DEPARTMENT")] public string? Department { get; init; }
+
+    /// <summary>Đơn vị gốc (chính là công ty) → tiêu đề trái chỉ in tên công ty, không lặp.</summary>
+    [TemplateCondition("HAS_DEPARTMENT")] public bool HasDepartment { get; init; }
     [TemplateField("QUARTER")] public string? Quarter { get; init; }
     [TemplateField("YEAR")] public string? Year { get; init; }
     [TemplateField("FULL_NAME")] public string? FullName { get; init; }
@@ -35,6 +38,9 @@ public sealed class Mau01Data
 
     [TemplateCollection("TASKS")] public List<Mau01TaskRow> Tasks { get; init; } = new();
 
+    /// <summary>Dòng "CỘNG": tổng trọng số các sản phẩm; chưa có sản phẩm → giữ chữ mặc định.</summary>
+    [TemplateField("TOTAL_WEIGHT")] public string? TotalWeight { get; init; }
+
     public static Mau01Data From(EvaluationRecord record)
     {
         var tasks = record.Tasks.OrderBy(t => t.TaskOrder).ToList();
@@ -42,6 +48,8 @@ public sealed class Mau01Data
         {
             DateLine = CollectiveFormText.DateLine(record.TasksApprovedAt),
             Department = FormText.OrNull(record.Department?.Name ?? record.PartyCell?.Name),
+            HasDepartment = Mau09Shared.HasDepartment(record),
+            TotalWeight = tasks.Count > 0 ? FormText.Number(tasks.Sum(t => t.Weight), 1) : null,
             Quarter = record.Period != null ? CollectiveFormText.RomanQuarter(record.Period.Quarter) : null,
             Year = record.Period != null ? FormText.Year(record.Period.Year) : null,
             FullName = FormText.OrNull(record.Member?.FullName),

@@ -71,6 +71,9 @@ public sealed class Mau12Data
 
     public const string ProposalChairSignNote = "(ký, ghi rõ họ tên)";
 
+    /// <summary>Chỗ điền của template liền sau dấu "-" nên có khoảng trắng đầu.</summary>
+    public const string EmptyAttendeeTitle = " … (ghi rõ chức vụ Đảng, chính quyền)";
+
     /// <summary><paramref name="unitName"/>: đơn vị tổ chức hội nghị; <paramref name="archiveUnit"/>: tổ chức Đảng lưu biên bản.</summary>
     public static Mau12Data From(EvaluationMeeting meeting, PartyHeader header, string? unitName, string? archiveUnit, MeetingDetailsDto details)
     {
@@ -109,12 +112,15 @@ public sealed class Mau12Data
             Invited = meeting.InvitedCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Present = meeting.PresentCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Absent = meeting.AbsentCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Attendees = attendees.Select((a, i) => new Mau12Attendee
-            {
-                Order = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-                Name = a.Name.Trim(),
-                Title = CollectiveFormText.Spaced(a.Title)
-            }).ToList(),
+            // Không có người dự khác: giữ dòng mẫu "(1) Đồng chí … - … (ghi rõ chức vụ …)" như biểu mẫu gốc.
+            Attendees = attendees.Count == 0
+                ? new List<Mau12Attendee> { new() { Title = EmptyAttendeeTitle } }
+                : attendees.Select((a, i) => new Mau12Attendee
+                {
+                    Order = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Name = a.Name.Trim(),
+                    Title = CollectiveFormText.Spaced(a.Title)
+                }).ToList(),
             HasAttendees = attendees.Count > 0,
             ChairName = FormText.OrNull(meeting.ChairName),
             ChairTitle = CollectiveFormText.Spaced(details.ChairTitle),
@@ -123,7 +129,8 @@ public sealed class Mau12Data
             ReportingUnit = CollectiveFormText.Spaced(details.ReportingUnit ?? unit),
             HasContent = content.Length > 0,
             Content = FormText.OrNull(content),
-            ArchiveUnit = FormText.OrNull(archiveUnit?.Trim()),
+            // Biên bản lưu ở cấp ủy ("Đảng ủy …"), Chi bộ giữ tên.
+            ArchiveUnit = CollectiveFormText.CommitteeInSentence(archiveUnit),
             SecretarySign = FormText.OrNull(meeting.SecretaryName),
             ChairSign = FormText.OrNull(meeting.ChairName),
             ChairSignTitle = PartyHeader.Upper(details.ChairTitle) ?? (isProposal ? string.Empty : null),

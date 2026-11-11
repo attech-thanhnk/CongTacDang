@@ -50,7 +50,7 @@ public static class PersonalFormWorkbooks
         var ws = workbook.Worksheets.Add("Mẫu 01");
         var last = Form01Columns.Length;
         SetWidths(ws, 5, 34, 9, 10, 10, 9, 13, 22, 22, 20, 16);
-        var row = WriteHeader(ws, last, "Mẫu số 01", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department), StateHeader(org, data.DateLine)) + 1;
+        var row = WriteHeader(ws, last, "Mẫu số 01", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
         TitleRow(ws, row++, last, "PHIẾU GIAO / ĐĂNG KÝ SẢN PHẨM, CÔNG VIỆC CHUYÊN MÔN HẰNG QUÝ", bold: true);
         TextRow(ws, row++, last, "(Dùng để thống nhất đầu ra, mốc quý, tiêu chuẩn và trọng số. Thông thường 03-07 sản phẩm/nhóm công việc; tổng trọng số cố định là 70 điểm.)", italic: true);
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
@@ -86,15 +86,7 @@ public static class PersonalFormWorkbooks
         row += 2;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN PHÊ DUYỆT", SignNote), ("CƠ QUAN TỔ CHỨC CÁN BỘ", SignNote),
             ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("CÁ NHÂN ĐĂNG KÝ", SignNote));
-        // Dòng họ tên theo thứ tự ô ký; người chưa thực hiện trong hệ thống để dòng chấm ký tay.
-        var nameRow = row + 5;
-        var names = new[] { data.ApproverName, data.HrReviewerName, data.SupervisorName, data.RegistrantName };
-        for (var i = 0; i < 4; i++)
-        {
-            var first = 1 + i * last / 4;
-            ws.Cell(nameRow, first).Value = names[i] ?? Dots;
-            ws.Range(nameRow, first, nameRow, (i + 1) * last / 4).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        }
+        SignNames(ws, row, last, data.ApproverName, data.HrReviewerName, data.SupervisorName, data.RegistrantName);
 
         return Save(workbook, ws);
     }
@@ -105,7 +97,7 @@ public static class PersonalFormWorkbooks
         var ws = workbook.Worksheets.Add("Mẫu 02");
         var last = Form02Columns.Length;
         SetWidths(ws, 5, 34, 9, 11, 12, 10, 12, 11, 10, 14, 22);
-        var row = WriteHeader(ws, last, "Mẫu số 02", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department), StateHeader(org, data.DateLine)) + 1;
+        var row = WriteHeader(ws, last, "Mẫu số 02", 3, CompanyHeader(org.CompanyNameUpper, "CƠ QUAN QUẢN LÝ CẤP TRÊN", data.Department, data.HasDepartment), StateHeader(org, data.DateLine)) + 1;
         TitleRow(ws, row++, last, "PHIẾU TỰ ĐÁNH GIÁ KẾT QUẢ THỰC HIỆN SẢN PHẨM, CÔNG VIỆC HẰNG QUÝ", bold: true);
         TextRow(ws, row++, last, "(Sai sót hoặc sự cố chỉ ghi nhận bất lợi khi đã xác định trách nhiệm; hành động báo cáo/dừng/điều chỉnh đúng quy trình vì an toàn không bị trừ điểm)", italic: true);
         InfoRow(ws, row++, last, $"Kỳ đánh giá: Quý {data.Quarter ?? "..."} / Năm {data.Year ?? "20..."}");
@@ -148,6 +140,7 @@ public static class PersonalFormWorkbooks
         TextRow(ws, row++, last, "Điểm sản phẩm (đ) = [Kết quả thực hiện sản phẩm (%) × Trọng số sản phẩm] / 100");
         row++;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("ĐẠI DIỆN LÃNH ĐẠO ĐƠN VỊ", SignNote), ("CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote));
+        SignNames(ws, row, last, null, data.UnitLeaderName, data.SelfName);
 
         return Save(workbook, ws);
     }
@@ -233,6 +226,7 @@ public static class PersonalFormWorkbooks
         TextRow(ws, row++, last, "Tôi xin cam đoan những nội dung tự đánh giá, điểm số và hồ sơ minh chứng trên là hoàn toàn trung thực, chính xác.");
         row++;
         SignatureRow(ws, row, last, "XÁC NHẬN CỦA CHI BỘ", "(Xác lập thời điểm, ký, ghi rõ họ tên)", "CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote);
+        SignNames(ws, row, last, data.CellConfirmerName, data.SelfName);
 
         return Save(workbook, ws);
     }
@@ -253,7 +247,7 @@ public static class PersonalFormWorkbooks
         InfoRow(ws, row++, last, $"Họ và tên: {data.FullName ?? "…"}");
         if (data.PositionsOneLine)
         {
-            InfoRow(ws, row++, last, $"Chức vụ (Đảng, Đoàn thể, Chính quyền): {data.Positions ?? "…"}");
+            InfoRow(ws, row++, last, $"Chức vụ (Đảng, Chính quyền, Đoàn thể): {data.Positions ?? "…"}");
         }
         else
         {
@@ -356,16 +350,15 @@ public static class PersonalFormWorkbooks
             $"{data.CheckExcellent} Hoàn thành xuất sắc      {data.CheckGood} Hoàn thành tốt      {data.CheckDone} Hoàn thành nhiệm vụ      {data.CheckFailed} Không hoàn thành");
         row++;
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("ĐẠI DIỆN CƠ QUAN THẨM ĐỊNH", SignNote));
+        SignNames(ws, row, last, null, data.SupervisorName, data.AppraiserName);
 
         return Save(workbook, ws, landscape: false);
     }
 
-    /// <summary>Tiêu đề trái Mẫu 01/02: tên công ty (in hoa) rồi đơn vị của hồ sơ.</summary>
-    private static ExcelHeaderLine[] CompanyHeader(string? companyUpper, string fallback, string? department) => new[]
-    {
-        new ExcelHeaderLine(companyUpper ?? fallback),
-        new ExcelHeaderLine(department ?? "................", Bold: true)
-    };
+    /// <summary>Tiêu đề trái Mẫu 01/02: tên công ty (in hoa) rồi đơn vị của hồ sơ; đơn vị gốc chỉ in tên công ty như bản Word.</summary>
+    private static ExcelHeaderLine[] CompanyHeader(string? companyUpper, string fallback, string? department, bool hasDepartment) => hasDepartment
+        ? new[] { new ExcelHeaderLine(companyUpper ?? fallback), new ExcelHeaderLine(department ?? "................", Bold: true) }
+        : new[] { new ExcelHeaderLine(companyUpper ?? fallback) };
 
     /// <summary>Tiêu đề trái Mẫu 09A/9D: tên Đảng bộ rồi tên Chi bộ của hồ sơ.</summary>
     private static ExcelHeaderLine[] PartyHeaderLines(OrganizationTemplateFields org, string? partyCell) => new[]
@@ -398,7 +391,10 @@ public static class PersonalFormWorkbooks
         ws.Range(row, 1, row, lastColumn).Style.Font.Bold = true;
     }
 
-    /// <summary>Tổng trọng số bằng công thức để người dùng sửa trên Excel vẫn đúng; chưa có dòng → in "70,0" như bản Word.</summary>
+    /// <summary>
+    /// Tổng trọng số bằng công thức để sửa trên Excel vẫn đúng (giá trị được tính sẵn khi lưu, xem <see cref="Save"/>);
+    /// chưa có dòng → in "70,0" như bản Word.
+    /// </summary>
     private static void WeightTotal(IXLCell cell, int firstRow, int lastRow)
     {
         if (lastRow < firstRow)
@@ -412,6 +408,18 @@ public static class PersonalFormWorkbooks
         cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
     }
 
+    /// <summary>Dòng họ tên dưới các khối ký (cùng cách chia cột); null → dòng chấm ký tay.</summary>
+    private static void SignNames(IXLWorksheet ws, int signRow, int lastColumn, params string?[] names)
+    {
+        var nameRow = signRow + 5;
+        for (var i = 0; i < names.Length; i++)
+        {
+            var first = 1 + i * lastColumn / names.Length;
+            ws.Cell(nameRow, first).Value = names[i] ?? Dots;
+            ws.Range(nameRow, first, nameRow, (i + 1) * lastColumn / names.Length).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        }
+    }
+
     private static void SetWidths(IXLWorksheet ws, params double[] widths)
     {
         for (var i = 0; i < widths.Length; i++)
@@ -423,7 +431,8 @@ public static class PersonalFormWorkbooks
         ws.PageSetup.PageOrientation = landscape ? XLPageOrientation.Landscape : XLPageOrientation.Portrait;
         ws.PageSetup.FitToPages(1, 0);
         using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
+        // Ghi kèm giá trị của công thức: trình xem/chuyển PDF không tự tính lại vẫn hiện đúng số.
+        workbook.SaveAs(stream, new SaveOptions { EvaluateFormulasBeforeSaving = true });
         return stream.ToArray();
     }
 }

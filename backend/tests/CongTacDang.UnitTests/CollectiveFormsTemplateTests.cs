@@ -211,7 +211,7 @@ public class CollectiveFormsTemplateTests
         Assert.DoesNotContain("BÍ THƯ", text);
         Assert.DoesNotContain("đóng dấu", text);
         // Giữa câu dùng tên thường; chỉ dòng tiêu đề in hoa.
-        Assert.Contains("01 bản lưu tại Đảng bộ Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
+        Assert.Contains("01 bản lưu tại Đảng ủy Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
         // Tên dài ngắt thành hai dòng cân nhau ở cột tiêu đề trái.
         Assert.Contains("ĐẢNG BỘ CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY", text);
         Assert.Contains("Hội nghị tập thể lãnh đạo, quản lý Phòng Kỹ thuật về việc", text);
@@ -236,7 +236,7 @@ public class CollectiveFormsTemplateTests
 
         var text = BodyText(Render(Mau16Data.TemplateFileName, Mau16Data.From(Period, header, draft)).Content);
 
-        Assert.Contains("Ngày 15/9/2026, Đảng bộ Công ty A đã tổ chức Hội nghị", text);
+        Assert.Contains("Ngày 15/9/2026, Đảng ủy Công ty A đã tổ chức Hội nghị", text);
         Assert.DoesNotContain("ĐẢNG BỘ CÔNG TY A đã", text);
         Assert.Contains("Hà Nội, ngày 26 tháng 09 năm 2026", text);
         Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
@@ -291,7 +291,7 @@ public class CollectiveFormsTemplateTests
         Assert.Contains("Số 15-QĐ/ĐU", text);
         Assert.Contains("Hà Nội, ngày 20 tháng 09 năm 2026", text);
         Assert.Contains("Xếp loại cán bộ Quý III năm 2026 đối với các trường hợp thuộc thẩm quyền quyết định của Đảng ủy Công ty A", text);
-        Assert.Contains("của Thường vụ Đảng ủy Tổng công ty B về việc đánh giá, xếp loại cán bộ Quý III năm 2026;", text);
+        Assert.Contains("của Thường vụ Đảng ủy Tổng công ty B về việc đánh giá định kỳ hằng quý đối với cán bộ lãnh đạo, quản lý trong Đảng bộ Tổng công ty B;", text);
         Assert.Contains("Quy chế hoạt động của Ban Chấp hành Đảng bộ Công ty A, nhiệm kỳ 2025-2030;", text);
         Assert.Contains("Hội nghị Đảng ủy Công ty A ngày 18/09/2026", text);
         Assert.Contains("thuộc diện Ban Chấp hành Đảng bộ Công ty A đánh giá, xếp loại.", text);
@@ -441,7 +441,7 @@ public class CollectiveFormsTemplateTests
             new MauQdLine("Trần Thị Hai", "Phó Bí thư Chi bộ", EvaluationGrade.HoanThanh, EvaluationGrade.HoanThanh,
                 EvaluationGrade.ChuaXepLoai, EvaluationGrade.ChuaXepLoai, EvaluationGrade.HoanThanh)
         };
-        return MauQdData.From(Period, header, "Đảng bộ Tổng công ty B", info, lines);
+        return MauQdData.From(Period, header, "Đảng bộ Tổng công ty B", info, lines, "Đảng bộ Tổng công ty B");
     }
 
     #endregion
