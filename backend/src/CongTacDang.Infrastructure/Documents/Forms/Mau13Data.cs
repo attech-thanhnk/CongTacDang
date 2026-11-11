@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -151,7 +152,7 @@ public sealed class Mau13Data
             {
                 Order = (i + 1).ToString(CultureInfo.InvariantCulture),
                 Name = c.Name.Trim(),
-                Title = CollectiveFormText.Spaced(c.Title),
+                Title = CounterTitle(c.Title, i == 0 ? "Tổ trưởng" : "Thành viên"),
                 Role = i == 0 ? "Tổ trưởng" : "Thành viên"
             }).ToList(),
             HasCounters = committee.Count > 0,
@@ -174,6 +175,15 @@ public sealed class Mau13Data
         };
     }
 
+    /// <summary>" - chức vụ"; trùng vai trò trong Tổ kiểm phiếu thì bỏ để không in lặp; chưa ghi → giữ dòng chấm.</summary>
+    public static string? CounterTitle(string? title, string role)
+    {
+        var text = FormText.OrNull(title?.Trim());
+        if (text == null)
+            return null;
+        return string.Equals(text, role, StringComparison.OrdinalIgnoreCase) ? string.Empty : " - " + text;
+    }
+
     private static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     private static string? Number(int? value) => value?.ToString(CultureInfo.InvariantCulture);
@@ -185,6 +195,7 @@ public sealed class Mau13Counter
 {
     [TemplateField("C_STT")] public string? Order { get; init; }
     [TemplateField("C_NAME")] public string? Name { get; init; }
+    /// <summary>Gồm cả dấu " - " đứng trước (xem <see cref="Mau13Data.CounterTitle"/>).</summary>
     [TemplateField("C_TITLE")] public string? Title { get; init; }
     [TemplateField("C_ROLE")] public string? Role { get; init; }
 }

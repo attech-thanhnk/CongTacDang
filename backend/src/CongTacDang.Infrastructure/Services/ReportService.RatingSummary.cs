@@ -124,7 +124,7 @@ public partial class ReportService
                     switch (values[c - 1])
                     {
                         case int n: cell.Value = n; break;
-                        case double d: cell.Value = d; break;
+                        case double d: SetScore(cell, d); break;
                         case string s: cell.Value = s; break;
                     }
                     cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
@@ -147,8 +147,8 @@ public partial class ReportService
         for (var c = 8; c <= 12; c++)
             ws.Column(c).Width = 18;
         ws.Column(13).Width = 16;
-        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-        ws.PageSetup.FitToPages(1, 0);
+        PrintSetup(ws, landscape: true);
+        FitRowHeights(ws);
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);

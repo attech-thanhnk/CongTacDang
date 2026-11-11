@@ -198,7 +198,7 @@ public sealed class ExcellenceConditionsTests
 
         Assert.Equal("Không vi phạm", data.SelfCap);
         Assert.Equal("Khống chế tối đa mức Hoàn thành tốt nhiệm vụ: Vi phạm quy trình", data.AppraisalCap);
-        Assert.StartsWith("☐ Đạt  ☒ Không", data.AppraisalExcellent);
+        Assert.StartsWith("☐ Đạt  ☒ Không", data.AppraisalExcellent);
         Assert.Contains("(v) khống chế tối đa mức", data.AppraisalExcellent);
 
         var text = RenderText(Mau10Data.TemplateFileName, data);

@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
 using CongTacDang.Domain.Evaluation;
@@ -25,6 +27,14 @@ public sealed class Mau17Data
 
     [TemplateField("SUPPORTER_NAME")] public string? SupporterName { get; init; }
     [TemplateField("SUPPORTER_TITLE")] public string? SupporterTitle { get; init; }
+
+    /// <summary>Ngày bắt đầu tính các mốc (dd/MM/yyyy); chưa có → dòng chấm.</summary>
+    [TemplateField("START_DATE")] public string? StartDate { get; init; }
+
+    /// <summary>Hạn từng mốc = ngày bắt đầu + số ngày của mốc; chưa có ngày bắt đầu → dòng chấm.</summary>
+    [TemplateField("M30_DUE")] public string? M30Due { get; init; }
+    [TemplateField("M60_DUE")] public string? M60Due { get; init; }
+    [TemplateField("M90_DUE")] public string? M90Due { get; init; }
 
     [TemplateField("M30_LIMITATION")] public string? M30Limitation { get; init; }
     [TemplateField("M30_TARGET")] public string? M30Target { get; init; }
@@ -71,6 +81,8 @@ public sealed class Mau17Data
         var m60 = content.Stage(ImprovementPlanContent.M60);
         var m90 = content.Stage(ImprovementPlanContent.M90);
         static string? Box(ImprovementMilestone stage, string result) => stage.Result == result ? CheckedBox : null;
+        string? Due(string code) => plan.StartDate?.AddDays(ImprovementPlanContent.Milestones.First(m => m.Code == code).Days)
+            .ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
         return new Mau17Data
         {
@@ -81,6 +93,10 @@ public sealed class Mau17Data
             GradeLevel = GradeLevelText(record.FinalGrade),
             SupporterName = content.SupporterName,
             SupporterTitle = content.SupporterTitle,
+            StartDate = plan.StartDate?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+            M30Due = Due(ImprovementPlanContent.M30),
+            M60Due = Due(ImprovementPlanContent.M60),
+            M90Due = Due(ImprovementPlanContent.M90),
             M30Limitation = m30.Limitation,
             M30Target = m30.Target,
             M30Measures = m30.Measures,

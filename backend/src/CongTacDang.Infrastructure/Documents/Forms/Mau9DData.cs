@@ -47,6 +47,12 @@ public sealed class Mau9DData
     /// <summary>Ảnh chụp trên hồ sơ.</summary>
     [TemplateField("CELL_NAME")] public string? CellName { get; init; }
 
+    /// <summary>Ô "Xác nhận của Chi bộ": như Mẫu 09A.</summary>
+    [TemplateField("CELL_CONFIRMER_NAME")] public string? CellConfirmerName { get; init; }
+
+    /// <summary>Ô "Cá nhân tự đánh giá": như Mẫu 09A.</summary>
+    [TemplateField("SELF_NAME")] public string? SelfName { get; init; }
+
     [TemplateCollection("AXES")] public List<Mau9DAxis> Axes { get; init; } = new();
 
     public static Mau9DData From(IndividualFormSource source)
@@ -80,6 +86,8 @@ public sealed class Mau9DData
             Department = Mau09Shared.Department(record),
             HasDepartment = Mau09Shared.HasDepartment(record),
             CellName = Mau09Shared.CellLabelName(record),
+            CellConfirmerName = Mau09Shared.CellConfirmerName(record),
+            SelfName = Mau09Shared.SelfName(source),
             Axes = source.Criteria.Axes.Select((axis, index) =>
             {
                 var report = reports.GetValueOrDefault(axis.Code);

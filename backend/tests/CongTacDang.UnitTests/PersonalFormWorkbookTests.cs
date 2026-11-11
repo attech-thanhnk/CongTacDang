@@ -184,7 +184,7 @@ public class PersonalFormWorkbookTests
         ExcelFormLayout.SetNumber(ws.Cell(1, 5), null);
 
         Assert.Equal(26.5, ws.Cell(1, 1).GetDouble());
-        Assert.Equal("0.0", ws.Cell(1, 1).Style.NumberFormat.Format);
+        Assert.Equal("[$-42A]0.0", ws.Cell(1, 1).Style.NumberFormat.Format);
         Assert.Equal(0.9, ws.Cell(1, 2).GetDouble(), 3);
         Assert.Equal("K/AD", ws.Cell(1, 3).GetString());
         Assert.Equal("1.1", ws.Cell(1, 4).GetString());

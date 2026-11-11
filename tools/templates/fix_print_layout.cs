@@ -194,8 +194,8 @@ void Mau9D(Body body)
     }
 
     var table = TableWith(body, "Thời hạn hoàn thành");
-    // Cột thời hạn đủ cho ngày dd/MM/yyyy một dòng.
-    SetGrid(table, 1135, 2268, 1400, 4270, 1417, 1701, 1683);
+    // Cột thời hạn đủ cho ngày dd/MM/yyyy một dòng; cột nội dung rộng để tên trục dài không kéo cao hàng.
+    SetGrid(table, 1135, 3100, 1400, 3438, 1417, 1701, 1683);
     if (!table.InnerText.Contains("CÁ NHÂN TỰ ĐÁNH GIÁ"))
         MoveSignIntoTable(table, blanks: 4);
     // Lề trái trừ phần thụt của bảng (562) và lề ô (108): chữ và điểm dừng tab giữ vị trí như khi nằm ngoài bảng.

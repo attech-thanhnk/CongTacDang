@@ -55,6 +55,9 @@ public sealed class Mau09CData
     /// <summary>Chữ thường, dưới dòng ký.</summary>
     [TemplateField("SIGNER_NAME")] public string? SignerName { get; init; }
 
+    /// <summary>Ô "Xác nhận của Chi bộ": như Mẫu 09A; chưa xác nhận hoặc ghi nhận từ ngoài → dòng chấm.</summary>
+    [TemplateField("CELL_CONFIRMER_NAME")] public string? CellConfirmerName { get; init; }
+
     public static Mau09CData From(IndividualFormSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -122,7 +125,8 @@ public sealed class Mau09CData
             TasksScore = Mau09Shared.CompactScore(source, record.TasksScore, rounding.TasksTotal),
             TotalScore = Mau09Shared.CompactScore(source, record.TotalSelfScore, rounding.Total),
             SelfGrade = Mau09Shared.SelfGrade(record),
-            SignerName = fullName
+            SignerName = fullName,
+            CellConfirmerName = Mau09Shared.CellConfirmerName(record)
         };
     }
 }

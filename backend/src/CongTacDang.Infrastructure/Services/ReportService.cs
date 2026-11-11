@@ -119,6 +119,7 @@ public partial class ReportService : IReportService
         }
 
         ws.Columns().AdjustToContents();
+        PrintSetup(ws, landscape: true, repeatFirstRow: 5);
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return new ReportFileResult
@@ -201,7 +202,8 @@ public partial class ReportService : IReportService
         for (var c = 5; c <= 10; c++)
             ws.Column(c).Width = 13;
         ws.Column(11).Width = 18;
-        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+        PrintSetup(ws, landscape: true, repeatFirstRow: 7);
+        FitRowHeights(ws);
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return await ToResultAsync(stream.ToArray(), XlsxMimeType, ExcelFileName("Bao cao noi bo - Kiem soat ty le Xuat sac", (await _orgSettings.GetAsync()).ShortName, activePeriod, scopeCell), format);
@@ -292,7 +294,7 @@ public partial class ReportService : IReportService
                     switch (values[c - 1])
                     {
                         case int n: cell.Value = n; break;
-                        case double d: cell.Value = d; break;
+                        case double d: SetScore(cell, d); break;
                         case string s: cell.Value = s; break;
                     }
                     cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
@@ -316,7 +318,8 @@ public partial class ReportService : IReportService
             ws.Column(4).Width = 8;
             for (var c = 5; c <= last; c++)
                 ws.Column(c).Width = c >= 12 ? 30 : 14;
-            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            PrintSetup(ws, landscape: true, h1, numbers);
+            FitRowHeights(ws);
         }
 
         using var stream = new MemoryStream();
@@ -431,7 +434,8 @@ public partial class ReportService : IReportService
             ws.Column(c).Width = 12;
         ws.Column(10).Width = 16;
         ws.Column(11).Width = 12;
-        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+        PrintSetup(ws, landscape: true, h1, numbers);
+        FitRowHeights(ws);
 
         // Trang kiểm tra (không in): cán bộ chưa có mã chức danh thống kê.
         var withoutCode = coded.Where(x => x.Order == null).Select(x => x.Record).ToList();
@@ -444,6 +448,7 @@ public partial class ReportService : IReportService
         foreach (var r in withoutCode)
             check.Cell(checkRow++, 1).Value = r.Member?.FullName ?? r.MemberId.ToString();
         check.Column(1).Width = 60;
+        ExcludeFromPrint(check);
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
@@ -1323,8 +1328,8 @@ public partial class ReportService : IReportService
         ws.Column(4).Width = 34;
         ws.Column(5).Width = 28;
         ws.Column(6).Width = 14;
-        ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-        ws.PageSetup.FitToPages(1, 0);
+        PrintSetup(ws, landscape: true, head, numbers);
+        FitRowHeights(ws);
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);

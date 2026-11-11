@@ -153,6 +153,14 @@ internal static class Mau09Shared
     public static string? DateOfBirth(EvaluationRecord record) =>
         record.Member?.DateOfBirth?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
+    /// <summary>Người xác nhận của Chi bộ trong hệ thống; chưa xác nhận hoặc ghi nhận từ ngoài → null (dòng chấm).</summary>
+    public static string? CellConfirmerName(EvaluationRecord record) =>
+        record.CellConfirmedById != null ? FormText.OrNull(record.CellConfirmedByName) : null;
+
+    /// <summary>Chủ hồ sơ khi đã nộp phiếu tự chấm; chưa nộp → null (dòng chấm).</summary>
+    public static string? SelfName(IndividualFormSource source) =>
+        source.HasSelfScore ? FormText.OrNull(source.Record.Member?.FullName) : null;
+
     public static string? SelfGrade(EvaluationRecord record) =>
         record.SelfProposedGrade == EvaluationGrade.ChuaXepLoai ? null : FormText.Grade(record.SelfProposedGrade);
 

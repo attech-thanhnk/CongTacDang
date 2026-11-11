@@ -15,6 +15,125 @@ public static class ExcelFormLayout
     /// <summary>Số đọc theo cách in của <see cref="FormText"/> (dấu phẩy thập phân).</summary>
     private static readonly NumberFormatInfo VietnameseNumbers = new() { NumberDecimalSeparator = ",", NumberGroupSeparator = "." };
 
+    /// <summary>Mã ngôn ngữ vi-VN đầu định dạng ô: bản in hiện dấu phẩy thập phân mà ô vẫn là số để tính.</summary>
+    private const string VietnameseLocale = "[$-42A]";
+
+    /// <summary>Chiều cao một dòng chữ cỡ 11 (pt).</summary>
+    private const double LineHeight = 15;
+
+    /// <summary>Định dạng số với <paramref name="decimals"/> chữ số thập phân, dấu phẩy kiểu Việt Nam.</summary>
+    public static string NumberFormat(int decimals) =>
+        VietnameseLocale + (decimals <= 0 ? "0" : "0." + new string('0', decimals));
+
+    /// <summary>Điểm: số nguyên in "30", số lẻ một chữ số "29,5" (như bản Word); null → ô trống.</summary>
+    public static void SetScore(IXLCell cell, double? value)
+    {
+        if (value is not { } number)
+            return;
+        cell.Value = number;
+        cell.Style.NumberFormat.Format = NumberFormat(number % 1 == 0 ? 0 : 1);
+        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    }
+
+    /// <summary>Khổ A4, lề hẹp, vừa một trang theo chiều ngang (chiều dọc không giới hạn), lặp dòng tiêu đề bảng ở mỗi trang.</summary>
+    public static void PrintSetup(IXLWorksheet ws, bool landscape, int? repeatFirstRow = null, int? repeatLastRow = null)
+    {
+        ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+        ws.PageSetup.PageOrientation = landscape ? XLPageOrientation.Landscape : XLPageOrientation.Portrait;
+        ws.PageSetup.FitToPages(1, 0);
+        ws.PageSetup.Margins.SetLeft(0.4).SetRight(0.4).SetTop(0.5).SetBottom(0.5).SetHeader(0.3).SetFooter(0.3);
+        ws.PageSetup.CenterHorizontally = true;
+        if (repeatFirstRow is { } first)
+            ws.PageSetup.SetRowsToRepeatAtTop(first, repeatLastRow ?? first);
+    }
+
+    /// <summary>Trang tính chỉ để xem: vùng in là một ô trống nên khi in/chuyển PDF không ra trang nào; dữ liệu giữ nguyên.</summary>
+    public static void ExcludeFromPrint(IXLWorksheet ws)
+    {
+        var lastColumn = ws.LastColumnUsed()?.ColumnNumber() ?? 1;
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+        ws.PageSetup.PrintAreas.Clear();
+        ws.PageSetup.PrintAreas.Add(lastRow + 2, lastColumn + 2, lastRow + 2, lastColumn + 2);
+    }
+
+    /// <summary>
+    /// Chiều cao từng dòng theo chữ: Excel/LibreOffice không tự giãn ô gộp, còn chiều cao cố định thì cắt chữ xuống dòng.
+    /// Ước số dòng theo độ dài chữ và bề rộng cột (ô gộp cộng các cột); gọi sau khi đã đặt độ rộng cột và ghi xong dữ liệu.
+    /// </summary>
+    public static void FitRowHeights(IXLWorksheet ws)
+    {
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 0;
+        var tall = new List<(IXLRange Range, double Height)>();
+        for (var r = 1; r <= lastRow; r++)
+        {
+            double height = 0;
+            foreach (var cell in ws.Row(r).CellsUsed())
+            {
+                var text = cell.GetFormattedString();
+                if (string.IsNullOrWhiteSpace(text))
+                    continue;
+                var range = cell.IsMerged() ? cell.MergedRange() : null;
+                if (range != null && range.FirstColumn().ColumnNumber() != cell.Address.ColumnNumber)
+                    continue;
+                double width = 0;
+                var firstColumn = range?.FirstColumn().ColumnNumber() ?? cell.Address.ColumnNumber;
+                var lastColumn = range?.LastColumn().ColumnNumber() ?? cell.Address.ColumnNumber;
+                for (var c = firstColumn; c <= lastColumn; c++)
+                    width += ws.Column(c).Width;
+                var font = cell.Style.Font;
+                var lines = cell.Style.Alignment.WrapText ? WrappedLines(text, width, font.FontSize, font.Bold) : 1;
+                var needed = lines * LineHeight * font.FontSize / 11 + 2;
+                // Ô gộp nhiều dòng (tiêu đề cột hai tầng) chia chiều cao cho các dòng của vùng gộp, xét sau.
+                if (range != null && range.RowCount() > 1)
+                    tall.Add((range, needed));
+                else
+                    height = Math.Max(height, needed);
+            }
+            if (height > LineHeight + 2 && height > ws.Row(r).Height)
+                ws.Row(r).Height = height;
+        }
+        foreach (var (range, needed) in tall)
+        {
+            var first = range.FirstRow().RowNumber();
+            var last = range.LastRow().RowNumber();
+            double have = 0;
+            for (var r = first; r <= last; r++)
+                have += ws.Row(r).Height;
+            if (needed > have)
+                ws.Row(last).Height += needed - have;
+        }
+    }
+
+    /// <summary>Số dòng khi ngắt theo từ; ước một ký tự ≈ một đơn vị độ rộng cột ở cỡ 11 (chữ đậm rộng hơn).</summary>
+    private static int WrappedLines(string text, double width, double fontSize, bool bold)
+    {
+        var capacity = Math.Max(4, (width - 1) * 11 / Math.Max(6, fontSize) * (bold ? 0.88 : 1.0));
+        var lines = 0;
+        foreach (var paragraph in text.Replace("\r", string.Empty, StringComparison.Ordinal).Split('\n'))
+        {
+            var used = 0.0;
+            var count = 1;
+            foreach (var word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                double length = word.Length;
+                if (used > 0 && used + 1 + length > capacity)
+                {
+                    count++;
+                    used = 0;
+                }
+                // Từ dài hơn một dòng bị ngắt giữa từ.
+                while (length > capacity)
+                {
+                    count++;
+                    length -= capacity;
+                }
+                used += (used > 0 ? 1 : 0) + length;
+            }
+            lines += count;
+        }
+        return Math.Max(1, lines);
+    }
+
     /// <summary>Dòng 1 là số mẫu (phải); từ dòng 2 khối trái và khối phải; trả về dòng kế tiếp khối dài hơn.</summary>
     public static int WriteHeader(IXLWorksheet ws, int lastColumn, string formLabel, int leftColumns,
         IReadOnlyList<ExcelHeaderLine> left, IReadOnlyList<ExcelHeaderLine> right)
@@ -30,7 +149,7 @@ public static class ExcelFormLayout
             {
                 ws.Cell(2 + i, first).Value = lines[i].Text;
                 ws.Range(2 + i, first, 2 + i, last).Merge().Style
-                    .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
+                    .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Alignment.SetWrapText(true)
                     .Font.SetBold(lines[i].Bold).Font.SetItalic(lines[i].Italic);
             }
         }
@@ -61,23 +180,17 @@ public static class ExcelFormLayout
     {
         ws.Cell(row, 1).Value = text;
         ws.Range(row, 1, row, lastColumn).Merge().Style
-            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
+            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center).Alignment.SetWrapText(true)
             .Font.SetBold(bold).Font.SetFontSize(bold ? 13 : 11);
     }
 
-    /// <summary>Dòng chữ gộp hết bề ngang, căn trái, tự xuống dòng.</summary>
+    /// <summary>Dòng chữ gộp hết bề ngang, căn trái, tự xuống dòng (chiều cao đặt ở <see cref="FitRowHeights"/>).</summary>
     public static void TextRow(IXLWorksheet ws, int row, int lastColumn, string text, bool bold = false, bool italic = false)
     {
         ws.Cell(row, 1).Value = text;
         ws.Range(row, 1, row, lastColumn).Merge().Style
             .Alignment.SetWrapText(true).Alignment.SetVertical(XLAlignmentVerticalValues.Top)
             .Font.SetBold(bold).Font.SetItalic(italic);
-        // Ô gộp không tự giãn chiều cao theo chữ nên ước số dòng theo bề rộng các cột (đặt độ rộng cột trước khi gọi).
-        double width = 0;
-        for (var c = 1; c <= lastColumn; c++)
-            width += ws.Column(c).Width;
-        var lines = Math.Ceiling(text.Length * 1.1 / Math.Max(10, width));
-        ws.Row(row).Height = 15 * Math.Max(1, lines);
     }
 
     /// <summary>Hai cặp nhãn – giá trị trên một dòng (nửa trái, nửa phải) như dòng thông tin cán bộ của biểu mẫu Word.</summary>
@@ -119,7 +232,6 @@ public static class ExcelFormLayout
         range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         range.Style.Alignment.WrapText = true;
         range.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
-        range.Worksheet.Rows(range.FirstRow().RowNumber(), range.LastRow().RowNumber()).AdjustToContents();
     }
 
     public static void SignatureRow(IXLWorksheet ws, int row, int lastColumn, string left, string leftNote, string right, string rightNote) =>
@@ -160,8 +272,7 @@ public static class ExcelFormLayout
             return;
         }
         var comma = digits.IndexOf(',', StringComparison.Ordinal);
-        var decimals = comma < 0 ? 0 : digits.Length - comma - 1;
-        var format = decimals == 0 ? "0" : "0." + new string('0', decimals);
+        var format = NumberFormat(comma < 0 ? 0 : digits.Length - comma - 1);
         cell.Value = percent ? number / 100 : number;
         cell.Style.NumberFormat.Format = percent ? format + "%" : format;
         cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;

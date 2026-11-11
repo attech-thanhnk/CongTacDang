@@ -88,7 +88,7 @@ public static class PersonalFormWorkbooks
             ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("CÁ NHÂN ĐĂNG KÝ", SignNote));
         SignNames(ws, row, last, data.ApproverName, data.HrReviewerName, data.SupervisorName, data.RegistrantName);
 
-        return Save(workbook, ws);
+        return Save(workbook, ws, head);
     }
 
     public static byte[] Mau02(Mau02Data data, OrganizationTemplateFields org)
@@ -142,7 +142,7 @@ public static class PersonalFormWorkbooks
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("ĐẠI DIỆN LÃNH ĐẠO ĐƠN VỊ", SignNote), ("CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote));
         SignNames(ws, row, last, null, data.UnitLeaderName, data.SelfName);
 
-        return Save(workbook, ws);
+        return Save(workbook, ws, head);
     }
 
     public static byte[] Mau09A(Mau09AData data, OrganizationTemplateFields org)
@@ -191,7 +191,7 @@ public static class PersonalFormWorkbooks
             }
         }
         ws.Cell(row, 2).Value = "Tổng";
-        ws.Cell(row, 5).Value = maxTotal;
+        SetNumber(ws.Cell(row, 5), Mau09Shared.Compact(maxTotal));
         SetNumber(ws.Cell(row, 6), data.GeneralScore);
         ws.Range(row, 1, row, last).Style.Font.Bold = true;
         StyleBody(ws.Range(head + 1, 1, row, last));
@@ -230,7 +230,7 @@ public static class PersonalFormWorkbooks
         SignatureRow(ws, row, last, "XÁC NHẬN CỦA CHI BỘ", "(Xác lập thời điểm, ký, ghi rõ họ tên)", "CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote);
         SignNames(ws, row, last, data.CellConfirmerName, data.SelfName);
 
-        return Save(workbook, ws);
+        return Save(workbook, ws, head);
     }
 
     public static byte[] Mau9D(Mau9DData data, OrganizationTemplateFields org)
@@ -286,8 +286,9 @@ public static class PersonalFormWorkbooks
             StyleBody(ws.Range(head + 2, 1, row - 1, last));
         row++;
         SignatureRow(ws, row, last, "XÁC NHẬN CỦA CHI BỘ", "(Xác lập thời điểm, ký, ghi rõ họ tên)", "CÁ NHÂN TỰ ĐÁNH GIÁ", SignNote);
+        SignNames(ws, row, last, data.CellConfirmerName, data.SelfName);
 
-        return Save(workbook, ws);
+        return Save(workbook, ws, head, head + 1);
     }
 
     public static byte[] Mau10(Mau10Data data, OrganizationTemplateFields org)
@@ -295,7 +296,8 @@ public static class PersonalFormWorkbooks
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Mẫu 10");
         var last = Form10Columns.Length;
-        SetWidths(ws, 44, 18, 20, 14, 34);
+        // Cột thẩm định đủ rộng cho lý do điều kiện Xuất sắc không đạt.
+        SetWidths(ws, 36, 18, 32, 11, 33);
         var left = new[]
         {
             new ExcelHeaderLine(org.CompanyNameUpper ?? "CÔNG TY …"),
@@ -362,7 +364,7 @@ public static class PersonalFormWorkbooks
         Signatures(ws, row, last, ("CẤP CÓ THẨM QUYỀN DUYỆT", SignNote), ("NGƯỜI TRỰC TIẾP SỬ DỤNG", SignNote), ("ĐẠI DIỆN CƠ QUAN THẨM ĐỊNH", SignNote));
         SignNames(ws, row, last, null, data.SupervisorName, data.AppraiserName);
 
-        return Save(workbook, ws, landscape: false);
+        return Save(workbook, ws, head, landscape: false);
     }
 
     /// <summary>Tiêu đề trái Mẫu 01/02: tên công ty (in hoa) rồi đơn vị của hồ sơ; đơn vị gốc chỉ in tên công ty như bản Word.</summary>
@@ -414,7 +416,7 @@ public static class PersonalFormWorkbooks
         }
         var column = cell.Address.ColumnLetter;
         cell.FormulaA1 = $"SUM({column}{firstRow}:{column}{lastRow})";
-        cell.Style.NumberFormat.Format = "0.0";
+        cell.Style.NumberFormat.Format = NumberFormat(1);
         cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
     }
 
@@ -436,10 +438,11 @@ public static class PersonalFormWorkbooks
             ws.Column(i + 1).Width = widths[i];
     }
 
-    private static byte[] Save(XLWorkbook workbook, IXLWorksheet ws, bool landscape = true)
+    /// <summary>Dòng <paramref name="headFirst"/>–<paramref name="headLast"/> là tiêu đề cột, lặp lại ở đầu mỗi trang in.</summary>
+    private static byte[] Save(XLWorkbook workbook, IXLWorksheet ws, int headFirst, int? headLast = null, bool landscape = true)
     {
-        ws.PageSetup.PageOrientation = landscape ? XLPageOrientation.Landscape : XLPageOrientation.Portrait;
-        ws.PageSetup.FitToPages(1, 0);
+        PrintSetup(ws, landscape, headFirst, headLast ?? headFirst);
+        FitRowHeights(ws);
         using var stream = new MemoryStream();
         // Ghi kèm giá trị của công thức: trình xem/chuyển PDF không tự tính lại vẫn hiện đúng số.
         workbook.SaveAs(stream, new SaveOptions { EvaluateFormulasBeforeSaving = true });

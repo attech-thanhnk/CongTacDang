@@ -14,7 +14,7 @@ public sealed class Mau12Data
     [TemplateField("PARTY_PARENT")] public string? PartyParent { get; init; }
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
-    /// <summary>"Hội nghị tập thể lãnh đạo, quản lý &lt;đơn vị&gt;" (B3a) hoặc "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (B4).</summary>
+    /// <summary>"Hội nghị tập thể lãnh đạo, quản lý &lt;đơn vị&gt;" (B3a) hoặc "Hội nghị &lt;Đảng ủy/Chi ủy&gt;" (B4, "Đảng bộ X" gọi là "Đảng ủy X").</summary>
     [TemplateField("MEETING_NAME")] public string? MeetingName { get; init; }
 
     /// <summary>" III/2026" — điền sau chữ "quý".</summary>
@@ -91,13 +91,13 @@ public sealed class Mau12Data
             PartyOrganization = PartyHeader.Lines(header.Organization),
             MeetingName = unit == null ? null
                 : isProposal ? "Hội nghị tập thể lãnh đạo, quản lý " + unit
-                : isDecision ? "Hội nghị " + unit
+                : isDecision ? "Hội nghị " + CollectiveFormText.CommitteeInSentence(unit)
                 : null,
             PeriodText = period == null ? null : " " + CollectiveFormText.RomanQuarter(period.Quarter) + "/" + FormText.Year(period.Year),
             WorkingRules = CollectiveFormText.Spaced(details.WorkingRules),
             Organizer = unit == null ? null
                 : isProposal ? "Tập thể lãnh đạo, quản lý " + unit
-                : isDecision ? unit
+                : isDecision ? CollectiveFormText.CommitteeInSentence(unit)
                 : null,
             Purpose = isProposal ? "nhận xét, đánh giá, bỏ phiếu đề xuất mức xếp loại"
                 : isDecision ? "nhận xét, đánh giá, bỏ phiếu quyết định, phê duyệt mức xếp loại"

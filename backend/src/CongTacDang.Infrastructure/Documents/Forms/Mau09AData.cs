@@ -98,8 +98,8 @@ public sealed class Mau09AData
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),
             CheckFailed = Box(EvaluationGrade.KhongHoanThanh),
-            SelfName = source.HasSelfScore ? FormText.OrNull(record.Member?.FullName) : null,
-            CellConfirmerName = record.CellConfirmedById != null ? FormText.OrNull(record.CellConfirmedByName) : null
+            SelfName = Mau09Shared.SelfName(source),
+            CellConfirmerName = Mau09Shared.CellConfirmerName(record)
         };
     }
 }

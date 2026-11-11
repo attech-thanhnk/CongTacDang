@@ -134,7 +134,10 @@ public sealed class Mau10Data
 
     public const string NotProposed = "Không đề xuất";
 
-    public static string Boxes(bool met) => met ? "☒ Đạt  ☐ Không" : "☐ Đạt  ☒ Không";
+    /// <summary>Khoảng trắng không ngắt để cặp ô Đạt/Không nằm trên một dòng.</summary>
+    public static string Boxes(bool met) => met ? $"☒{Nbsp}Đạt{Nbsp}{Nbsp}☐{Nbsp}Không" : $"☐{Nbsp}Đạt{Nbsp}{Nbsp}☒{Nbsp}Không";
+
+    private const char Nbsp = ' ';
 
     /// <summary>Chỉ xét điều kiện tính được lúc tự chấm; không đề xuất Xuất sắc → "Không đề xuất".</summary>
     public static string? SelfExcellentText(EvaluationRecord record, ExcellenceConditionReport? conditions)
