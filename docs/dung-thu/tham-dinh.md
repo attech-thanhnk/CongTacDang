@@ -95,6 +95,8 @@ Trên trang hồ sơ cũng đánh dấu được: nút **⋯** cạnh nút **Bi�
 
 **Danh mục chưa đạt:** bấm **Trả lại danh mục** → ghi **Lý do (bắt buộc)** → **Trả lại**. Hồ sơ về lại cán bộ để sửa.
 
+**Danh mục do cấp trên duyệt** (ví dụ Chủ tịch, Giám đốc, Kiểm soát viên): khi cấp trên duyệt có sửa, mở hồ sơ → **Cập nhật danh mục** → sửa cho khớp kết quả duyệt → **Lưu danh mục**. Hồ sơ vẫn chờ Văn phòng Đảng ủy ghi nhận kết quả duyệt. Sau khi đã duyệt, điều chỉnh theo văn bản của cấp trên ở khối **Điều chỉnh việc trong quý** → **Ghi điều chỉnh đã duyệt**, nhập cơ quan, số và ngày văn bản → **Ghi và áp dụng**. Cán bộ giúp việc Đảng ủy cũng làm được việc này. Không làm được trên hồ sơ của chính mình.
+
 ## Phần C. Thẩm định
 
 **Khi nào:** hồ sơ ở bước **Thẩm định**, sau khi tập thể (hoặc Trưởng đơn vị) đã đề xuất.

@@ -16,7 +16,13 @@ import {
   VoteTallyDto,
   WorkflowActionCode,
   WorkflowStepCode,
+  CONDITION_STATE_LABELS,
+  ConditionResultDto,
+  ConditionState,
+  ExcellenceConditionsDto,
+  GRADE_CAP_OPTIONS,
   evaluationService,
+  exceedsGradeCap,
   gradeConditionWarnings,
   latestProposedGrade,
   votePassedGrade,
@@ -183,6 +189,8 @@ function ActionForm({ record, criteria, action, step, busy, onSubmit, extra, onA
       return <ExternalResultForm record={record} step={step} busy={busy} extra={extra} onSubmit={(payload) => onSubmit(action, payload, step)} />;
     case "SubmitTasks":
       return <TasksForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
+    case "UpdateTasks":
+      return <UpdateTasksForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "SubmitSelfScore":
       return <SelfScoreForm record={record} criteria={criteria} busy={busy} onSubmit={(payload) => onSubmit(action, payload)} />;
     case "ForwardTasks":
@@ -406,9 +414,27 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
   const leveledTasks = scoredTasks.map((t) => ({ ...t, appraisalLevel: levels[t.id] ?? null }));
   const missingLevels = usesTasks && leveledTasks.some((t) => t.appraisalLevel == null);
   const check = proposalCheck(record, criteria, grade, appraisal);
+  const [cap, setCap] = useState(record.appraisalGradeCap || "");
+  const [capReason, setCapReason] = useState(record.appraisalCapReason || "");
+  const [capReasonError, setCapReasonError] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, boolean>>(() => ({ ...(record.appraisalConditionOverrides ?? {}) }));
+  const [conditions, setConditions] = useState<ExcellenceConditionsDto | null>(null);
+  useEffect(() => {
+    let active = true;
+    evaluationService.getExcellenceConditions(record.id)
+      .then((c) => { if (active) setConditions(c); })
+      .catch(() => { if (active) setConditions(null); });
+    return () => { active = false; };
+  }, [record.id]);
+  const conditionRows = conditions ? currentConditions(conditions.computed, cap, capReason, leveledTasks) : [];
+  const finalStates = conditionRows.map((c) => (c.code in overrides ? (overrides[c.code] ? "Met" : "NotMet") : c.state) as ConditionState);
+  const failedConditions = conditionRows.filter((_, i) => finalStates[i] === "NotMet").map((c) => c.label);
   const warnings = [
     ...(usesTasks ? gradeConditionWarnings(leveledTasks, grade, record.excellentMinExceedRatio) : []),
     ...(check ? [check.message] : []),
+    ...(exceedsGradeCap(grade, cap) ? [`Mức đề xuất cao hơn mức khống chế (tối đa "${GRADE_LABELS[cap as RankedGrade] ?? cap}").`] : []),
+    ...(!cap && conditions?.hasSafetyDefect ? ["Phiếu đối soát an toàn - chất lượng (Mẫu 03) có mục khiếm khuyết: xem lại việc khống chế mức xếp loại."] : []),
+    ...(grade === "HoanThanhXuatSac" && failedConditions.length > 0 ? [`Điều kiện Hoàn thành xuất sắc không đạt: ${failedConditions.join(", ")}.`] : []),
   ];
   const explanationRequired = needsExplanation || !!check?.required;
   const [explanationError, setExplanationError] = useState<string | null>(null);
@@ -424,7 +450,15 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       document.getElementById("ap-explanation")?.focus();
       return;
     }
+    if (cap && !capReason.trim()) {
+      setCapReasonError("Hãy ghi lý do khống chế mức xếp loại.");
+      document.getElementById("ap-cap-reason")?.focus();
+      return;
+    }
     onSubmit({
+      gradeCap: cap || null,
+      capReason: cap ? capReason.trim() : null,
+      conditionOverrides: overrides,
       generalScore: itemMode ? null : generalValue,
       generalItemScores: itemMode ? appraisalItemsPayload(items) : null,
       tasksScore: tasksValue,
@@ -513,6 +547,51 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       <div className="col-md-3"><label className="form-label small" htmlFor="ap-tasks">Kết quả nhiệm vụ</label><DecimalInput id="ap-tasks" min={0} max={p?.totalTaskWeight ?? 100} required className="form-control form-control-sm num" value={tasksScore} onChange={setTasksScore} /></div>
       <div className="col-md-2"><span className="form-label small d-block">Tổng</span><b className="num">{appraisal != null ? fmt(appraisal) : "—"}</b></div>
       <div className="col-md-6"><label className="form-label small" htmlFor="ap-grade">Mức đề xuất</label><GradeSelect id="ap-grade" value={grade} onChange={setGrade} /></div>
+      <div className="col-md-6">
+        <label className="form-label small" htmlFor="ap-cap">Khống chế mức xếp loại</label>
+        <select id="ap-cap" className="form-select form-select-sm" value={cap} onChange={(e) => { setCap(e.target.value); setCapReasonError(null); }}>
+          <option value="">Không</option>
+          {GRADE_CAP_OPTIONS.map((g) => <option key={g} value={g}>Có, tối đa {GRADE_LABELS[g as RankedGrade] ?? g}</option>)}
+        </select>
+      </div>
+      {cap && (
+        <div className="col-md-6">
+          <label className="form-label small" htmlFor="ap-cap-reason">Lý do khống chế <span className="text-danger">*</span></label>
+          <textarea id="ap-cap-reason" rows={1} maxLength={4000} className={`form-control form-control-sm ${capReasonError ? "is-invalid" : ""}`}
+            value={capReason} onChange={(e) => { setCapReason(e.target.value); setCapReasonError(null); }} />
+          {capReasonError && <div className="invalid-feedback">{capReasonError}</div>}
+        </div>
+      )}
+      {conditionRows.length > 0 && (
+        <div className="col-12">
+          <div className="small fw-semibold mb-1">Điều kiện Hoàn thành xuất sắc</div>
+          <div className={styles.tw}><table className={styles.table}>
+            <thead><tr><th>Điều kiện</th><th>Hệ thống</th><th style={{ width: 150 }}>Kết luận</th></tr></thead>
+            <tbody>
+              {conditionRows.map((c, i) => (
+                <tr key={c.code}>
+                  <td>{c.label} {c.name}</td>
+                  <td className="small"><b>{CONDITION_STATE_LABELS[c.state]}</b>: {c.reason}</td>
+                  <td>
+                    <select aria-label={`Kết luận điều kiện ${c.label}`} className="form-select form-select-sm"
+                      value={c.code in overrides ? (overrides[c.code] ? "Met" : "NotMet") : ""}
+                      onChange={(e) => setOverrides((prev) => {
+                        const next = { ...prev };
+                        if (e.target.value === "") delete next[c.code]; else next[c.code] = e.target.value === "Met";
+                        return next;
+                      })}>
+                      <option value="">Theo hệ thống ({CONDITION_STATE_LABELS[c.state]})</option>
+                      <option value="Met">Đạt</option>
+                      <option value="NotMet">Không</option>
+                    </select>
+                    {finalStates[i] === "Unknown" && <div className="small text-secondary">Chưa xác định</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </div>
+      )}
       <GradeWarningList warnings={warnings} />
       <div className="col-12"><label className="form-label small" htmlFor="ap-comment">Ý kiến thẩm định</label><textarea id="ap-comment" className="form-control form-control-sm" rows={3} maxLength={4000} value={comment} onChange={(e) => setComment(e.target.value)} /></div>
       <div className="col-12">
@@ -526,6 +605,28 @@ function AppraisalForm({ record, criteria, busy, extra, onScoreChange, onSubmit 
       <FormFoot row extra={extra}><button type="submit" className="btn btn-primary" disabled={busy || !grade || missingLevels || appraisal == null}>Ghi nhận thẩm định</button></FormFoot>
     </form>
   );
+}
+
+/** Điều kiện (v), (vi) tính lại theo lựa chọn đang sửa trên phiếu; các điều kiện khác giữ kết quả máy chủ. */
+function currentConditions(
+  computed: ConditionResultDto[], cap: string, capReason: string,
+  tasks: { taskOrder: number; kind?: string | null; appraisalLevel?: number | null }[],
+): ConditionResultDto[] {
+  return computed.map((c) => {
+    if (c.code === "V") {
+      return cap
+        ? { ...c, state: "NotMet", reason: `khống chế tối đa mức ${GRADE_LABELS[cap as RankedGrade] ?? cap}${capReason.trim() ? `: ${capReason.trim()}` : ""}` }
+        : { ...c, state: "Met", reason: "không vi phạm" };
+    }
+    if (c.code === "VI") {
+      const focus = tasks.filter((t) => t.kind === "TrongTam");
+      const bad = focus.filter((t) => t.appraisalLevel === 2 || t.appraisalLevel === 3);
+      if (bad.length > 0) return { ...c, state: "NotMet", reason: `nhiệm vụ trọng tâm ${bad.map((t) => `SP${t.taskOrder} Mức ${t.appraisalLevel}`).join(", ")}` };
+      if (focus.some((t) => t.appraisalLevel == null)) return { ...c, state: "Unknown", reason: "chưa xếp mức đủ nhiệm vụ trọng tâm" };
+      return { ...c, state: "Met", reason: "không có nhiệm vụ trọng tâm Mức 2, Mức 3" };
+    }
+    return c;
+  });
 }
 
 /** Cảnh báo điều kiện xếp loại (chỉ cảnh báo, không chặn). */
@@ -836,7 +937,7 @@ function ExternalResultForm({ record, step, busy, extra, onSubmit }: { record: E
   );
 }
 
-function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+function TasksForm({ record, criteria, busy, onSubmit, submitText = "Nộp danh mục", submitIcon = "fa-paper-plane", onCancel }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void; submitText?: string; submitIcon?: string; onCancel?: () => void }) {
   const axes = criteria?.content.axes ?? [];
   const p = criteria?.content.parameters;
   const blank = (): TaskInputDto => ({
@@ -968,10 +1069,28 @@ function TasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRec
           </span>
           {p && <span className="small text-secondary">· {p.minTasks}–{p.maxTasks} sản phẩm</span>}
         </div>
-        <button type="submit" className="btn btn-primary" disabled={busy}><i className="fa-solid fa-paper-plane me-1" aria-hidden="true" />Nộp danh mục</button>
+        <div className="d-flex gap-2">
+          {onCancel && <button type="button" className="btn btn-outline-secondary" disabled={busy} onClick={onCancel}>Hủy</button>}
+          <button type="submit" className="btn btn-primary" disabled={busy}><i className={`fa-solid ${submitIcon} me-1`} aria-hidden="true" />{submitText}</button>
+        </div>
       </div>
     </form>
   );
+}
+
+/** Chờ cấp trên duyệt: sửa danh mục cho khớp kết quả duyệt, mở bằng nút để không lẫn với ghi nhận kết quả. */
+function UpdateTasksForm({ record, criteria, busy, onSubmit }: { record: EvaluationRecordDto; criteria: CriteriaSnapshot | null; busy: boolean; onSubmit: (p: Record<string, unknown>) => void }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <FormFoot only>
+        <button type="button" className="btn btn-outline-primary" disabled={busy} onClick={() => setOpen(true)}>
+          <i className="fa-solid fa-pen-to-square me-1" aria-hidden="true" />Cập nhật danh mục
+        </button>
+      </FormFoot>
+    );
+  }
+  return <TasksForm record={record} criteria={criteria} busy={busy} submitText="Lưu danh mục" submitIcon="fa-floppy-disk" onCancel={() => setOpen(false)} onSubmit={onSubmit} />;
 }
 
 export default RecordActionPanel;

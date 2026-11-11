@@ -147,6 +147,9 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
 
     public DateTime? SelfScoredAt { get; set; }
 
+    /// <summary>Cán bộ cam kết không thuộc trường hợp bị khống chế mức xếp loại; null = chưa đánh dấu.</summary>
+    public bool? SelfDeclaresNoCap { get; set; }
+
     #endregion
 
     #region B2: Nội dung biểu mẫu cá nhân nhập cùng phiếu tự chấm (task 18)
@@ -215,6 +218,15 @@ public class EvaluationRecord : IAuditableEntity, ISoftDeletable, IVersioned
     public string? AppraisalExplanation { get; set; }
 
     public EvaluationGrade AppraisalProposedGrade { get; set; } = EvaluationGrade.ChuaXepLoai;
+
+    /// <summary>Mức tối đa do bị khống chế (kỷ luật, vi phạm, sự cố an toàn); null = không khống chế.</summary>
+    public EvaluationGrade? AppraisalGradeCap { get; set; }
+
+    /// <summary>Bắt buộc khi có <see cref="AppraisalGradeCap"/>.</summary>
+    public string? AppraisalCapReason { get; set; }
+
+    /// <summary>jsonb <c>{ "I": true }</c>: người thẩm định chọn Đạt/Không cho từng điều kiện Xuất sắc.</summary>
+    public string? AppraisalConditionOverrides { get; set; }
 
     public Guid? AppraisedById { get; set; }
 

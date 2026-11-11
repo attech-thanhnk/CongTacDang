@@ -65,6 +65,9 @@ public static class PermissionCodes
     /// <summary>B1.</summary>
     public const string EvaluationTasksApprove = "evaluation.tasks.approve";
 
+    /// <summary>B1 do cấp trên duyệt: cập nhật danh mục cho khớp kết quả duyệt; không trên hồ sơ của mình.</summary>
+    public const string EvaluationTasksProxy = "evaluation.tasks.proxy";
+
     /// <summary>B2.</summary>
     public const string EvaluationCellConfirm = "evaluation.cell.confirm";
 
@@ -183,6 +186,7 @@ public static class PermissionCodes
         new(EvaluationTasksForward, "Gửi danh mục sản phẩm của đơn vị", "evaluation", "Trưởng đơn vị gửi danh mục sản phẩm của cán bộ trong đơn vị về cơ quan tổ chức cán bộ, hoặc trả lại.", true),
         new(EvaluationTasksReview, "Rà soát, trình duyệt danh mục sản phẩm", "evaluation", "Rà soát danh mục sản phẩm, trình cấp có thẩm quyền duyệt, hoặc trả lại.", true),
         new(EvaluationTasksApprove, "Duyệt danh mục sản phẩm", "evaluation", "Duyệt danh mục sản phẩm đăng ký đầu kỳ.", true),
+        new(EvaluationTasksProxy, "Cập nhật danh mục sản phẩm theo kết quả cấp trên duyệt", "evaluation", "Cập nhật danh mục sản phẩm cho khớp kết quả cấp trên duyệt ngoài hệ thống, ghi điều chỉnh việc đã được cấp trên phê duyệt; không áp dụng trên hồ sơ của mình.", true),
         new(EvaluationCellConfirm, "Chi bộ xác nhận phiếu tự chấm", "evaluation", "Chi bộ xác nhận phiếu tự chấm điểm.", true),
         new(EvaluationCollectiveRecord, "Ghi nhận đề xuất của tập thể lãnh đạo", "evaluation", "Ghi kết quả kiểm phiếu đề xuất của tập thể lãnh đạo, không ghi phiếu từng người.", true),
         new(EvaluationAppraise, "Thẩm định", "evaluation", "Thẩm định hồ sơ đánh giá.", true),

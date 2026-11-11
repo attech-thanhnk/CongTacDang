@@ -1006,10 +1006,13 @@ public partial class ReportService : IReportService
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("02", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
+    private async Task<ExcellenceConditionReport> ConditionsAsync(EvaluationRecord record) =>
+        (await new ExcellenceConditionSource(_db).LoadAsync(record)).Report;
+
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id)));
+        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record)));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1023,7 +1026,7 @@ public partial class ReportService : IReportService
         {
             RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(Mau01Data.From(record), fields),
             RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks)), fields),
-            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id)), fields),
+            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id), await ConditionsAsync(record)), fields),
             _ => throw new ArgumentException($"Mẫu {formCode} không xuất Excel theo cách này.")
         };
         return new ReportFileResult

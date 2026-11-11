@@ -204,7 +204,7 @@ public sealed class DataSeederAuthorizationTests
                 var expert = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "CO_QUAN_CHUYEN_MON");
                 Assert.Equal(2, expert.Permissions.Count);
                 var office = await db.Roles.Include(r => r.Permissions).SingleAsync(r => r.Code == "VAN_PHONG_DANG_UY");
-                Assert.Equal(12, office.Permissions.Count);
+                Assert.Equal(13, office.Permissions.Count);
             }
         });
     }

@@ -47,6 +47,13 @@ public sealed record TaskChangeFormSource(EvaluationRecord Record, TaskChangeReq
     public double TotalAfter => After.Where(kv => kv.Key != Request.ResultTaskId).Sum(kv => kv.Value)
         + (Request.Type == TaskChangeType.Urgent ? Proposal.Weight ?? 0 : 0);
 
+    /// <summary>Ô người phê duyệt, chỉ khi đã duyệt; duyệt theo văn bản cấp trên thì in tên cơ quan kèm số, ngày văn bản.</summary>
+    public string? ApproverSign => Request.Status != TaskChangeStatus.Approved
+        ? null
+        : TaskChangeRules.IsExternallyApproved(Request) && !string.IsNullOrWhiteSpace(Request.DecisionComment)
+            ? $"{Request.DecidedByName!.Trim()}\n({Request.DecisionComment.Trim()})"
+            : FormText.OrNull(Request.DecidedByName);
+
     public static string Weight(double value) => Mau09Shared.Compact(value);
 
     /// <summary>"Ngày 15 tháng 09 năm 2026"; ngày lưu không đổi múi giờ.</summary>

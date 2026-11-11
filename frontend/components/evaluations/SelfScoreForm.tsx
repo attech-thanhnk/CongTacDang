@@ -142,6 +142,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
   const [grade, setGrade] = useState(record.selfProposedGrade && record.selfProposedGrade !== "ChuaXepLoai" ? record.selfProposedGrade : "");
   const [gradeReason, setGradeReason] = useState(record.selfGradeExplanation ?? "");
   const [gradeReasonError, setGradeReasonError] = useState<string | null>(null);
+  const [noCap, setNoCap] = useState(record.selfDeclaresNoCap === true);
   const [ratios, setRatios] = useState<Record<string, TaskRatio>>(() =>
     Object.fromEntries(
       record.tasks.map((t) => [
@@ -173,7 +174,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
 
   // Thay đổi chưa lưu so với ảnh chụp phiếu; phiên bản sau lần lưu nháp dùng cho lần lưu/nộp tiếp theo
   // (trang chưa tải lại hồ sơ), trừ khi trang đã nạp hồ sơ mới.
-  const snapshot = JSON.stringify([general, grade, gradeReason, ratios, selfAssessment, axisReports, groupNotes]);
+  const snapshot = JSON.stringify([general, grade, gradeReason, noCap, ratios, selfAssessment, axisReports, groupNotes]);
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
@@ -226,7 +227,7 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
     const generalScores = Object.fromEntries(
       Object.entries(general).map(([code, s]) => [code, { score: s.notApplicable ? 0 : Number(s.score) || 0, notApplicable: !!s.notApplicable, reason: s.reason?.trim() || null }])
     );
-    const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null, selfGradeExplanation: gradeReason.trim() };
+    const payload: Record<string, unknown> = { generalScores, generalGroupNotes: groupNotes, selfProposedGrade: grade || null, selfGradeExplanation: gradeReason.trim(), selfDeclaresNoCap: noCap };
     if (uses09C) payload.selfAssessment = selfAssessment;
     if (uses09C || uses9D) payload.axisReports = axisReports;
     // Ô để trống gửi null (chưa nhập) — máy chủ từ chối nộp khi còn thiếu, không tự coi là 0% hay 100%.
@@ -520,6 +521,12 @@ function SelfScoreFormInner({ record, criteria, busy, onSubmit }: Props & { crit
               <i className="fa-solid fa-triangle-exclamation me-1" aria-hidden="true" />{gradeCheck.message}{gradeCheck.required ? " Hãy nêu lý do." : ""}
             </div>
           )}
+        </div>
+        <div className="col-12">
+          <label className="form-check small mb-0">
+            <input type="checkbox" className="form-check-input" checked={noCap} onChange={(e) => setNoCap(e.target.checked)} />{" "}
+            <span className="form-check-label">Tôi không thuộc trường hợp bị khống chế mức xếp loại (kỷ luật, vi phạm, sự cố an toàn do lỗi chủ quan)</span>
+          </label>
         </div>
         {(gradeCheck || gradeReason) && (
           <div className="col-12 order-md-last">

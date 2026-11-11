@@ -74,7 +74,7 @@ public sealed class Mau05Data
             BoxRebalance = reduced ? CheckedBox : null,
             NewWeight = reduced && proposal.Weight.HasValue ? TaskChangeFormSource.Weight(proposal.Weight.Value) : null,
             AssigneeSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(record.Member?.FullName) : null,
-            ApproverSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(request.DecidedByName) : null
+            ApproverSign = source.ApproverSign
         };
     }
 }

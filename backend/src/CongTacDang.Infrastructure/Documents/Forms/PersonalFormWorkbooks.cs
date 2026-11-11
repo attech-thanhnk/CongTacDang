@@ -214,6 +214,8 @@ public static class PersonalFormWorkbooks
         SetNumber(ws.Cell(row, 3), data.TasksScore);
         SetNumber(ws.Cell(row, 4), data.TotalScore);
         SetNumber(ws.Cell(row, 5), data.ExceedPercent != null ? data.ExceedPercent + "%" : null);
+        ws.Cell(row, 6).Value = data.SelfConditions ?? string.Empty;
+        ws.Cell(row, 6).Style.Alignment.WrapText = true;
         ws.Cell(row, 7).Value = string.Join("\n",
             $"{data.CheckExcellent} Hoàn thành xuất sắc", $"{data.CheckGood} Hoàn thành tốt",
             $"{data.CheckDone} Hoàn thành nhiệm vụ", $"{data.CheckFailed} Không hoàn thành");
@@ -334,15 +336,16 @@ public static class PersonalFormWorkbooks
         ws.Cell(row, 3).Value = data.TaskLevels ?? "Mức 1: … SP\nMức 2: … SP\nMức 3: … SP";
         ws.Cell(row, 3).Style.Alignment.WrapText = true;
         row++;
-        foreach (var (title, value) in new[]
+        foreach (var (title, self, appraisal) in new[]
         {
-            ("4. Kiểm tra 5 Điều kiện Hoàn thành xuất sắc", "☐ Đạt  ☐ Không"),
-            ("5. Trần xếp loại / điều kiện bắt buộc về an toàn bắt buộc", "Không vi phạm")
+            ("4. Kiểm tra 5 Điều kiện Hoàn thành xuất sắc", data.SelfExcellent ?? "☐ Đạt  ☐ Không", data.AppraisalExcellent ?? "☐ Đạt  ☐ Không"),
+            ("5. Trần xếp loại / điều kiện bắt buộc về an toàn bắt buộc", data.SelfCap ?? Dots, data.AppraisalCap ?? Dots)
         })
         {
             ws.Cell(row, 1).Value = title;
-            ws.Cell(row, 2).Value = value;
-            ws.Cell(row, 3).Value = value;
+            ws.Cell(row, 2).Value = self;
+            ws.Cell(row, 3).Value = appraisal;
+            ws.Range(row, 2, row, 3).Style.Alignment.WrapText = true;
             row++;
         }
         StyleBody(ws.Range(head + 1, 1, row - 1, last));

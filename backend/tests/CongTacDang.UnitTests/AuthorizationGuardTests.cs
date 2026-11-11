@@ -232,7 +232,7 @@ public class AuthorizationGuardTests
     {
         var userId = Guid.NewGuid();
         var codes = AuthorizationGuard.ConflictOfInterestCodes.ToList();
-        Assert.Equal(16, codes.Count);
+        Assert.Equal(17, codes.Count);
         Assert.Contains(PermissionCodes.EvaluationTasksForward, codes);
         Assert.Contains(PermissionCodes.EvaluationTasksReview, codes);
         Assert.Contains(PermissionCodes.EvaluationUnitReview, codes);

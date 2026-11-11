@@ -116,6 +116,7 @@ public sealed class WorkflowProfileUnitTests
         Assert.DoesNotContain(PermissionCodes.EvaluationSelf, codes);
         Assert.DoesNotContain(PermissionCodes.EvaluationRead, codes);
         Assert.DoesNotContain(PermissionCodes.EvaluationReopen, codes);
+        Assert.DoesNotContain(PermissionCodes.EvaluationTasksProxy, codes);
         Assert.DoesNotContain(PermissionCodes.SystemRolesManage, codes);
         Assert.False(WorkflowActions.IsAssignableStepPermission("khong.ton.tai"));
     }

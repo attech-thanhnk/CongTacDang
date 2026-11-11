@@ -40,6 +40,8 @@ public class TaskChangeRequestDto
     public DateTime? DecidedAt { get; set; }
     public string? DecisionComment { get; set; }
     public bool CanDecide { get; set; }
+    /// <summary>Ghi theo văn bản phê duyệt của cấp trên (người duyệt là tên cơ quan).</summary>
+    public bool ApprovedExternally { get; set; }
 }
 
 /// <summary>Khối "Điều chỉnh việc trong quý" của hồ sơ: danh sách đề nghị và cờ hành động.</summary>
@@ -51,6 +53,10 @@ public class RecordTaskChangesDto
     /// <summary>Chủ hồ sơ gửi được đề nghị điều chỉnh / chuyển tiếp / loại trừ.</summary>
     public bool CanRequestChange { get; set; }
     public bool CanRecordUrgent { get; set; }
+    /// <summary>Cấp trên duyệt danh mục ngoài hệ thống: đề nghị ghi theo văn bản phê duyệt, áp dụng ngay.</summary>
+    public bool RequiresExternalApproval { get; set; }
+    /// <summary>Tên cơ quan đã ghi nhận khi duyệt danh mục.</summary>
+    public string? DefaultAuthorityName { get; set; }
     /// <summary>Khi hồ sơ không ở giai đoạn cho phép.</summary>
     public string? BlockedReason { get; set; }
     public bool HasPending { get; set; }
@@ -69,6 +75,8 @@ public class CreateTaskChangeRequestDto : WorkflowRequestDto
     public Dictionary<Guid, double>? Weights { get; set; }
     /// <summary>Nguyên nhân khách quan; bắt buộc.</summary>
     public string? Reason { get; set; }
+    /// <summary>Chỉ khi cấp trên duyệt danh mục ngoài hệ thống.</summary>
+    public TaskChangeExternalApprovalDto? ExternalApproval { get; set; }
 }
 
 /// <summary>Duyệt / không duyệt đề nghị: <see cref="Version"/> là phiên bản đề nghị đã đọc.</summary>
@@ -77,4 +85,13 @@ public class DecideTaskChangeRequestDto
     public uint? Version { get; set; }
     /// <summary>Ý kiến (duyệt) / lý do (không duyệt — bắt buộc).</summary>
     public string? Comment { get; set; }
+}
+
+/// <summary>Văn bản cấp trên đã phê duyệt điều chỉnh: có thì đề nghị được áp dụng ngay.</summary>
+public class TaskChangeExternalApprovalDto
+{
+    /// <summary>Trống → tên cơ quan đã ghi nhận khi duyệt danh mục.</summary>
+    public string? AuthorityName { get; set; }
+    public string? DocumentNumber { get; set; }
+    public DateTime? DocumentDate { get; set; }
 }

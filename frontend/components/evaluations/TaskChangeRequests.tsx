@@ -10,6 +10,7 @@ import {
   TASK_CHANGE_TYPE_LABELS,
   TaskChangeProposal,
   TaskChangeRequestDto,
+  TaskChangeExternalApproval,
   TaskChangeType,
   taskChangeService,
 } from "@/services/taskChangeService";
@@ -48,6 +49,7 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
 
   if (!data || !data.applicable) return null;
   if (data.requests.length === 0 && !data.canRequestChange && !data.canRecordUrgent) return null;
+  const external = !!data.requiresExternalApproval;
 
   const run = async (action: () => Promise<unknown>, message: string) => {
     setBusy(true);
@@ -75,7 +77,7 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
           <div className="d-flex gap-2">
             {data.canRequestChange && (
               <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setForm("change")}>
-                Đề nghị điều chỉnh
+                {external ? "Ghi điều chỉnh đã duyệt" : "Đề nghị điều chỉnh"}
               </button>
             )}
             {data.canRecordUrgent && (
@@ -93,9 +95,14 @@ export function TaskChangeRequests({ record, onRecordChanged }: Props) {
             record={record}
             mode={form}
             busy={busy}
+            external={external}
+            defaultAuthority={data.defaultAuthorityName ?? ""}
             onCancel={() => setForm(null)}
             onSubmit={(body) =>
-              run(() => taskChangeService.create(record.id, { ...body, version: record.version ?? 0 }), form === "urgent" ? "Đã gửi đề nghị ghi nhận việc đột xuất." : "Đã gửi đề nghị.")
+              run(
+                () => taskChangeService.create(record.id, { ...body, version: record.version ?? 0 }),
+                external ? "Đã ghi điều chỉnh, danh mục việc đã cập nhật." : form === "urgent" ? "Đã gửi đề nghị ghi nhận việc đột xuất." : "Đã gửi đề nghị."
+              )
             }
           />
         )}
@@ -230,15 +237,26 @@ function TaskChangeForm({
   record,
   mode,
   busy,
+  external,
+  defaultAuthority,
   onCancel,
   onSubmit,
 }: {
   record: EvaluationRecordDto;
   mode: FormMode;
   busy: boolean;
+  /** Cấp trên đã duyệt ngoài hệ thống: nhập văn bản phê duyệt, áp dụng ngay. */
+  external: boolean;
+  defaultAuthority: string;
   onCancel: () => void;
-  onSubmit: (body: { type: TaskChangeType; taskId?: string | null; proposal?: TaskChangeProposal; weights: Record<string, number>; reason: string }) => void;
+  onSubmit: (body: {
+    type: TaskChangeType; taskId?: string | null; proposal?: TaskChangeProposal; weights: Record<string, number>; reason: string;
+    externalApproval?: TaskChangeExternalApproval;
+  }) => void;
 }) {
+  const [authority, setAuthority] = useState(defaultAuthority);
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [documentDate, setDocumentDate] = useState("");
   const { toast } = useToast();
   const { criteria } = useCriteria(record.periodId);
   const axes = criteria?.content.axes ?? [];
@@ -290,6 +308,10 @@ function TaskChangeForm({
       toast.error("Hãy nhập lý do / nguyên nhân.");
       return;
     }
+    if (external && (!authority.trim() || !documentNumber.trim() || !documentDate)) {
+      toast.error("Hãy nhập cơ quan phê duyệt, số và ngày văn bản.");
+      return;
+    }
     const map: Record<string, number> = {};
     for (const t of tasks) if (!(removes && t.id === taskId)) map[t.id] = Number(weights[t.id]) || 0;
     const body: TaskChangeProposal | undefined =
@@ -298,7 +320,10 @@ function TaskChangeForm({
         : type === "Adjust"
           ? { ...proposal, deadline: proposal.deadline || null }
           : undefined;
-    onSubmit({ type, taskId: type === "Urgent" ? null : taskId, proposal: body, weights: map, reason: reason.trim() });
+    onSubmit({
+      type, taskId: type === "Urgent" ? null : taskId, proposal: body, weights: map, reason: reason.trim(),
+      externalApproval: external ? { authorityName: authority.trim(), documentNumber: documentNumber.trim(), documentDate } : undefined,
+    });
   };
 
   const input = (key: keyof TaskChangeProposal, label: string, multiline = false) => (
@@ -410,9 +435,26 @@ function TaskChangeForm({
         <textarea id="tc-reason" className="form-control form-control-sm" rows={3} maxLength={4000} value={reason} onChange={(e) => setReason(e.target.value)} />
       </div>
 
+      {external && (
+        <div className="row g-2">
+          <div className="col-12 col-md-6">
+            <label className="form-label small mb-1" htmlFor="tc-authority">Cơ quan phê duyệt</label>
+            <input id="tc-authority" className="form-control form-control-sm" maxLength={500} value={authority} onChange={(e) => setAuthority(e.target.value)} />
+          </div>
+          <div className="col-6 col-md-3">
+            <label className="form-label small mb-1" htmlFor="tc-docno">Số văn bản</label>
+            <input id="tc-docno" className="form-control form-control-sm" maxLength={100} value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} />
+          </div>
+          <div className="col-6 col-md-3">
+            <label className="form-label small mb-1">Ngày văn bản</label>
+            <DateField value={documentDate} onChange={setDocumentDate} aria-label="Ngày văn bản" />
+          </div>
+        </div>
+      )}
+
       <div className="d-flex gap-2 justify-content-end">
         <button type="button" className="btn btn-outline-secondary btn-sm" disabled={busy} onClick={onCancel}>Hủy</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={busy || off || !!countError} onClick={submit}>Gửi đề nghị</button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={busy || off || !!countError} onClick={submit}>{external ? "Ghi và áp dụng" : "Gửi đề nghị"}</button>
       </div>
     </div>
   );

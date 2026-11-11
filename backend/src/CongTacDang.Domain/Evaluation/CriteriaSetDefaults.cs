@@ -109,7 +109,7 @@ public static partial class CriteriaSetDefaults
                 new()
                 {
                     Grade = EvaluationGrade.HoanThanhTot, MinScore = 70,
-                    Conditions = "Đồng thời hoàn thành 100% nhiệm vụ được giao, đúng hạn, bảo đảm chất lượng, hiệu quả; đối với cán bộ lãnh đạo, quản lý, tập thể/lĩnh vực/bộ phận trực tiếp phụ trách hoàn thành 100% nhiệm vụ, đúng hạn, bảo đảm chất lượng, hiệu quả. Không có nhiệm vụ trọng tâm bị xếp ở Mức 3; tỷ lệ nhiệm vụ trọng tâm xếp Mức 2 dưới 20% (văn bản ghi \"từ 20% trở lên\" — trích xuất HD03 mục 10 #2, chờ xác nhận)."
+                    Conditions = "Đồng thời hoàn thành 100% nhiệm vụ được giao, đúng hạn, bảo đảm chất lượng, hiệu quả; đối với cán bộ lãnh đạo, quản lý, tập thể/lĩnh vực/bộ phận trực tiếp phụ trách hoàn thành 100% nhiệm vụ, đúng hạn, bảo đảm chất lượng, hiệu quả. Không có nhiệm vụ trọng tâm bị xếp ở Mức 3; tỷ lệ nhiệm vụ trọng tâm xếp Mức 2 dưới 20%."
                 },
                 new()
                 {

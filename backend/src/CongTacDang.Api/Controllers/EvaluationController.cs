@@ -56,6 +56,14 @@ public class EvaluationController : ControllerBase
         return Ok(ApiResponse<List<EvaluationRecordHistoryDto>>.Ok(history, "Lấy lịch sử hồ sơ đánh giá thành công."));
     }
 
+    /// <summary>Sáu điều kiện Hoàn thành xuất sắc (service kiểm tra evaluation.read trên hồ sơ).</summary>
+    [HttpGet("records/{id:guid}/excellence-conditions")]
+    public async Task<IActionResult> GetExcellenceConditions(Guid id, CancellationToken ct)
+    {
+        var conditions = await _evaluations.GetExcellenceConditionsAsync(id, ct);
+        return Ok(ApiResponse<ExcellenceConditionsDto>.Ok(conditions, "Lấy điều kiện xếp loại thành công."));
+    }
+
     /// <summary>Hành động người hiện tại được làm trên hồ sơ (frontend hiển thị nút theo danh sách này).</summary>
     [HttpGet("records/{id:guid}/actions")]
     public async Task<IActionResult> GetActions(Guid id, CancellationToken ct)
@@ -111,6 +119,12 @@ public class EvaluationController : ControllerBase
     [RequirePermission(PermissionCodes.EvaluationSelf)]
     public Task<IActionResult> SubmitTasks(Guid id, [FromBody] SubmitTasksRequestDto dto, CancellationToken ct) =>
         Run(() => _workflow.SubmitTasksAsync(id, dto, ct), "Đã nộp danh mục sản phẩm.");
+
+    /// <summary>B1_APPROVE do cấp trên thực hiện — chủ hồ sơ hoặc người cập nhật thay sửa danh mục cho khớp kết quả duyệt.</summary>
+    [HttpPost("records/{id:guid}/tasks/update")]
+    [RequireAnyPermission(PermissionCodes.EvaluationSelf, PermissionCodes.EvaluationTasksProxy)]
+    public Task<IActionResult> UpdateTasks(Guid id, [FromBody] SubmitTasksRequestDto dto, CancellationToken ct) =>
+        Run(() => _workflow.UpdateTasksAsync(id, dto, ct), "Đã cập nhật danh mục sản phẩm.");
 
     /// <summary>B1_UNIT_SUBMIT — Trưởng đơn vị gửi danh mục.</summary>
     [HttpPost("records/{id:guid}/tasks/forward")]

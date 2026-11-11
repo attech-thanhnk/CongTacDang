@@ -167,6 +167,8 @@ public class EvaluationRecordDto
     /// <summary>Lý do tự đề xuất mức khác mức theo điểm.</summary>
     public string? SelfGradeExplanation { get; set; }
     public DateTime? SelfScoredAt { get; set; }
+    /// <summary>Cam kết không thuộc trường hợp bị khống chế mức xếp loại; null = chưa đánh dấu.</summary>
+    public bool? SelfDeclaresNoCap { get; set; }
     /// <summary>Mẫu 09C, khóa = mã mục của bộ tiêu chí.</summary>
     public Dictionary<string, string> SelfAssessment { get; set; } = new();
     /// <summary>Mẫu 09C/9D, khóa = mã trục.</summary>
@@ -203,6 +205,11 @@ public class EvaluationRecordDto
     /// <summary>Giải trình khi chênh lệch tự chấm – thẩm định.</summary>
     public string? AppraisalExplanation { get; set; }
     public string AppraisalProposedGrade { get; set; } = string.Empty;
+    /// <summary>Mã mức khống chế; rỗng = không khống chế.</summary>
+    public string AppraisalGradeCap { get; set; } = string.Empty;
+    public string? AppraisalCapReason { get; set; }
+    /// <summary>Mã điều kiện Xuất sắc → true Đạt / false Không do người thẩm định chọn.</summary>
+    public Dictionary<string, bool> AppraisalConditionOverrides { get; set; } = new();
     public string? AppraisedByName { get; set; }
     public DateTime? AppraisedAt { get; set; }
 
@@ -466,6 +473,8 @@ public class SubmitSelfScoreRequestDto : WorkflowRequestDto
     public Dictionary<string, AxisReport?>? AxisReports { get; set; }
     /// <summary>Khóa = mã nhóm; null = giữ nội dung đã lưu.</summary>
     public Dictionary<string, string?>? GeneralGroupNotes { get; set; }
+    /// <summary>Cam kết không thuộc trường hợp bị khống chế; null = giữ giá trị đã lưu.</summary>
+    public bool? SelfDeclaresNoCap { get; set; }
 }
 
 /// <summary>Kiểm phiếu tổng hợp của một hồ sơ, không có thông tin người bỏ phiếu.</summary>
@@ -509,6 +518,12 @@ public class AppraisalRequestDto : WorkflowRequestDto
     public string? ProposedGrade { get; set; }
     /// <summary>Bắt buộc khi |tự chấm − thẩm định| ≥ ngưỡng của bộ tiêu chí hoặc chênh lệch làm đổi mức.</summary>
     public string? Explanation { get; set; }
+    /// <summary>Mã mức tối đa khi bị khống chế; trống = không khống chế.</summary>
+    public string? GradeCap { get; set; }
+    /// <summary>Bắt buộc khi có <see cref="GradeCap"/>.</summary>
+    public string? CapReason { get; set; }
+    /// <summary>Mã điều kiện Xuất sắc → true Đạt / false Không; null = giữ lựa chọn đã lưu.</summary>
+    public Dictionary<string, bool>? ConditionOverrides { get; set; }
 }
 
 public class AppraisalTaskLevelDto
@@ -970,4 +985,33 @@ public class GradeDeviationDto
     public string Direction { get; set; } = string.Empty;
     public bool HasExplanation { get; set; }
     public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>Một điều kiện Hoàn thành xuất sắc.</summary>
+public class ConditionResultDto
+{
+    public string Code { get; set; } = string.Empty;
+    /// <summary>"(i)" … "(vi)".</summary>
+    public string Label { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    /// <summary><c>Unknown</c> / <c>Met</c> / <c>NotMet</c> / <c>NotApplicable</c>.</summary>
+    public string State { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
+/// <summary>Sáu điều kiện Hoàn thành xuất sắc của hồ sơ.</summary>
+public class ExcellenceConditionsDto
+{
+    /// <summary>Theo phiếu tự chấm.</summary>
+    public List<ConditionResultDto> Self { get; set; } = new();
+    /// <summary>Hệ thống tính, chưa áp lựa chọn của người thẩm định.</summary>
+    public List<ConditionResultDto> Computed { get; set; } = new();
+    /// <summary>Đã áp lựa chọn của người thẩm định.</summary>
+    public List<ConditionResultDto> Final { get; set; } = new();
+    public List<string> CompletionHints { get; set; } = new();
+    public bool SelfProposesExcellent { get; set; }
+    public string SelfOverall { get; set; } = string.Empty;
+    public string FinalOverall { get; set; } = string.Empty;
+    /// <summary>Phiếu đối soát an toàn - chất lượng (Mẫu 03) có mục khiếm khuyết.</summary>
+    public bool HasSafetyDefect { get; set; }
 }

@@ -90,6 +90,7 @@ builder.Services.AddScoped<IFormLayoutService, FormLayoutService>();
 builder.Services.AddAttachments(builder.Configuration); // Tệp đính kèm, giới hạn và dọn tệp chưa gắn (Api/Extensions/AttachmentExtensions.cs)
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IEvaluationService, EvaluationService>();
+builder.Services.AddScoped<CongTacDang.Application.Common.Interfaces.IExcellenceConditionSource, CongTacDang.Infrastructure.Services.ExcellenceConditionSource>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ICollectiveEvaluationService, CollectiveEvaluationService>();
 builder.Services.AddScoped<IReportService, CongTacDang.Infrastructure.Services.ReportService>();

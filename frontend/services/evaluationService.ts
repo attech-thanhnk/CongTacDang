@@ -43,7 +43,9 @@ export type WorkflowActionCode =
   | "MarkNotRated"
   | "UnmarkNotRated"
   /** Ghi nhận kết quả của bước do cấp trên thực hiện (bước ở trường `step`). */
-  | "RecordExternal";
+  | "RecordExternal"
+  /** Sửa danh mục khi chờ cấp trên duyệt ngoài hệ thống; không chuyển bước. */
+  | "UpdateTasks";
 
 export type StepMode = "Internal" | "External" | "Off";
 
@@ -325,6 +327,8 @@ export interface EvaluationRecordDto {
   /** Lý do tự đề xuất mức khác mức theo điểm. */
   selfGradeExplanation?: string | null;
   selfScoredAt?: string | null;
+  /** Cam kết không thuộc trường hợp bị khống chế mức xếp loại; null = chưa đánh dấu. */
+  selfDeclaresNoCap?: boolean | null;
 
   partyCellComment: string;
   cellConfirmedByName?: string | null;
@@ -352,6 +356,11 @@ export interface EvaluationRecordDto {
   /** Giải trình khi chênh lệch tự chấm – thẩm định. */
   appraisalExplanation?: string | null;
   appraisalProposedGrade: string;
+  /** Mã mức tối đa khi bị khống chế; rỗng = không khống chế. */
+  appraisalGradeCap?: string;
+  appraisalCapReason?: string | null;
+  /** Mã điều kiện Xuất sắc → true Đạt / false Không do người thẩm định chọn. */
+  appraisalConditionOverrides?: Record<string, boolean>;
   appraisedByName?: string | null;
   appraisedAt?: string | null;
 
@@ -1034,6 +1043,48 @@ export interface SaveEvaluationMeetingRequestDto {
   voteSummaries: EvaluationMeetingVoteSummaryDto[];
 }
 
+export type ConditionState = "Unknown" | "Met" | "NotMet" | "NotApplicable";
+
+export interface ConditionResultDto {
+  code: string;
+  /** "(i)" … "(vi)". */
+  label: string;
+  name: string;
+  state: ConditionState;
+  reason: string;
+}
+
+/** Sáu điều kiện Hoàn thành xuất sắc của hồ sơ. */
+export interface ExcellenceConditionsDto {
+  self: ConditionResultDto[];
+  /** Hệ thống tính, chưa áp lựa chọn của người thẩm định. */
+  computed: ConditionResultDto[];
+  final: ConditionResultDto[];
+  completionHints: string[];
+  selfProposesExcellent: boolean;
+  selfOverall: ConditionState;
+  finalOverall: ConditionState;
+  /** Phiếu đối soát an toàn - chất lượng (Mẫu 03) có mục khiếm khuyết. */
+  hasSafetyDefect: boolean;
+}
+
+export const CONDITION_STATE_LABELS: Record<ConditionState, string> = {
+  Unknown: "Chưa xác định",
+  Met: "Đạt",
+  NotMet: "Không",
+  NotApplicable: "Không áp dụng",
+};
+
+/** Mức chọn được khi khống chế: Tốt trở xuống. */
+export const GRADE_CAP_OPTIONS = ["HoanThanhTot", "HoanThanh", "KhongHoanThanh"] as const;
+
+/** Mức đề xuất cao hơn mức khống chế (thứ tự: Xuất sắc cao nhất). */
+export function exceedsGradeCap(grade: string, cap: string | null | undefined): boolean {
+  const order = ["HoanThanhXuatSac", "HoanThanhTot", "HoanThanh", "KhongHoanThanh"];
+  if (!cap || !order.includes(cap) || !order.includes(grade)) return false;
+  return order.indexOf(grade) < order.indexOf(cap);
+}
+
 export const GRADE_OPTIONS: { value: string; label: string }[] = [
   { value: "HoanThanhXuatSac", label: "Hoàn thành xuất sắc nhiệm vụ" },
   { value: "HoanThanhTot", label: "Hoàn thành tốt nhiệm vụ" },
@@ -1189,6 +1240,7 @@ const ACTION_PATH: Record<WorkflowActionCode, string> = {
   MarkNotRated: "not-rated",
   UnmarkNotRated: "not-rated/cancel",
   RecordExternal: "external",
+  UpdateTasks: "tasks/update",
 };
 
 export const evaluationService = {
@@ -1333,6 +1385,10 @@ export const evaluationService = {
 
   async getRecordById(id: string): Promise<EvaluationRecordDto> {
     return request<EvaluationRecordDto>(`/evaluations/records/${id}`);
+  },
+
+  async getExcellenceConditions(id: string): Promise<ExcellenceConditionsDto> {
+    return request<ExcellenceConditionsDto>(`/evaluations/records/${id}/excellence-conditions`);
   },
 
   async getRecordHistory(id: string): Promise<EvaluationRecordHistoryDto[]> {

@@ -65,6 +65,19 @@ Với cán bộ thuộc diện cấp trên duyệt, thẩm định, nhận xét 
 
 ![Ghi nhận kết quả của cấp trên](anh/van-phong-02-ghi-nhan-cap-tren.png)
 
+### Danh mục sản phẩm do cấp trên duyệt
+
+Áp dụng cho cán bộ mà danh mục sản phẩm do cấp trên duyệt (ví dụ Chủ tịch, Giám đốc, Kiểm soát viên). Bạn không làm được trên hồ sơ của chính mình.
+
+**Cấp trên duyệt có sửa danh mục:** trước khi ghi nhận kết quả duyệt, cập nhật danh mục cho khớp.
+
+1. Mở hồ sơ (đang ở **Duyệt danh mục sản phẩm**) → khung **Cập nhật danh mục** → bấm **Cập nhật danh mục**.
+2. Sửa, thêm, xóa sản phẩm và trọng số như lúc đăng ký; dòng **Tổng trọng số** phải đúng số tối đa.
+3. Bấm **Lưu danh mục** → **Đồng ý**. Hồ sơ vẫn ở bước duyệt danh mục; lịch sử ghi **Cập nhật danh mục theo kết quả duyệt** kèm tên bạn.
+4. Ghi nhận kết quả duyệt ở khung **Ghi nhận kết quả của cấp trên** như trên.
+
+**Cấp trên duyệt điều chỉnh sau khi danh mục đã duyệt:** khối **Điều chỉnh việc trong quý** → **Ghi điều chỉnh đã duyệt** (hoặc **Ghi nhận việc đột xuất**) → nhập nội dung, bảng trọng số, lý do → nhập **Cơ quan phê duyệt** (điền sẵn cơ quan đã duyệt danh mục), **Số văn bản**, **Ngày văn bản** → **Ghi và áp dụng**. Danh mục cập nhật ngay, đề nghị có nhãn **Đã duyệt**; phiếu Mẫu 04/05 in cơ quan kèm số, ngày văn bản ở ô người phê duyệt.
+
 ## 5. Công bố kết quả
 
 **Khi nào:** sau khi ghi quyết định. Người **Chưa xếp loại** cũng phải công bố.

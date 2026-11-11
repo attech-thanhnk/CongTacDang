@@ -82,7 +82,7 @@ public static class DataSeeder
         new(RoleCodes.Appraisal, "Cơ quan thẩm định", "Rà soát danh mục, thẩm định hồ sơ, quản lý kỳ đánh giá và bộ tiêu chí.",
             new[]
             {
-                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise, PermissionCodes.PeriodManage,
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise, PermissionCodes.EvaluationTasksProxy, PermissionCodes.PeriodManage,
                 PermissionCodes.CriteriaManage, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationControlPerform,
                 PermissionCodes.EvaluationOpinionRecord
@@ -91,7 +91,7 @@ public static class DataSeeder
         new(RoleCodes.AppraisalStaff, "Cán bộ giúp việc đánh giá", "Xem hồ sơ, biên bản, kết quả; rà soát danh mục, thẩm định, lập biên bản hội nghị, ghi nhận đề xuất tập thể, lập biên bản họp thống nhất, phiếu kiểm tra; không quản lý kỳ, bộ tiêu chí.",
             new[]
             {
-                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise,
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationTasksReview, PermissionCodes.EvaluationAppraise, PermissionCodes.EvaluationTasksProxy,
                 PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage,
                 PermissionCodes.EvaluationResultsView, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage,
@@ -101,7 +101,7 @@ public static class DataSeeder
         new(RoleCodes.PartyOfficeStaff, "Cán bộ giúp việc Đảng ủy", "Xem hồ sơ, biên bản, kết quả; lập hồ sơ tập thể (Mẫu 06, 07, 08), phối hợp thẩm định, lập biên bản hội nghị, ghi nhận đề xuất tập thể, lập biên bản họp thống nhất, phiếu kiểm tra; không rà soát danh mục.",
             new[]
             {
-                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.CollectiveManage,
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationAppraise, PermissionCodes.EvaluationTasksProxy, PermissionCodes.CollectiveManage,
                 PermissionCodes.EvaluationCollectiveRecord, PermissionCodes.MeetingRead, PermissionCodes.MeetingManage,
                 PermissionCodes.EvaluationResultsView, PermissionCodes.ReportExport, PermissionCodes.SystemUsersRead,
                 PermissionCodes.EvaluationCrosscheckRequest, PermissionCodes.EvaluationCalibrationManage,
@@ -114,7 +114,7 @@ public static class DataSeeder
         new(RoleCodes.PartyOffice, "Văn phòng Đảng ủy", "Ghi nhận quyết định và kết quả của cấp trên, công bố, mở lại hồ sơ, xử lý kiến nghị, xác nhận phiếu.",
             new[]
             {
-                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord,
+                PermissionCodes.EvaluationRead, PermissionCodes.EvaluationDecide, PermissionCodes.EvaluationExternalRecord, PermissionCodes.EvaluationTasksProxy,
                 PermissionCodes.EvaluationPublish, PermissionCodes.EvaluationReopen, PermissionCodes.MeetingRead,
                 PermissionCodes.MeetingManage, PermissionCodes.ReportExport, PermissionCodes.EvaluationAppealResolve,
                 PermissionCodes.EvaluationControlConfirm, PermissionCodes.EvaluationCalibrationConclude,

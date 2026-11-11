@@ -52,6 +52,8 @@ export interface TaskChangeRequestDto {
   decisionComment?: string | null;
   /** Người xem duyệt / không duyệt được (máy chủ tính). */
   canDecide: boolean;
+  /** Ghi theo văn bản phê duyệt của cấp trên (người duyệt là tên cơ quan, ý kiến là số/ngày văn bản). */
+  approvedExternally?: boolean;
 }
 
 export interface RecordTaskChangesDto {
@@ -59,6 +61,9 @@ export interface RecordTaskChangesDto {
   applicable: boolean;
   canRequestChange: boolean;
   canRecordUrgent: boolean;
+  /** Cấp trên duyệt ngoài hệ thống: đề nghị phải kèm văn bản phê duyệt và được áp dụng ngay. */
+  requiresExternalApproval?: boolean;
+  defaultAuthorityName?: string | null;
   blockedReason?: string | null;
   hasPending: boolean;
   requests: TaskChangeRequestDto[];
@@ -73,6 +78,14 @@ export interface CreateTaskChangeRequest {
   /** id việc → trọng số sau điều chỉnh. */
   weights: Record<string, number>;
   reason: string;
+  /** Có thì đề nghị được áp dụng ngay theo văn bản của cấp trên. */
+  externalApproval?: TaskChangeExternalApproval;
+}
+
+export interface TaskChangeExternalApproval {
+  authorityName?: string | null;
+  documentNumber: string;
+  documentDate: string;
 }
 
 const base = (recordId: string) => `/evaluations/records/${recordId}/task-changes`;

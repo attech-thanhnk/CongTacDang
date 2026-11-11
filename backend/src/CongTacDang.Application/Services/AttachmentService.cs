@@ -517,7 +517,7 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// Chỉ người có <c>evaluation.self</c> hoặc <c>evaluation.external.record</c>; tệp chỉ người tải lên thấy tới khi được gắn.
+    /// Chỉ người có <c>evaluation.self</c>, <c>evaluation.external.record</c> hoặc <c>evaluation.tasks.proxy</c>; tệp chỉ người tải lên thấy tới khi được gắn.
     /// </summary>
     private async Task EnsureCanUploadUnlinkedAsync(Guid? uploadedById)
     {
@@ -529,7 +529,8 @@ public class AttachmentService : IAttachmentService
 
         var uploader = await _resolver.GetAsync(uploadedById.Value);
         var canUploadEvidence = uploader.IsActive
-            && (uploader.Has(PermissionCodes.EvaluationSelf) || uploader.Has(PermissionCodes.EvaluationExternalRecord));
+            && (uploader.Has(PermissionCodes.EvaluationSelf) || uploader.Has(PermissionCodes.EvaluationExternalRecord)
+                || uploader.Has(PermissionCodes.EvaluationTasksProxy));
         if (!canUploadEvidence)
         {
             throw new ForbiddenException(

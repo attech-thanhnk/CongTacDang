@@ -350,6 +350,7 @@ const ACTION_CONFIRMATIONS: Partial<Record<WorkflowActionCode, string>> = {
   RecordDecision: "Ghi nhận quyết định xếp loại?",
   Publish: "Công bố và khóa kết quả? Muốn sửa sau đó phải mở lại hồ sơ.",
   RecordExternal: "Ghi nhận kết quả của cấp trên?",
+  UpdateTasks: "Lưu danh mục sản phẩm đã cập nhật?",
 };
 
 /** Id khu thao tác và khối nội dung của từng bước (cuộn tới từ dòng trạng thái / thanh tiến trình). */

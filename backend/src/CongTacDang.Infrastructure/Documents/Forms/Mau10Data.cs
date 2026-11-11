@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CongTacDang.Domain.Entities;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -66,6 +67,18 @@ public sealed class Mau10Data
     [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
     [TemplateField("CHECK_FAILED")] public string? CheckFailed { get; init; }
 
+    /// <summary>Mục 4 cột Cá nhân: ô Đạt/Không theo phiếu tự chấm (hoặc "Không đề xuất") kèm điều kiện không đạt, mỗi dòng một lý do.</summary>
+    [TemplateField("SELF_EXCELLENT")] public string? SelfExcellent { get; init; }
+
+    /// <summary>Mục 4 cột Thẩm định: kết quả sau khi người thẩm định chọn; chưa đủ để kết luận → giữ ô trống.</summary>
+    [TemplateField("APPRAISAL_EXCELLENT")] public string? AppraisalExcellent { get; init; }
+
+    /// <summary>Mục 5 cột Cá nhân: "Không vi phạm" khi cán bộ đã cam kết; chưa đánh dấu → dòng chấm.</summary>
+    [TemplateField("SELF_CAP")] public string? SelfCap { get; init; }
+
+    /// <summary>Mục 5 cột Thẩm định: "Không vi phạm" hoặc mức khống chế kèm lý do; chưa thẩm định → dòng chấm.</summary>
+    [TemplateField("APPRAISAL_CAP")] public string? AppraisalCap { get; init; }
+
     // Ô ký: bước chưa làm hoặc do cấp trên thực hiện (không có người thực hiện trong hệ thống) → giữ dòng chấm.
 
     /// <summary>Ô "Người trực tiếp sử dụng": người đã nhận xét, đề xuất ở B3c.</summary>
@@ -74,7 +87,7 @@ public sealed class Mau10Data
     /// <summary>Ô "Đại diện cơ quan thẩm định": người đã thẩm định.</summary>
     [TemplateField("APPRAISER_NAME")] public string? AppraiserName { get; init; }
 
-    public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null)
+    public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null, ExcellenceConditionReport? conditions = null)
     {
         string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
         // Chưa tự chấm (vd Chưa xếp loại): điểm tự chấm và chênh lệch để dòng chấm, không in 0.
@@ -109,8 +122,48 @@ public sealed class Mau10Data
             CheckDone = Box(EvaluationGrade.HoanThanh),
             CheckFailed = Box(EvaluationGrade.KhongHoanThanh),
             SupervisorName = record.DirectorReviewedById != null ? FormText.OrNull(record.DirectorReviewedByName) : null,
-            AppraiserName = record.AppraisedById != null ? FormText.OrNull(record.AppraisedByName) : null
+            AppraiserName = record.AppraisedById != null ? FormText.OrNull(record.AppraisedByName) : null,
+            SelfExcellent = SelfExcellentText(record, conditions),
+            AppraisalExcellent = AppraisalExcellentText(record, conditions),
+            SelfCap = record.SelfDeclaresNoCap == true ? NoViolation : null,
+            AppraisalCap = AppraisalCapText(record)
         };
+    }
+
+    public const string NoViolation = "Không vi phạm";
+
+    public const string NotProposed = "Không đề xuất";
+
+    public static string Boxes(bool met) => met ? "☒ Đạt  ☐ Không" : "☐ Đạt  ☒ Không";
+
+    /// <summary>Chỉ xét điều kiện tính được lúc tự chấm; không đề xuất Xuất sắc → "Không đề xuất".</summary>
+    public static string? SelfExcellentText(EvaluationRecord record, ExcellenceConditionReport? conditions)
+    {
+        if (!record.SelfScoredAt.HasValue || conditions == null)
+            return null;
+        if (!conditions.SelfProposesExcellent)
+            return NotProposed;
+        var failed = conditions.Self.Where(c => c.State == ConditionState.NotMet).Select(c => c.Line).ToList();
+        return string.Join("\n", failed.Prepend(Boxes(failed.Count == 0)));
+    }
+
+    /// <summary>Có điều kiện Không → Không; đủ cả sáu → Đạt; còn điều kiện chưa chọn → không đánh dấu.</summary>
+    public static string? AppraisalExcellentText(EvaluationRecord record, ExcellenceConditionReport? conditions)
+    {
+        if (!record.AppraisedAt.HasValue || conditions == null || conditions.FinalOverall == ConditionState.Unknown)
+            return null;
+        var failed = conditions.Final.Where(c => c.State == ConditionState.NotMet).Select(c => c.Line);
+        return string.Join("\n", failed.Prepend(Boxes(conditions.FinalOverall == ConditionState.Met)));
+    }
+
+    public static string? AppraisalCapText(EvaluationRecord record)
+    {
+        if (record.AppraisalGradeCap is { } cap && cap != EvaluationGrade.ChuaXepLoai)
+        {
+            var reason = FormText.OrNull(record.AppraisalCapReason?.Trim());
+            return $"Khống chế tối đa mức {CriteriaSetContent.GradeName(cap)}" + (reason != null ? $": {reason}" : string.Empty);
+        }
+        return record.AppraisedAt.HasValue ? NoViolation : null;
     }
 
     private static string? TaskLevelText(EvaluationRecord record)

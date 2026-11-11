@@ -111,7 +111,7 @@ public class AuthzContractTests
             "system.users.read", "system.users.manage", "system.roles.manage", "system.assignments.manage",
             "system.audit.read", "system.settings.manage", "system.templates.manage", "system.import",
             "catalog.manage", "period.manage", "criteria.manage", "evaluation.self",
-            "evaluation.read", "evaluation.tasks.forward", "evaluation.tasks.review", "evaluation.tasks.approve", "evaluation.cell.confirm", "evaluation.collective.record",
+            "evaluation.read", "evaluation.tasks.forward", "evaluation.tasks.review", "evaluation.tasks.approve", "evaluation.tasks.proxy", "evaluation.cell.confirm", "evaluation.collective.record",
             "evaluation.appraise", "evaluation.director.review", "evaluation.unit.review", "evaluation.decide", "evaluation.external.record",
             "evaluation.publish", "evaluation.reopen",
             // Sau công bố.

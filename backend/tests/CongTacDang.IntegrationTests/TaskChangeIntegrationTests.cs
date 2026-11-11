@@ -161,6 +161,81 @@ public sealed class TaskChangeIntegrationTests
         Assert.True(history.EnumerateArray().Count(h => h.GetProperty("action").GetString() == "TaskChange") >= 6);
     }
 
+    [SkippableFact]
+    public async Task UpperApprovedOutside_UpdateTasksWhileAwaiting_ThenExternallyApprovedChangeAppliesImmediately()
+    {
+        var w = await WorldAsync();
+        var periodId = await OpenPeriodAsync(w, w.Owner.Id, w.Upper.Id);
+        var upperId = await RecordOfAsync(w, periodId, w.Upper.Id);
+        var internalId = await RecordOfAsync(w, periodId, w.Owner.Id);
+        string Actions(Guid id) => $"/api/evaluations/records/{id}/actions";
+        bool HasUpdate(JsonElement a) => a.GetProperty("actions").EnumerateArray().Any(x => x.GetProperty("action").GetString() == "UpdateTasks");
+
+        // Chủ hồ sơ diện cấp trên tự nộp; bước duyệt do cấp trên thực hiện nên hồ sơ chờ duyệt danh mục.
+        await Ok(await Post(w.UpperC, upperId, "tasks/submit", Tasks(), await VersionAsync(w, upperId)));
+        Assert.Equal("AwaitingTaskApproval", (await Data(w.ManagerC, $"/api/evaluations/records/{upperId}")).GetProperty("status").GetString());
+        Assert.True(HasUpdate(await Data(w.ManagerC, Actions(upperId))));
+        Assert.True(HasUpdate(await Data(w.OfficeC, Actions(upperId))));
+        Assert.True(HasUpdate(await Data(w.UpperC, Actions(upperId))));
+        Assert.False(HasUpdate(await Data(w.ReaderC, Actions(upperId))));
+
+        var updated = new
+        {
+            tasks = new[]
+            {
+                new { taskName = "Sản phẩm 1 (theo duyệt)", targetOutput = "Kết quả 1", weight = 25.0, axisCode = "T1", kind = "TrongTam", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản", confirmer = "Giám đốc" },
+                new { taskName = "Sản phẩm 2", targetOutput = "Kết quả 2", weight = 15.0, axisCode = "T1", kind = "ThuongXuyen", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản", confirmer = "Giám đốc" },
+                new { taskName = "Sản phẩm 3", targetOutput = "Kết quả 3", weight = 15.0, axisCode = "T1", kind = "ThuongXuyen", role = "PhoiHop", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản", confirmer = "Giám đốc" },
+                new { taskName = "Sản phẩm 4 (cấp trên bổ sung)", targetOutput = "Kết quả 4", weight = 15.0, axisCode = "T1", kind = "ThuongXuyen", role = "ChuTri", exceedCriteria = "Vượt tiến độ", evidenceSource = "Biên bản", confirmer = "Giám đốc" }
+            }
+        };
+        Assert.Equal(HttpStatusCode.Forbidden, (await Post(w.ReaderC, upperId, "tasks/update", updated, await VersionAsync(w, upperId))).StatusCode);
+        var wrongTotal = new { tasks = updated.tasks.Take(3).ToArray() };
+        Assert.Equal(HttpStatusCode.BadRequest, (await Post(w.ManagerC, upperId, "tasks/update", wrongTotal, await VersionAsync(w, upperId))).StatusCode);
+        var afterUpdate = await Data(await Post(w.ManagerC, upperId, "tasks/update", updated, await VersionAsync(w, upperId)));
+        Assert.Equal("AwaitingTaskApproval", afterUpdate.GetProperty("status").GetString());
+        Assert.Equal(4, afterUpdate.GetProperty("tasks").GetArrayLength());
+        var history = await Data(w.UpperC, $"/api/evaluations/records/{upperId}/history");
+        Assert.Contains(history.EnumerateArray(), h => h.GetProperty("comment").GetString()?.StartsWith("Cập nhật danh mục theo kết quả duyệt") == true);
+
+        // Hồ sơ diện duyệt trong hệ thống: không có cập nhật danh mục.
+        await Ok(await Post(w.OwnerC, internalId, "tasks/submit", Tasks(), await VersionAsync(w, internalId)));
+        Assert.False(HasUpdate(await Data(w.ManagerC, Actions(internalId))));
+        Assert.Equal(HttpStatusCode.Conflict, (await Post(w.ManagerC, internalId, "tasks/update", Tasks(), await VersionAsync(w, internalId))).StatusCode);
+
+        // Văn phòng ghi nhận kết quả duyệt của cấp trên; sau đó không còn cập nhật danh mục.
+        const string authority = "Ban Thường vụ Đảng ủy Tổng công ty";
+        await Ok(await Post(w.OfficeC, upperId, "external/B1_APPROVE",
+            new { authorityName = authority, documentNumber = "12-QĐ/ĐU", documentDate = DateTime.UtcNow.Date.AddDays(-1) }, await VersionAsync(w, upperId)));
+        Assert.Equal(HttpStatusCode.Conflict, (await Post(w.ManagerC, upperId, "tasks/update", updated, await VersionAsync(w, upperId))).StatusCode);
+
+        var block = await Data(w.ManagerC, $"/api/evaluations/records/{upperId}/task-changes");
+        Assert.True(block.GetProperty("requiresExternalApproval").GetBoolean());
+        Assert.True(block.GetProperty("canRequestChange").GetBoolean());
+        Assert.Equal(authority, block.GetProperty("defaultAuthorityName").GetString());
+        var ids = (await Data(w.ManagerC, $"/api/evaluations/records/{upperId}")).GetProperty("tasks").EnumerateArray()
+            .OrderBy(t => t.GetProperty("taskOrder").GetInt32()).Select(t => t.GetProperty("id").GetGuid()).ToArray();
+        object Adjust(string? number) => new
+        {
+            type = "Adjust", taskId = ids[1], proposal = new { taskName = "Sản phẩm 2 (điều chỉnh)" },
+            weights = new Dictionary<Guid, double> { [ids[1]] = 20, [ids[3]] = 10 }, reason = "Theo văn bản của cấp trên",
+            externalApproval = new { documentNumber = number, documentDate = DateTime.UtcNow.Date }
+        };
+        Assert.Equal(HttpStatusCode.BadRequest, (await CreateAsync(w, w.ManagerC, upperId, Adjust(null))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await CreateAsync(w, w.ReaderC, upperId, Adjust("45/QĐ"))).StatusCode);
+        var applied = (await Data(await CreateAsync(w, w.ManagerC, upperId, Adjust("45/QĐ")))).GetProperty("requests")[0];
+        Assert.Equal("Approved", applied.GetProperty("status").GetString());
+        Assert.True(applied.GetProperty("approvedExternally").GetBoolean());
+        Assert.Equal(authority, applied.GetProperty("decidedByName").GetString());
+        Assert.Contains("45/QĐ", applied.GetProperty("decisionComment").GetString());
+        var tasks = (await Data(w.UpperC, $"/api/evaluations/records/{upperId}")).GetProperty("tasks").EnumerateArray().ToList();
+        Assert.Contains(tasks, t => t.GetProperty("taskName").GetString() == "Sản phẩm 2 (điều chỉnh)" && t.GetProperty("weight").GetDouble() == 20);
+
+        var text = await DocxTextAsync(w.UpperC, $"/api/reports/docx/record/{upperId}/04/{applied.GetProperty("id").GetGuid()}");
+        Assert.Contains(authority, text);
+        Assert.Contains("Văn bản số 45/QĐ", text);
+    }
+
     #region Hỗ trợ
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -169,8 +244,8 @@ public sealed class TaskChangeIntegrationTests
     private sealed class World
     {
         public Guid Dept;
-        public TestUser Owner = null!;
-        public HttpClient OwnerC = null!, LeadC = null!, ManagerC = null!, ReaderC = null!;
+        public TestUser Owner = null!, Upper = null!;
+        public HttpClient OwnerC = null!, LeadC = null!, ManagerC = null!, ReaderC = null!, UpperC = null!, OfficeC = null!;
     }
 
     private async Task<World> WorldAsync()
@@ -198,7 +273,11 @@ public sealed class TaskChangeIntegrationTests
             var lead = await _factory.CreateUserAsync(w.Dept, null, ApprovalAuthority.CoSo, $"TC Giám đốc {suffix}");
             var manager = await _factory.CreateUserAsync(null, null);
             var reader = await _factory.CreateUserAsync(null, null);
+            w.Upper = await _factory.CreateUserAsync(w.Dept, cell, ApprovalAuthority.CapTren, $"TC Chủ tịch {suffix}");
+            var office = await _factory.CreateUserAsync(null, null);
             await _factory.AssignAsync(w.Owner.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+            await _factory.AssignAsync(w.Upper.Id, await _factory.GetRoleIdAsync("NGUOI_DUOC_DANH_GIA"), RoleScopeType.Global, null);
+            await _factory.AssignAsync(office.Id, await _factory.GetRoleIdAsync("VAN_PHONG_DANG_UY"), RoleScopeType.Global, null);
             await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("CAP_TRUC_TIEP_SU_DUNG"), RoleScopeType.Department, w.Dept);
             await _factory.AssignAsync(lead.Id, await _factory.GetRoleIdAsync("LANH_DAO_PHONG"), RoleScopeType.Department, w.Dept);
             await _factory.AssignAsync(manager.Id, await _factory.GetRoleIdAsync("CO_QUAN_THAM_DINH"), RoleScopeType.Global, null);
@@ -208,6 +287,8 @@ public sealed class TaskChangeIntegrationTests
             w.LeadC = await _factory.LoginAsAsync(lead.Username, lead.Password, distinctClientIp: true);
             w.ManagerC = await _factory.LoginAsAsync(manager.Username, manager.Password, distinctClientIp: true);
             w.ReaderC = await _factory.LoginAsAsync(reader.Username, reader.Password, distinctClientIp: true);
+            w.UpperC = await _factory.LoginAsAsync(w.Upper.Username, w.Upper.Password, distinctClientIp: true);
+            w.OfficeC = await _factory.LoginAsAsync(office.Username, office.Password, distinctClientIp: true);
             Worlds[_factory.DatabaseName] = w;
             return w;
         }
@@ -227,7 +308,7 @@ public sealed class TaskChangeIntegrationTests
         }
     };
 
-    private static async Task<Guid> OpenPeriodAsync(World w)
+    private static async Task<Guid> OpenPeriodAsync(World w, params Guid[] members)
     {
         var body = new
         {
@@ -237,7 +318,7 @@ public sealed class TaskChangeIntegrationTests
             startDate = DateTime.UtcNow.AddDays(-5), endDate = DateTime.UtcNow.AddDays(60)
         };
         var periodId = (await Data(await w.ManagerC.PostAsJsonAsync("/api/evaluations/periods", body))).GetProperty("id").GetGuid();
-        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Owner.Id } }));
+        await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = members.Length > 0 ? members : new[] { w.Owner.Id } }));
         var period = await Data(w.ManagerC, $"/api/evaluations/periods/{periodId}");
         await Data(await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/open",
             new { version = period.GetProperty("version").GetUInt32(), reason = "Kiểm thử điều chỉnh việc", force = true }));

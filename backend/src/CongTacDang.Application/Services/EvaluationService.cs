@@ -23,14 +23,17 @@ public class EvaluationService : IEvaluationService
     private readonly ICurrentUserService _currentUser;
     private readonly IAuthorizationGuard _guard;
     private readonly IPermissionResolver? _permissions;
+    private readonly IExcellenceConditionSource? _conditions;
 
     public EvaluationService(
         IEvaluationWorkflowRepository repo,
         IPositionRepository positions,
         ICurrentUserService currentUser,
         IAuthorizationGuard guard,
-        IPermissionResolver? permissions = null)
+        IPermissionResolver? permissions = null,
+        IExcellenceConditionSource? conditions = null)
     {
+        _conditions = conditions;
         _repo = repo;
         _positions = positions;
         _currentUser = currentUser;
@@ -143,6 +146,38 @@ public class EvaluationService : IEvaluationService
             IsFullScope = scope.IsGlobal && cellId == null,
             ExceedingGroupCount = groups.Count(g => g.IsExceeding),
             Groups = groups.Select(ExcellentQuotaCalculator.ToDto).ToList()
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<ExcellenceConditionsDto> GetExcellenceConditionsAsync(Guid recordId, CancellationToken ct = default)
+    {
+        var record = await _repo.FindRecordAsync(recordId, ct)
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
+        _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
+        if (_conditions == null)
+            throw new InvalidOperationException("Chưa đăng ký nguồn dữ liệu điều kiện xếp loại.");
+        var context = await _conditions.LoadAsync(record, ct);
+        return ToConditionsDto(context);
+    }
+
+    public static ExcellenceConditionsDto ToConditionsDto(ExcellenceConditionContext context)
+    {
+        static List<ConditionResultDto> Map(IEnumerable<ConditionResult> results) => results.Select(r => new ConditionResultDto
+        {
+            Code = r.Code, Label = r.Label, Name = r.Name, State = r.State.ToString(), Reason = r.Reason
+        }).ToList();
+        var report = context.Report;
+        return new ExcellenceConditionsDto
+        {
+            Self = Map(report.Self),
+            Computed = Map(report.Computed),
+            Final = Map(report.Final),
+            CompletionHints = report.CompletionHints.ToList(),
+            SelfProposesExcellent = report.SelfProposesExcellent,
+            SelfOverall = report.SelfOverall.ToString(),
+            FinalOverall = report.FinalOverall.ToString(),
+            HasSafetyDefect = context.HasSafetyDefect
         };
     }
 

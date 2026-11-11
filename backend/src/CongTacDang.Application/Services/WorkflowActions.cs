@@ -154,6 +154,17 @@ public static class WorkflowActions
 
     public const string UnmarkNotRated = "UnmarkNotRated";
 
+    /// <summary>Sửa danh mục khi chờ cấp trên duyệt ngoài hệ thống; không chuyển bước.</summary>
+    public const string UpdateTasks = "UpdateTasks";
+
+    /// <summary>Kiểm khóa kỳ như bước duyệt danh mục; không nằm trong <see cref="All"/> vì không chuyển trạng thái.</summary>
+    public static readonly WorkflowActionDefinition UpdateTasksDefinition =
+        new(UpdateTasks, WorkflowStep.B1_APPROVE, WorkflowAction.TaskChange, "Cập nhật danh mục");
+
+    /// <summary>Chỉ khi cấp trên duyệt danh mục ngoài hệ thống: không ai trả lại được để sửa cho khớp kết quả duyệt.</summary>
+    public static bool AllowsTaskUpdate(WorkflowProfile profile) =>
+        profile.Mode(WorkflowStep.B1_APPROVE) == StepMode.External;
+
     /// <summary>Theo giờ Việt Nam (dd/MM/yyyy HH:mm).</summary>
     public static string FormatLocal(DateTime utc) =>
         (utc + EvaluationMapping.BusinessUtcOffset).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
@@ -186,7 +197,8 @@ public static class WorkflowActions
     /// <summary>Không gồm quyền của bước chủ hồ sơ.</summary>
     public static bool IsAssignableStepPermission(string code) =>
         PermissionCodes.Find(code) is { Module: "evaluation" } definition
-        && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen)
+        && definition.Code is not (PermissionCodes.EvaluationSelf or PermissionCodes.EvaluationRead or PermissionCodes.EvaluationReopen
+            or PermissionCodes.EvaluationTasksProxy)
         && !PermissionCodes.FormPermissions.Contains(definition.Code);
 
     /// <summary>Theo thứ tự danh mục.</summary>

@@ -65,6 +65,16 @@ public static class TaskChangeRules
         _ => status.ToString()
     };
 
+    public const int MaxDocumentNumberLength = 100;
+
+    /// <summary>Ghi theo văn bản của cấp trên: không có người duyệt trong hệ thống, người duyệt là tên cơ quan.</summary>
+    public static bool IsExternallyApproved(TaskChangeRequest request) =>
+        request.Status == TaskChangeStatus.Approved && request.DecidedById == null && !string.IsNullOrWhiteSpace(request.DecidedByName);
+
+    /// <summary>Nội dung ý kiến duyệt của đề nghị ghi theo văn bản cấp trên.</summary>
+    public static string ExternalDocumentLine(string documentNumber, DateTime documentDate) =>
+        $"Văn bản số {documentNumber.Trim()} ngày {documentDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}";
+
     #region JSON
 
     public static string ProposalToJson(TaskChangeProposal proposal) => JsonSerializer.Serialize(proposal, JsonOptions);

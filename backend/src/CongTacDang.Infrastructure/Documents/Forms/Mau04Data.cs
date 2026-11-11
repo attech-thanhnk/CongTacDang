@@ -79,7 +79,7 @@ public sealed class Mau04Data
             ContentAfter = After(source, fieldLines),
             ReasonDetail = FormText.OrNull(request.Reason),
             Impact = ImpactText(source),
-            ApproverSign = request.Status == TaskChangeStatus.Approved ? FormText.OrNull(request.DecidedByName) : null,
+            ApproverSign = source.ApproverSign,
             RequesterSign = FormText.OrNull(request.RequestedByName)
         };
     }

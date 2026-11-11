@@ -19,6 +19,7 @@ public sealed class AuthorizationGuard : IAuthorizationGuard
         PermissionCodes.EvaluationTasksForward,
         PermissionCodes.EvaluationTasksReview,
         PermissionCodes.EvaluationTasksApprove,
+        PermissionCodes.EvaluationTasksProxy,
         PermissionCodes.EvaluationCellConfirm,
         PermissionCodes.EvaluationCollectiveRecord,
         PermissionCodes.EvaluationAppraise,

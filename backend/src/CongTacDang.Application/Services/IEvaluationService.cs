@@ -24,4 +24,7 @@ public interface IEvaluationService
 
     /// <summary>Kiểm soát trần Hoàn thành xuất sắc theo nhóm chức danh trong từng cấp quyết định.</summary>
     Task<ExcellentQuotaCheckDto> CheckExcellentQuotasAsync(Guid periodId, Guid? partyCellId, CancellationToken ct = default);
+
+    /// <summary>Sáu điều kiện Hoàn thành xuất sắc của hồ sơ (tự chấm, hệ thống tính, sau khi người thẩm định chọn).</summary>
+    Task<ExcellenceConditionsDto> GetExcellenceConditionsAsync(Guid recordId, CancellationToken ct = default);
 }

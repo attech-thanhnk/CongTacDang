@@ -1358,9 +1358,16 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AppraisalCapReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<string>("AppraisalComment")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("AppraisalConditionOverrides")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("AppraisalExplanation")
                         .HasMaxLength(4000)
@@ -1371,6 +1378,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
 
                     b.Property<string>("AppraisalGeneralScores")
                         .HasColumnType("jsonb");
+
+                    b.Property<int?>("AppraisalGradeCap")
+                        .HasColumnType("integer");
 
                     b.Property<int>("AppraisalProposedGrade")
                         .HasColumnType("integer");
@@ -1582,6 +1592,9 @@ namespace CongTacDang.Infrastructure.Data.Migrations
                     b.Property<string>("SelfAssessment")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<bool?>("SelfDeclaresNoCap")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SelfGradeExplanation")
                         .HasMaxLength(4000)

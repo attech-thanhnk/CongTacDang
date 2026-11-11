@@ -247,6 +247,7 @@ public static class EvaluationMapping
             SelfProposedGrade = GradeCode(r.SelfProposedGrade),
             SelfGradeExplanation = r.SelfGradeExplanation,
             SelfScoredAt = r.SelfScoredAt,
+            SelfDeclaresNoCap = r.SelfDeclaresNoCap,
             SelfAssessment = SafeParse(() => RecordFormContent.ParseSelfAssessment(r.SelfAssessment), new Dictionary<string, string>()),
             AxisReports = SafeParse(() => RecordFormContent.ParseAxisReports(r.AxisReports), new Dictionary<string, AxisReport>()),
             GeneralGroupNotes = SafeParse(() => RecordFormContent.ParseGeneralGroupNotes(r.GeneralGroupNotes), new Dictionary<string, string>()),
@@ -270,6 +271,9 @@ public static class EvaluationMapping
             AppraisalComment = r.AppraisalComment,
             AppraisalExplanation = r.AppraisalExplanation,
             AppraisalProposedGrade = GradeCode(r.AppraisalProposedGrade),
+            AppraisalGradeCap = r.AppraisalGradeCap is { } cap ? GradeCode(cap) : string.Empty,
+            AppraisalCapReason = r.AppraisalCapReason,
+            AppraisalConditionOverrides = ExcellenceConditionCodes.ParseOverrides(r.AppraisalConditionOverrides),
             AppraisedByName = r.AppraisedByName,
             AppraisedAt = r.AppraisedAt,
 
@@ -326,6 +330,9 @@ public static class EvaluationMapping
     }
 
     /// <summary>Kỳ chưa có bộ tiêu chí hoặc hồ sơ chưa nạp danh mục → rỗng.</summary>
+    public static string CapWarning(EvaluationGrade cap) =>
+        $"Mức đề xuất cao hơn mức khống chế khi thẩm định (tối đa \"{CriteriaSetContent.GradeName(cap)}\").";
+
     public static IReadOnlyList<string> GradeWarnings(EvaluationRecord r, EvaluationGrade grade, CriteriaSnapshot? criteria)
     {
         if (criteria == null || r.Tasks == null)
@@ -334,7 +341,10 @@ public static class EvaluationMapping
             .Where(t => !t.IsDeleted && TaskChangeRules.IsActive(t))
             .Select(t => new GradeConditionTask(t.Kind, t.AppraisalLevel, t.IsExceedStandard))
             .ToList();
-        return GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content));
+        var warnings = GradeConditions.Check(tasks, grade, GradeConditions.ExcellentMinExceedRatio(criteria.Content)).ToList();
+        if (ExcellenceConditions.ExceedsCap(grade, r.AppraisalGradeCap))
+            warnings.Add(CapWarning(r.AppraisalGradeCap!.Value));
+        return warnings;
     }
 
     public static EvaluationTaskDto ToTaskDto(EvaluationTask t, IReadOnlyDictionary<Guid, (Guid AttachmentId, string FileName)>? evidence)

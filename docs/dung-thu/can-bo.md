@@ -89,6 +89,10 @@ Sau khi đăng nhập, bạn ở trang **Tổng quan**. Thẻ **Hồ sơ của t
 
 ![Đề nghị đã gửi](anh/can-bo-13-dieu-chinh-da-gui.png)
 
+**Danh mục do cấp trên duyệt** (ví dụ Chủ tịch, Giám đốc, Kiểm soát viên):
+- Đang chờ duyệt mà cấp trên sửa danh mục: mở hồ sơ → **Cập nhật danh mục** → sửa cho khớp → **Lưu danh mục**. Phòng TCCB-LĐ hoặc Văn phòng Đảng ủy cũng cập nhật thay được.
+- Đã duyệt mà cấp trên đồng ý điều chỉnh: bấm **Ghi điều chỉnh đã duyệt**, nhập thêm **Cơ quan phê duyệt**, **Số văn bản**, **Ngày văn bản** → **Ghi và áp dụng**. Danh mục cập nhật ngay, không chờ duyệt.
+
 ## 5. Tự chấm điểm (Mẫu 02, 09A, 09C, 9D)
 
 **Khi nào:** khi danh mục đã được duyệt; hạn ở thanh tiến trình, bước **Tự chấm điểm, đề xuất mức**.

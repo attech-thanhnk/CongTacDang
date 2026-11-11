@@ -22,6 +22,9 @@ namespace CongTacDang.Application.Services;
 public interface IEvaluationWorkflowService
 {
     Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default);
+
+    /// <summary>Chờ cấp trên duyệt danh mục ngoài hệ thống: chủ hồ sơ hoặc <c>evaluation.tasks.proxy</c> sửa danh mục cho khớp kết quả duyệt, không chuyển bước.</summary>
+    Task<EvaluationRecordDto> UpdateTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ForwardTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReturnByUnitAsync(Guid recordId, ReturnRecordRequestDto request, CancellationToken ct = default);
     Task<EvaluationRecordDto> ReviewTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default);
@@ -129,46 +132,120 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
     public Task<EvaluationRecordDto> SubmitTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default) =>
         ExecuteAsync(recordId, request, WorkflowActions.SubmitTasks, null, async (ctx) =>
         {
-            var criteria = RequireCriteria(ctx);
-            var tasks = request.Tasks ?? new List<TaskInputDto>();
-            var error = EvaluationScoring.ValidateTaskRegistration(tasks.Select(t => t.Weight).ToList(), criteria.Content.Parameters);
-            if (error != null)
-                throw new ValidationException(error);
-            ValidateTaskRows(tasks, criteria.Content);
-
-            // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
-            var existing = (await _repo.GetTasksAsync(ctx.Record.Id, ct))
-                .Where(t => t.AttachmentId.HasValue).Select(t => t.AttachmentId!.Value).ToHashSet();
-            await EnsureNewAttachmentsLinkableAsync(tasks.Select(t => t.AttachmentId), existing);
-
-            var order = 1;
-            var newTasks = tasks.Select(t => new EvaluationTask
-            {
-                Id = Guid.NewGuid(),
-                RecordId = ctx.Record.Id,
-                TaskOrder = order++,
-                TaskName = t.TaskName!.Trim(),
-                TargetOutput = t.TargetOutput?.Trim() ?? string.Empty,
-                Weight = t.Weight,
-                Deadline = t.Deadline.HasValue ? DateTime.SpecifyKind(t.Deadline.Value, DateTimeKind.Utc) : ctx.Record.Period.EndDate,
-                AxisCode = criteria.Content.FindAxis(t.AxisCode)?.Code,
-                ProductCode = string.IsNullOrWhiteSpace(t.ProductCode) ? null : t.ProductCode.Trim(),
-                Kind = ParseTaskKind(t.Kind),
-                Role = ParseTaskRole(t.Role),
-                ExceedCriteria = t.ExceedCriteria!.Trim(),
-                EvidenceSource = t.EvidenceSource!.Trim(),
-                Confirmer = t.Confirmer!.Trim(),
-                AttachmentId = t.AttachmentId,
-                CriteriaA_Ratio = 1.0,
-                CriteriaB_Ratio = 1.0,
-                CriteriaC_Ratio = 1.0,
-                CriteriaD_Ratio = 1.0,
-                SelfScore = 0 // Chưa tự chấm (TaskSelfScores.IsPending): phiếu để trống cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D
-            }).ToList();
-            await _repo.ReplaceTasksAsync(ctx.Record.Id, newTasks, ct);
+            await ReplaceRegisteredTasksAsync(ctx.Record, RequireCriteria(ctx), request.Tasks, ct);
             ctx.Record.ReturnReason = null;
             return "Nộp danh mục sản phẩm.";
         }, ct);
+
+    /// <summary>Kiểm hợp lệ như lúc đăng ký rồi thay toàn bộ danh mục của hồ sơ.</summary>
+    private async Task ReplaceRegisteredTasksAsync(EvaluationRecord record, CriteriaSnapshot criteria, List<TaskInputDto>? input, CancellationToken ct)
+    {
+        var tasks = input ?? new List<TaskInputDto>();
+        var error = EvaluationScoring.ValidateTaskRegistration(tasks.Select(t => t.Weight).ToList(), criteria.Content.Parameters);
+        if (error != null)
+            throw new ValidationException(error);
+        ValidateTaskRows(tasks, criteria.Content);
+
+        // Tệp minh chứng mới gắn vào nhiệm vụ phải tồn tại và thuộc quyền người gửi.
+        var existing = (await _repo.GetTasksAsync(record.Id, ct))
+            .Where(t => t.AttachmentId.HasValue).Select(t => t.AttachmentId!.Value).ToHashSet();
+        await EnsureNewAttachmentsLinkableAsync(tasks.Select(t => t.AttachmentId), existing);
+
+        var order = 1;
+        var newTasks = tasks.Select(t => new EvaluationTask
+        {
+            Id = Guid.NewGuid(),
+            RecordId = record.Id,
+            TaskOrder = order++,
+            TaskName = t.TaskName!.Trim(),
+            TargetOutput = t.TargetOutput?.Trim() ?? string.Empty,
+            Weight = t.Weight,
+            Deadline = t.Deadline.HasValue ? DateTime.SpecifyKind(t.Deadline.Value, DateTimeKind.Utc) : record.Period.EndDate,
+            AxisCode = criteria.Content.FindAxis(t.AxisCode)?.Code,
+            ProductCode = string.IsNullOrWhiteSpace(t.ProductCode) ? null : t.ProductCode.Trim(),
+            Kind = ParseTaskKind(t.Kind),
+            Role = ParseTaskRole(t.Role),
+            ExceedCriteria = t.ExceedCriteria!.Trim(),
+            EvidenceSource = t.EvidenceSource!.Trim(),
+            Confirmer = t.Confirmer!.Trim(),
+            AttachmentId = t.AttachmentId,
+            CriteriaA_Ratio = 1.0,
+            CriteriaB_Ratio = 1.0,
+            CriteriaC_Ratio = 1.0,
+            CriteriaD_Ratio = 1.0,
+            SelfScore = 0 // Chưa tự chấm (TaskSelfScores.IsPending): phiếu để trống cho tới khi chủ hồ sơ nhập tỷ lệ A-B-C-D
+        }).ToList();
+        await _repo.ReplaceTasksAsync(record.Id, newTasks, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<EvaluationRecordDto> UpdateTasksAsync(Guid recordId, SubmitTasksRequestDto request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Version is null)
+            throw new ValidationException("Thiếu phiên bản dữ liệu của hồ sơ. Hãy tải lại hồ sơ rồi thực hiện lại.");
+
+        var record = await _repo.FindRecordAsync(recordId, ct)
+            ?? throw new NotFoundException("Không tìm thấy hồ sơ đánh giá.");
+        var profile = EvaluationMapping.ProfileOf(ReadSettings(record.Period), record);
+        if (!WorkflowActions.AllowsTaskUpdate(profile))
+            throw new ConflictException(
+                $"Cập nhật danh mục không thành công: bước duyệt danh mục của diện quyết định \"{profile.Name}\" không do cấp trên thực hiện. "
+                + "Hãy dùng trả lại danh mục để chủ hồ sơ sửa.");
+        _guard.Ensure(TaskUpdatePermission(record), AccessTarget.ForRecord(record));
+
+        if (record.Version != request.Version.Value)
+            throw new ConflictException("Hồ sơ đã được người khác cập nhật sau khi bạn mở. Hãy tải lại hồ sơ để xem dữ liệu mới nhất rồi thực hiện lại.");
+        if (record.Status != RecordStatus.AwaitingTaskApproval)
+            throw new ConflictException(
+                $"Hồ sơ đang ở bước \"{profile.StatusDisplayName(record.Status)}\", chỉ cập nhật danh mục khi đang chờ cấp trên duyệt danh mục.");
+        var now = DateTime.UtcNow;
+        var periodBlock = WorkflowActions.PeriodBlockReason(record.Period.Status, WorkflowActions.UpdateTasksDefinition, record.UnlockedUntil, now);
+        if (periodBlock != null)
+            throw new ConflictException(periodBlock);
+        var criteria = ReadCriteria(record.Period)
+            ?? throw new ConflictException("Kỳ đánh giá chưa có bộ tiêu chí. Hãy liên hệ người quản lý kỳ.");
+
+        await ReplaceRegisteredTasksAsync(record, criteria, request.Tasks, ct);
+
+        var actorId = _currentUser.UserId;
+        var actorName = actorId.HasValue
+            ? await _repo.GetMemberNameAsync(actorId.Value, ct) ?? _currentUser.UserName
+            : _currentUser.UserName;
+        record.UpdatedAt = now;
+        _repo.AddHistory(new EvaluationRecordHistory
+        {
+            RecordId = record.Id,
+            FromStatus = record.Status,
+            ToStatus = record.Status,
+            Step = WorkflowStep.B1_APPROVE,
+            Action = WorkflowAction.TaskChange,
+            ScoreBefore = record.EffectiveScore(),
+            ScoreAfter = record.EffectiveScore(),
+            GradeBefore = record.EffectiveGrade(),
+            GradeAfter = record.EffectiveGrade(),
+            ActorId = actorId,
+            ActorName = string.IsNullOrWhiteSpace(actorName) ? "system" : actorName,
+            Comment = $"Cập nhật danh mục theo kết quả duyệt: {actorName}.",
+            CreatedAt = now
+        });
+        _unitOfWork.SetOriginalVersion(record, request.Version);
+        await _unitOfWork.SaveChangesAsync(ct);
+        return await LoadDtoAsync(record, ct);
+    }
+
+    /// <summary>Chủ hồ sơ sửa danh mục của mình; người khác cần quyền cập nhật thay (guard chặn khi là chủ hồ sơ).</summary>
+    private string TaskUpdatePermission(EvaluationRecord record) =>
+        _currentUser.UserId is { } userId && record.MemberId == userId
+            ? PermissionCodes.EvaluationSelf
+            : PermissionCodes.EvaluationTasksProxy;
+
+    private bool CanUpdateTasks(EvaluationRecord record, WorkflowProfile profile, DateTime now) =>
+        record.Status == RecordStatus.AwaitingTaskApproval
+        && WorkflowActions.AllowsTaskUpdate(profile)
+        && ReadCriteria(record.Period) != null
+        && WorkflowActions.PeriodBlockReason(record.Period.Status, WorkflowActions.UpdateTasksDefinition, record.UnlockedUntil, now) == null
+        && _guard.Can(TaskUpdatePermission(record), AccessTarget.ForRecord(record));
 
     /// <inheritdoc />
     public Task<EvaluationRecordDto> ForwardTasksAsync(Guid recordId, CommentRequestDto request, CancellationToken ct = default) =>
@@ -457,6 +534,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             GradeProposalRules.EnsureExplained(content, WorkflowStep.B2_SELF_SCORE, record.SelfProposedGrade, record.TotalSelfScore, exceedRatio,
                 gradeExplanation, "\"Lý do đề xuất mức\"");
         record.SelfGradeExplanation = gradeExplanation;
+        if (request.SelfDeclaresNoCap is { } declares)
+            record.SelfDeclaresNoCap = declares;
 
         return ApplyIndividualForms(record, criteria, request, partial: draft);
     }
@@ -645,6 +724,8 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             GradeProposalRules.EnsureExplained(criteria.Content, WorkflowStep.B3B_APPRAISAL, grade, total,
                 GradeProposalRules.ExceedRatio(ctx.Record, criteria), explanation, "\"Giải trình\"");
 
+            var (cap, capReason) = GradeCap(request);
+
             // Bắt buộc xếp mức mọi nhiệm vụ.
             ApplyTaskLevels(await _repo.GetTasksAsync(ctx.Record.Id, ct), request.TaskLevels);
 
@@ -656,6 +737,10 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
             ctx.Record.AppraisalExplanation = explanation;
             ctx.Record.AppraisalComment = Trim(request.Comment, MaxCommentLength, "Ý kiến thẩm định") ?? string.Empty;
             ctx.Record.AppraisalProposedGrade = grade;
+            ctx.Record.AppraisalGradeCap = cap;
+            ctx.Record.AppraisalCapReason = capReason;
+            if (request.ConditionOverrides != null)
+                ctx.Record.AppraisalConditionOverrides = ExcellenceConditionCodes.OverridesToJson(request.ConditionOverrides);
             ctx.Record.AppraisedById = ctx.ActorId;
             ctx.Record.AppraisedByName = ctx.ActorName;
             ctx.Record.AppraisedAt = ctx.Now;
@@ -704,6 +789,20 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
         var roundedGeneral = EvaluationScoring.Round(general, p.Rounding.GeneralTotal);
         var roundedTasks = ValidateTasksScore(tasks, p);
         return (roundedGeneral, roundedTasks, EvaluationScoring.TotalScore(roundedGeneral, roundedTasks, p.Rounding.Total), null);
+    }
+
+    /// <summary>Khống chế mức phải chọn mức Tốt trở xuống và ghi lý do; kiểm luôn mã điều kiện ghi đè.</summary>
+    private static (EvaluationGrade? Cap, string? Reason) GradeCap(AppraisalRequestDto request)
+    {
+        if (request.ConditionOverrides?.Keys.FirstOrDefault(k => !ExcellenceConditionCodes.IsValid(k)) is { } badCode)
+            throw new ValidationException($"Ghi nhận thẩm định không thành công: điều kiện \"{badCode}\" không hợp lệ.");
+        if (string.IsNullOrWhiteSpace(request.GradeCap))
+            return (null, null);
+        if (EvaluationMapping.ParseGrade(request.GradeCap) is not { } cap || !ExcellenceConditions.IsValidCap(cap))
+            throw new ValidationException("Ghi nhận thẩm định không thành công: mức khống chế chỉ chọn Hoàn thành tốt, Hoàn thành hoặc Không hoàn thành nhiệm vụ.");
+        var reason = Trim(request.CapReason, MaxCommentLength, "Lý do khống chế mức xếp loại")
+            ?? throw new ValidationException("Ghi nhận thẩm định không thành công: hãy ghi lý do khống chế mức xếp loại.");
+        return (cap, reason);
     }
 
     /// <summary>0..tổng trọng số nhiệm vụ, làm tròn theo quy tắc nhóm nhiệm vụ.</summary>
@@ -1445,6 +1544,18 @@ public sealed class EvaluationWorkflowService : IEvaluationWorkflowService
                 CurrentUnlockedUntil = requiresUnlock && record.IsUnlockedAt(now) ? record.UnlockedUntil : null,
                 DefaultUnlockDays = requiresUnlock ? WorkflowActions.DefaultUnlockDays : null,
                 MaxUnlockDays = requiresUnlock ? WorkflowActions.MaxUnlockDays : null
+            };
+        }
+
+        if (CanUpdateTasks(record, profile, now))
+        {
+            yield return new RecordActionDto
+            {
+                Action = WorkflowActions.UpdateTasks,
+                Step = WorkflowSteps.Code(WorkflowStep.B1_APPROVE),
+                Label = WorkflowActions.UpdateTasksDefinition.Label,
+                RequiresReason = false,
+                ReasonOptional = false
             };
         }
 

@@ -65,6 +65,8 @@ public sealed class EvaluationRecordConfiguration : IEntityTypeConfiguration<Eva
         entity.Property(e => e.GeneralGroupNotes).HasColumnType("jsonb");
         entity.Property(e => e.AppraisalGeneralScores).HasColumnType("jsonb");
         entity.Property(e => e.AppraisalExplanation).HasMaxLength(4000);
+        entity.Property(e => e.AppraisalCapReason).HasMaxLength(4000);
+        entity.Property(e => e.AppraisalConditionOverrides).HasColumnType("jsonb");
         entity.Property(e => e.SelfGradeExplanation).HasMaxLength(4000);
         entity.Property(e => e.DecisionExplanation).HasMaxLength(4000);
         entity.Property(e => e.TasksForwardedByName).HasMaxLength(200);

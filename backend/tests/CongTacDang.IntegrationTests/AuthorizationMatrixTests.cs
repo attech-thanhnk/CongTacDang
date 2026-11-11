@@ -196,6 +196,58 @@ public sealed class AuthorizationMatrixTests
     }
 
     [SkippableFact]
+    public async Task ExcellenceConditions_SelfCommitment_ByOwner_GradeCap_ByAppraiser()
+    {
+        var s = await GetScenarioAsync();
+        await SetStatusAsync(s.RecordA1, RecordStatus.AwaitingSelfScore, withTasks: true);
+        var record = await Data(s.OwnerA1, $"/api/evaluations/records/{s.RecordA1}");
+        var taskScores = record.GetProperty("tasks").EnumerateArray()
+            .Select(t => new { taskId = t.GetProperty("id").GetGuid(), criteriaA_Ratio = 1.0, criteriaB_Ratio = 1.0, criteriaC_Ratio = 1.0, criteriaD_Ratio = 1.0 })
+            .ToList();
+        var selfScore = new { version = await VersionAsync(s, s.RecordA1), generalScores = CriteriaTestData.General(), taskScores, selfProposedGrade = "HoanThanhTot", selfDeclaresNoCap = true };
+        var selfUrl = $"/api/evaluations/records/{s.RecordA1}/self-score/submit";
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Appraiser.PostAsJsonAsync(selfUrl, selfScore)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.PostAsJsonAsync(selfUrl, selfScore)).StatusCode);
+        Assert.True((await Data(s.OwnerA1, $"/api/evaluations/records/{s.RecordA1}")).GetProperty("selfDeclaresNoCap").GetBoolean());
+
+        await SetStatusAsync(s.RecordA1, RecordStatus.AwaitingAppraisal);
+        var url = $"/api/evaluations/records/{s.RecordA1}/appraisal";
+        async Task<object> Appraise(string? capReason) => await AppraisalTestData.BodyAsync(s.Appraiser, s.RecordA1, new
+        {
+            version = await VersionAsync(s, s.RecordA1), appraisalScore = 90.0, explanation = "Căn cứ thẩm định (test)", comment = "Thẩm định",
+            proposedGrade = "HoanThanhTot", gradeCap = "HoanThanh", capReason, conditionOverrides = new Dictionary<string, bool> { ["I"] = true }
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.OwnerA1.PostAsJsonAsync(url, await Appraise("Lý do"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.PostAsJsonAsync(url, await Appraise("Lý do"))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await s.Appraiser.PostAsJsonAsync(url, await Appraise(null))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await s.Appraiser.PostAsJsonAsync(url, await Appraise("Vi phạm quy trình an toàn"))).StatusCode);
+
+        var saved = await Data(s.Appraiser, $"/api/evaluations/records/{s.RecordA1}");
+        Assert.Equal("HoanThanh", saved.GetProperty("appraisalGradeCap").GetString());
+        Assert.Equal("Vi phạm quy trình an toàn", saved.GetProperty("appraisalCapReason").GetString());
+        Assert.True(saved.GetProperty("appraisalConditionOverrides").GetProperty("I").GetBoolean());
+        Assert.Contains(saved.GetProperty("gradeWarnings").EnumerateArray(), w => w.GetString()!.Contains("khống chế", StringComparison.Ordinal));
+
+        var conditionsUrl = $"/api/evaluations/records/{s.RecordA1}/excellence-conditions";
+        var conditions = await Data(s.Appraiser, conditionsUrl);
+        var final = conditions.GetProperty("final").EnumerateArray().ToDictionary(c => c.GetProperty("code").GetString()!, c => c.GetProperty("state").GetString());
+        Assert.Equal("Met", final["I"]);
+        Assert.Equal("NotMet", final["V"]);
+        Assert.Equal("NotMet", conditions.GetProperty("finalOverall").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await s.OwnerA1.GetAsync(conditionsUrl)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.Plain.GetAsync(conditionsUrl)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await s.CellSecA.GetAsync($"/api/evaluations/records/{s.RecordB1}/excellence-conditions")).StatusCode);
+
+        // Phiếu Mẫu 10 in mức khống chế, không còn chữ cứng.
+        var export = await s.Appraiser.GetAsync($"/api/reports/docx/mau-10/{s.RecordA1}");
+        Assert.Equal(HttpStatusCode.OK, export.StatusCode);
+        using var docx = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new System.IO.MemoryStream(await export.Content.ReadAsByteArrayAsync()), false);
+        var text = docx.MainDocumentPart!.Document!.Body!.InnerText;
+        Assert.Contains("Khống chế tối đa mức Hoàn thành nhiệm vụ: Vi phạm quy trình an toàn", text);
+        Assert.Contains("(v) khống chế tối đa mức", text);
+    }
+
+    [SkippableFact]
     public async Task ApproveFinal_FollowsApprovalAuthority()
     {
         var s = await GetScenarioAsync();

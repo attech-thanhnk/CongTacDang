@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using CongTacDang.Domain.Enums;
+using CongTacDang.Domain.Evaluation;
 
 namespace CongTacDang.Infrastructure.Documents.Forms;
 
@@ -47,6 +48,9 @@ public sealed class Mau09AData
     /// <summary>Số nguyên; ký hiệu % in sẵn trong template.</summary>
     [TemplateField("EXCEED_PERCENT")] public string? ExceedPercent { get; init; }
 
+    /// <summary>Ô "Tự nhận xét điều kiện bắt buộc": theo tỷ lệ vượt chuẩn và cam kết không bị khống chế; chưa tự chấm → trống.</summary>
+    [TemplateField("SELF_CONDITIONS")] public string? SelfConditions { get; init; }
+
     [TemplateField("CHECK_EXCELLENT")] public string? CheckExcellent { get; init; }
     [TemplateField("CHECK_GOOD")] public string? CheckGood { get; init; }
     [TemplateField("CHECK_DONE")] public string? CheckDone { get; init; }
@@ -88,6 +92,8 @@ public sealed class Mau09AData
             ExceedCount = tasks.Count > 0 ? exceed.ToString(CultureInfo.InvariantCulture) : null,
             TaskCount = tasks.Count > 0 ? tasks.Count.ToString(CultureInfo.InvariantCulture) : null,
             ExceedPercent = tasks.Count > 0 ? Math.Round(100.0 * exceed / tasks.Count).ToString("0", CultureInfo.InvariantCulture) : null,
+            SelfConditions = ExcellenceConditions.SelfRemark(source.HasSelfScore, record.SelfProposedGrade,
+                ExcellenceConditions.TasksOf(record.Tasks), GradeConditions.ExcellentMinExceedRatio(source.Criteria), record.SelfDeclaresNoCap),
             CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),

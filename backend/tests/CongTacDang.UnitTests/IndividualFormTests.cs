@@ -311,6 +311,20 @@ public class IndividualFormTests
     }
 
     [Fact]
+    public void Mau09A_SelfConditions_PrintsGradeAndCommitment()
+    {
+        var source = Source();
+        source.Record.SelfProposedGrade = EvaluationGrade.HoanThanhTot;
+        source.Record.SelfDeclaresNoCap = true;
+        var data = Mau09AData.From(source);
+        Assert.Equal("Đáp ứng điều kiện mức Hoàn thành tốt nhiệm vụ; không thuộc trường hợp bị khống chế", data.SelfConditions);
+        Assert.Contains(data.SelfConditions!, Render(Mau09AData.TemplateFileName, data, out _));
+
+        source.Record.SelfScoredAt = null;
+        Assert.Null(Mau09AData.From(source).SelfConditions);
+    }
+
+    [Fact]
     public void Mau09A_FillsDateOfBirth_AndKeepsDefaultWhenMissing()
     {
         var source = Source();
