@@ -422,7 +422,7 @@ public partial class ReportService : IReportService
         ws.Cell(row, 1).Value = "Ghi chú: Để tránh trùng lặp số liệu thì ưu tiên thống kê theo nhóm chức danh có thứ tự đứng trước.";
         ws.Range(row, 1, row, last).Merge().Style.Font.SetItalic(true);
         row += 2;
-        SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
+        SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", CollectiveFormText.SignOnBehalf(header.Organization) ?? "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
 
         ws.Column(1).Width = 5;
         ws.Column(2).Width = 45;
@@ -1315,7 +1315,7 @@ public partial class ReportService : IReportService
         ws.Range(row, 2, row, last).Merge().Style.Alignment.SetWrapText(true).Alignment.SetVertical(XLAlignmentVerticalValues.Top).Font.SetItalic(true);
         ws.Row(row).Height = 90;
         row += 2;
-        SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
+        SignatureRow(ws, row, last, "NGƯỜI LẬP", "(ký, ghi rõ họ tên)", CollectiveFormText.SignOnBehalf(header.Organization) ?? "T/M ĐẢNG ỦY (CHI BỘ)", "(ký, ghi rõ họ tên và đóng dấu)");
 
         ws.Column(1).Width = 5;
         ws.Column(2).Width = 45;
@@ -1426,12 +1426,20 @@ public partial class ReportService : IReportService
 
         PartyCell? branch = null;
         if (branchId.HasValue && branchId.Value != Guid.Empty)
+            branch = await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId.Value)
+                ?? throw new KeyNotFoundException("Không tìm thấy tổ chức Đảng.");
+
+        var records = await query.ToListAsync();
+        if (branch != null)
         {
-            query = query.Where(r => r.PartyCellId == branchId.Value || r.Member.PartyCellId == branchId.Value);
-            branch = await _db.PartyCells.AsNoTracking().FirstOrDefaultAsync(b => b.Id == branchId.Value);
+            // Phạm vi tổ chức Đảng bao trùm mọi tổ chức con, như các báo cáo Excel.
+            var cellIds = (await SubtreeCellIdsAsync(branch))!;
+            records = records.Where(r => r.PartyCellId is { } recordCell
+                ? cellIds.Contains(recordCell)
+                : r.Member?.PartyCellId is { } memberCell && cellIds.Contains(memberCell)).ToList();
         }
 
-        return (period, await query.ToListAsync(), branch);
+        return (period, records, branch);
     }
 
     /// <summary>Giải trình mới nhất của chủ hồ sơ (Mẫu 10); bản sau thay bản trước.</summary>

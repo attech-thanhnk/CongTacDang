@@ -30,6 +30,9 @@ Edit("Mau_10_PhieuThamDinh.docx", body =>
     var excellent = Row(body, "4. Kiểm tra 5 Điều kiện Hoàn thành xuất sắc");
     WrapCell(body, excellent.Elements<TableCell>().ElementAt(1), "SELF_EXCELLENT", null);
     WrapCell(body, excellent.Elements<TableCell>().ElementAt(2), "APPRAISAL_EXCELLENT", null);
+    // Ô in cả lý do: bỏ font ký hiệu của ô gốc để chữ theo font của bảng.
+    PlainFont(body, "SELF_EXCELLENT");
+    PlainFont(body, "APPRAISAL_EXCELLENT");
     var cap = Row(body, "5. Trần xếp loại");
     WrapCell(body, cap.Elements<TableCell>().ElementAt(1), "SELF_CAP", Dots);
     WrapCell(body, cap.Elements<TableCell>().ElementAt(2), "APPRAISAL_CAP", Dots);
@@ -77,6 +80,13 @@ void WrapCell(Body body, TableCell cell, string tag, string? text)
         r.Remove();
         sdt.SdtContentRun!.AppendChild(r);
     }
+}
+
+void PlainFont(Body body, string tag)
+{
+    var sdt = body.Descendants<SdtElement>().Single(s => TagOf(s) == tag);
+    foreach (var fonts in sdt.Descendants<RunFonts>().ToList())
+        fonts.Remove();
 }
 
 string? TagOf(OpenXmlElement e) => (e as SdtElement)?.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value;

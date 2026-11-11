@@ -382,6 +382,18 @@ public class DocumentTemplateTests
         Assert.Contains("Căn cứ: biên bản nghiệm thu", text);
     }
 
+    [Theory]
+    [InlineData("SELF_EXCELLENT")]
+    [InlineData("APPRAISAL_EXCELLENT")]
+    public void Mau10_ExcellenceCells_UseTableFont(string tag)
+    {
+        // Ô in cả lý do điều kiện: không giữ font ký hiệu của ô ☐/☒ gốc.
+        using var doc = Open(new FileWordTemplateStore().Load(Mau10Data.TemplateFileName));
+        var sdt = doc.MainDocumentPart!.Document!.Body!.Descendants<SdtElement>()
+            .Single(s => s.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value == tag);
+        Assert.Empty(sdt.Descendants<RunFonts>());
+    }
+
     [Fact]
     public void Mau02_DepartmentHasNoTrailingDots()
     {

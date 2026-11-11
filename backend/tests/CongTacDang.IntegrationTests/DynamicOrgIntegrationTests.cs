@@ -187,6 +187,17 @@ public sealed class DynamicOrgIntegrationTests
         Assert.Equal(1, form15A["M8"]);
         Assert.Equal(0, form15A["M14"]);
 
+        // Mẫu 11 theo Đảng ủy cấp trên của chi bộ: phạm vi gồm cán bộ của chi bộ con.
+        var m11 = await admin.GetAsync($"/api/reports/docx/mau-11?periodId={periodId}&branchId={partyId}");
+        Assert.Equal(HttpStatusCode.OK, m11.StatusCode);
+        using (var zip = new System.IO.Compression.ZipArchive(new MemoryStream(await m11.Content.ReadAsByteArrayAsync())))
+        using (var reader = new StreamReader(zip.GetEntry("word/document.xml")!.Open()))
+        {
+            var xml = await reader.ReadToEndAsync();
+            Assert.Contains($"Bí thư chi bộ {s}", xml);
+            Assert.Contains($"Phó phòng {s}", xml);
+        }
+
         // Đặt tay có lý do (thiếu lý do → 400), bỏ đặt tay → quay về suy ra.
         Assert.Equal(HttpStatusCode.BadRequest,
             (await admin.PutAsJsonAsync($"/api/users/{z.Id}/approval-authority", new { @override = "CapTren" })).StatusCode);

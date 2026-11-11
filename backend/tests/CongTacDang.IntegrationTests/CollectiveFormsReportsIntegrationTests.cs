@@ -263,6 +263,10 @@ public sealed class CollectiveFormsReportsIntegrationTests
             Assert.Contains("- Nhiệm vụ 1: …", sheet.Cell(11, 2).GetString());
             Assert.Equal(13, sheet.Cell(22, 1).GetValue<int>());
             Assert.StartsWith("Nhiệm vụ phát sinh, đột xuất", sheet.Cell(22, 2).GetString());
+            // Ô ký theo tổ chức lập báo cáo như bản Word, không giữ chữ mẫu.
+            var cells = sheet.CellsUsed().Select(c => c.GetString()).ToList();
+            Assert.Contains("T/M CHI BỘ", cells);
+            Assert.DoesNotContain("T/M ĐẢNG ỦY (CHI BỘ)", cells);
         }
         var file08 = await s.CellLeaderA.GetAsync($"/api/reports/form-08/{id08}");
         Assert.StartsWith("Mau 08_", file08.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
