@@ -240,8 +240,10 @@ public sealed class ImprovementPlanService : IImprovementPlanService
             if (note is { Length: > ImprovementPlanContent.MaxTextLength })
                 throw new ValidationException($"Ghi chú kết quả dài tối đa {ImprovementPlanContent.MaxTextLength} ký tự.");
 
+            if (plan.StartDate is { } start && EvaluationMapping.Today(now) < start)
+                throw new ConflictException($"Ghi kết quả mốc không thành công: kế hoạch bắt đầu từ {start:dd/MM/yyyy}.");
             var content = ImprovementPlanContent.Parse(plan.Content);
-            // Ghi theo thứ tự mốc; không chặn theo ngày đến hạn (ghi sớm/muộn do nghiệp vụ quyết định).
+            // Ghi theo thứ tự mốc; trong kế hoạch không chặn theo ngày đến hạn (ghi sớm/muộn do nghiệp vụ quyết định).
             var missingEarlier = ImprovementPlanContent.Milestones
                 .TakeWhile(m => m.Code != code)
                 .Where(m => content.Stage(m.Code).Result == null)

@@ -84,7 +84,8 @@ public class CollectiveFormsTemplateTests
         // Chữ in sẵn của biểu mẫu gốc.
         Assert.Contains("A. NỘI DUNG TỰ ĐÁNH GIÁ", text);
         Assert.Contains("B. KẾT QUẢ CHẤM ĐIỂM CÁC TIÊU CHÍ ĐÁNH GIÁ", text);
-        Assert.Contains("T/M ĐẢNG ỦY (CHI BỘ)", text);
+        // Ô ký Bí thư theo tổ chức lập báo cáo (Chi bộ).
+        Assert.Contains("T/M CHI BỘ", text);
         // Dòng địa danh – ngày: địa danh từ cài đặt đơn vị, ngày lập = lần cập nhật hồ sơ (giờ Việt Nam).
         Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", text);
     }
@@ -213,7 +214,7 @@ public class CollectiveFormsTemplateTests
         // Giữa câu dùng tên thường; chỉ dòng tiêu đề in hoa.
         Assert.Contains("01 bản lưu tại Đảng ủy Công ty TNHH Kỹ thuật Quản lý bay và 01 bản lưu hồ sơ", text);
         // Tên dài ngắt thành hai dòng cân nhau ở cột tiêu đề trái.
-        Assert.Contains("ĐẢNG BỘ CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY", text);
+        Assert.Contains("ĐẢNG ỦY CÔNG TY TNHH\nKỸ THUẬT QUẢN LÝ BAY", text);
         Assert.Contains("Hội nghị tập thể lãnh đạo, quản lý Phòng Kỹ thuật về việc", text);
 
         // Chưa ghi chức vụ chủ trì: hội nghị tập thể lãnh đạo không in "BÍ THƯ".
@@ -239,7 +240,7 @@ public class CollectiveFormsTemplateTests
         Assert.Contains("Ngày 15/9/2026, Đảng ủy Công ty A đã tổ chức Hội nghị", text);
         Assert.DoesNotContain("ĐẢNG BỘ CÔNG TY A đã", text);
         Assert.Contains("Hà Nội, ngày 26 tháng 09 năm 2026", text);
-        Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
+        Assert.Contains("ĐẢNG ỦY CÔNG TY A", text);
     }
 
     [Fact]
@@ -287,7 +288,7 @@ public class CollectiveFormsTemplateTests
 
         // Trang Quyết định: tiêu đề, căn cứ, cấp ủy ra quyết định, nơi nhận, chữ ký — tên tổ chức lấy từ dữ liệu.
         Assert.Contains("ĐẢNG BỘ TỔNG CÔNG TY B", text);
-        Assert.Contains("ĐẢNG BỘ CÔNG TY A", text);
+        Assert.Contains("ĐẢNG ỦY CÔNG TY A", text);
         Assert.Contains("Số 15-QĐ/ĐU", text);
         Assert.Contains("Hà Nội, ngày 20 tháng 09 năm 2026", text);
         Assert.Contains("Xếp loại cán bộ Quý III năm 2026 đối với các trường hợp thuộc thẩm quyền quyết định của Đảng ủy Công ty A", text);

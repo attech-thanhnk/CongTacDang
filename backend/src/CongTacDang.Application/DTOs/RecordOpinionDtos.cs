@@ -40,7 +40,7 @@ public sealed class RecordOpinionKindDto
 
 public sealed class CreateRecordOpinionDto
 {
-    /// <summary><c>ListMeeting</c>, <c>ListCheck</c>, <c>DeputyOnList</c>, <c>DeputyOnReview</c>.</summary>
+    /// <summary><c>ListMeeting</c>, <c>ListCheck</c>, <c>DeputyOnList</c>, <c>DeputyOnReview</c>; <c>MemberExplanation</c> chỉ chủ hồ sơ ghi.</summary>
     public string? Kind { get; set; }
 
     public string? Content { get; set; }

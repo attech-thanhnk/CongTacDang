@@ -286,10 +286,11 @@ public sealed class Quarter4ScenarioTests
 
         var printed = new List<(string Name, string Text)>();
 
-        // Biểu mẫu cá nhân của từng hồ sơ: 09A, 09C, 9D, 10.
+        // Biểu mẫu cá nhân của từng hồ sơ: 09A, 09C, 9D; Mẫu 10 chỉ khi Phòng TCCB-LĐ thẩm định (cấp trên thẩm định thì không có).
         foreach (var p in w.All)
         {
-            foreach (var code in new[] { "09A", "09C", "9D", "10" })
+            var available = (await Data(w.Office, $"/api/reports/docx/record/{id[p.Id]}")).EnumerateArray().Select(f => f.GetProperty("code").GetString()).ToList();
+            foreach (var code in new[] { "09A", "09C", "9D", "10" }.Where(available.Contains))
             {
                 var doc = await Docx(w.Office, $"/api/reports/docx/record/{id[p.Id]}/{code}");
                 Assert.Contains(p.Name, doc.Text);
@@ -310,8 +311,9 @@ public sealed class Quarter4ScenarioTests
         Assert.Contains("Chi bộ, Đảng bộ đang sinh hoạt: Kỹ thuật", tp9d);
         var tp10 = printed.Single(x => x.Name == $"10 {w.Tp.Name}").Text;
         Assert.Contains("Giám đốc nhận xét: hoàn thành xuất sắc", tp10);
-        var pgd10 = printed.Single(x => x.Name == $"10 {w.Pgd.Name}").Text;
-        Assert.Contains("Chủ tịch nhận xét, đề xuất BTV hoàn thành tốt", pgd10);
+        // Phó Giám đốc do cấp trên thẩm định: không có Mẫu 10.
+        Assert.DoesNotContain(printed, x => x.Name == $"10 {w.Pgd.Name}");
+        Assert.Equal(HttpStatusCode.Conflict, (await w.Office.GetAsync($"/api/reports/docx/record/{id[w.Pgd.Id]}/10")).StatusCode);
 
         // Mẫu 11 (phiếu bỏ phiếu), 12 (biên bản hội nghị), 13 (biên bản kiểm phiếu), 16 (báo cáo).
         var m11 = await Docx(w.Office, $"/api/reports/docx/mau-11?periodId={periodId}");

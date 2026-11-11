@@ -2,7 +2,7 @@ using System;
 
 namespace CongTacDang.Domain.Entities;
 
-/// <summary>Loại ý kiến ghi nhận trước phê duyệt danh mục và trước nhận xét.</summary>
+/// <summary>Loại ý kiến ghi nhận trên hồ sơ: trước phê duyệt danh mục, trước nhận xét và giải trình của cá nhân.</summary>
 public enum RecordOpinionKind
 {
     /// <summary>Kết quả họp rà soát, thống nhất danh mục sản phẩm của tập thể lãnh đạo.</summary>
@@ -15,7 +15,10 @@ public enum RecordOpinionKind
     DeputyOnList = 3,
 
     /// <summary>Ý kiến của Phó Giám đốc phụ trách về đề xuất mức, trước khi Giám đốc nhận xét.</summary>
-    DeputyOnReview = 4
+    DeputyOnReview = 4,
+
+    /// <summary>Giải trình của chính cán bộ sau khi có kết quả thẩm định (Mẫu 10); chỉ chủ hồ sơ ghi.</summary>
+    MemberExplanation = 5
 }
 
 /// <summary>Ý kiến ghi nhận trên hồ sơ; không chặn bước nào của luồng. Ghi thêm bản mới thay vì sửa bản cũ.</summary>

@@ -55,7 +55,7 @@ public sealed class RecordFormService : IRecordFormService
     public async Task<List<RecordFormDto>> GetFormsAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await LoadAsync(recordId, ct);
-        return Available(ReadCriteria(record.Period))
+        return Available(ReadCriteria(record.Period), record)
             .Select(code => new RecordFormDto
             {
                 Code = code,
@@ -122,10 +122,12 @@ public sealed class RecordFormService : IRecordFormService
 
         var record = await LoadAsync(recordId, ct);
         var criteria = ReadCriteria(record.Period);
-        if (!Available(criteria).Contains(code))
+        if (!Available(criteria, record).Contains(code))
         {
             if (!RecordFormCodes.Exportable.Contains(code))
                 throw new ConflictException($"{RecordFormCodes.DisplayName(code)} chưa có chức năng xuất trên hồ sơ.");
+            if (code == RecordFormCodes.Form10 && Available(criteria, null).Contains(code))
+                throw new ConflictException("Hồ sơ này do cấp trên thẩm định, không lập Mẫu 10 trên hệ thống.");
             throw new ConflictException(
                 $"Kỳ \"{record.Period.Name}\" không áp dụng {RecordFormCodes.DisplayName(code)} (theo bộ tiêu chí của kỳ). "
                 + "Hãy chọn biểu mẫu khác hoặc liên hệ người quản lý kỳ.");
@@ -207,8 +209,24 @@ public sealed class RecordFormService : IRecordFormService
     }
 
     /// <summary>Mẫu theo bộ tiêu chí của kỳ.</summary>
-    private static IReadOnlyList<string> Available(CriteriaSnapshot? criteria) =>
-        criteria?.ApplicableForms().Where(RecordFormCodes.Exportable.Contains).ToList() ?? new List<string>();
+    /// <summary>Mẫu 10 là phiếu của Phòng TCCB-LĐ: chỉ có khi diện quyết định của hồ sơ thẩm định trong đơn vị.</summary>
+    private static IReadOnlyList<string> Available(CriteriaSnapshot? criteria, EvaluationRecord? record) =>
+        criteria?.ApplicableForms()
+            .Where(RecordFormCodes.Exportable.Contains)
+            .Where(code => code != RecordFormCodes.Form10 || record == null || AppraisedInternally(record))
+            .ToList() ?? new List<string>();
+
+    private static bool AppraisedInternally(EvaluationRecord record)
+    {
+        try
+        {
+            return EvaluationMapping.ProfileOf(record.Period.GetSettings(), record).Mode(WorkflowStep.B3B_APPRAISAL) == StepMode.Internal;
+        }
+        catch (FormatException)
+        {
+            return true;
+        }
+    }
 
     private static CriteriaSnapshot? ReadCriteria(EvaluationPeriod period)
     {

@@ -258,8 +258,10 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
         Assert.Equal("Kết quả họp rà soát danh mục", (await Data(w.Lead1C, url)).GetProperty("items")[0].GetProperty("kindName").GetString());
 
-        // Chủ hồ sơ không xem, không ghi; Lãnh đạo Phòng khác không xem, không ghi.
-        Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.GetAsync(url)).StatusCode);
+        // Chủ hồ sơ không thấy ý kiến nội bộ, không ghi; Lãnh đạo Phòng khác không xem, không ghi.
+        var ownerView = await Data(w.StaffC, url);
+        Assert.Empty(ownerView.GetProperty("items").EnumerateArray());
+        Assert.False(ownerView.GetProperty("canRecord").GetBoolean());
         Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.PostAsJsonAsync(url, new { kind = "ListCheck", content = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead2C.GetAsync(url)).StatusCode);
@@ -328,6 +330,58 @@ public sealed class WorkflowProfileIntegrationTests
         Assert.Contains(id, await QueueAsync(deputyC));
         Assert.Equal(HttpStatusCode.OK, (await deputyC.PostAsJsonAsync(url, new { kind = "DeputyOnReview", content = "Nhất trí đề xuất mức" })).StatusCode);
         Assert.DoesNotContain(id, await QueueAsync(deputyC));
+    }
+
+    [SkippableFact]
+    public async Task G2d_MemberExplanation_OwnerOnly_AfterAppraisal_BeforeDecision_ReadersSeeIt()
+    {
+        var w = await WorldAsync();
+        var periodId = (await CreatePeriodAsync(w)).GetProperty("id").GetGuid();
+        await w.ManagerC.PostAsJsonAsync($"/api/evaluations/periods/{periodId}/participants", new { memberIds = new[] { w.Staff.Id } });
+        await OpenAsync(w, periodId);
+        var id = await RecordOfAsync(w, periodId, w.Staff.Id);
+        var url = $"/api/evaluations/records/{id}/opinions";
+        async Task SetAsync(RecordStatus status, DateTime? appraisedAt, DateTime? decidedAt) => await _factory.WithDbAsync(async db =>
+        {
+            var record = await db.EvaluationRecords.FirstAsync(r => r.Id == id);
+            (record.Status, record.AppraisedAt, record.DecisionRecordedAt) = (status, appraisedAt, decidedAt);
+            await db.SaveChangesAsync();
+        });
+        var explain = new { kind = "MemberExplanation", content = "Sản phẩm 2 đã nghiệm thu, minh chứng bổ sung" };
+
+        // Chưa thẩm định: chủ hồ sơ chưa ghi được giải trình.
+        await SetAsync(RecordStatus.AwaitingAppraisal, null, null);
+        Assert.False((await Data(w.StaffC, url)).GetProperty("canRecord").GetBoolean());
+        Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.PostAsJsonAsync(url, explain)).StatusCode);
+
+        // Lãnh đạo đơn vị ghi ý kiến nội bộ; không ghi được loại giải trình của cá nhân.
+        Assert.Equal(HttpStatusCode.OK, (await w.Lead1C.PostAsJsonAsync(url, new { kind = "ListMeeting", content = "Ý kiến nội bộ" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.Lead1C.PostAsJsonAsync(url, explain)).StatusCode);
+        Assert.DoesNotContain("MemberExplanation", (await Data(w.Lead1C, url)).GetProperty("kinds").EnumerateArray().Select(k => k.GetProperty("value").GetString()));
+
+        // Đã thẩm định, chưa quyết định: chủ hồ sơ ghi được, chỉ thấy giải trình của mình, không ghi loại khác.
+        await SetAsync(RecordStatus.AwaitingDirectorReview, DateTime.UtcNow, null);
+        var ownerView = await Data(w.StaffC, url);
+        Assert.True(ownerView.GetProperty("canRecord").GetBoolean());
+        Assert.Equal(new[] { "MemberExplanation" }, ownerView.GetProperty("kinds").EnumerateArray().Select(k => k.GetProperty("value").GetString()).ToArray());
+        Assert.Empty(ownerView.GetProperty("items").EnumerateArray());
+        Assert.Equal(HttpStatusCode.Forbidden, (await w.StaffC.PostAsJsonAsync(url, new { kind = "ListMeeting", content = "x" })).StatusCode);
+        var saved = await Data(await w.StaffC.PostAsJsonAsync(url, explain));
+        var item = Assert.Single(saved.GetProperty("items").EnumerateArray());
+        Assert.Equal("Giải trình của cá nhân", item.GetProperty("kindName").GetString());
+
+        // Người có quyền xem hồ sơ thấy giải trình cùng ý kiến nội bộ.
+        var kinds = (await Data(w.Lead1C, url)).GetProperty("items").EnumerateArray().Select(i => i.GetProperty("kind").GetString()).ToList();
+        Assert.Contains("MemberExplanation", kinds);
+        Assert.Contains("ListMeeting", kinds);
+        Assert.Equal("AwaitingDirectorReview", (await Data(w.StaffC, $"/api/evaluations/records/{id}")).GetProperty("status").GetString());
+
+        // Đã có quyết định / đã công bố: không ghi thêm.
+        await SetAsync(RecordStatus.AwaitingPublish, DateTime.UtcNow, DateTime.UtcNow);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.PostAsJsonAsync(url, explain)).StatusCode);
+        await SetAsync(RecordStatus.Published, DateTime.UtcNow, DateTime.UtcNow);
+        Assert.Equal(HttpStatusCode.Conflict, (await w.StaffC.PostAsJsonAsync(url, explain)).StatusCode);
+        Assert.Single((await Data(w.StaffC, url)).GetProperty("items").EnumerateArray());
     }
 
     [SkippableFact]

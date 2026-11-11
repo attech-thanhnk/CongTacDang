@@ -1009,7 +1009,7 @@ public partial class ReportService : IReportService
     public async Task<ReportFileResult> ExportMau10DocxAsync(Guid recordId, ReportFormat format = ReportFormat.Original)
     {
         var record = await LoadRecordAsync(recordId);
-        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record));
+        var bytes = await RenderWordAsync(Mau10Data.TemplateFileName, Mau10Data.From(record, await GetMemberExplanationAsync(record.Id)));
         return await ToResultAsync(bytes, DocxMimeType, PersonalFileName("10", (await _orgSettings.GetAsync()).ShortName, record.Member?.FullName, record, ".docx"), format);
     }
 
@@ -1023,7 +1023,7 @@ public partial class ReportService : IReportService
         {
             RecordFormCodes.Form01 => PersonalFormWorkbooks.Mau01(Mau01Data.From(record), fields),
             RecordFormCodes.Form02 => PersonalFormWorkbooks.Mau02(Mau02Data.From(record, await GetEvidenceNamesAsync(record.Tasks)), fields),
-            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record), fields),
+            RecordFormCodes.Form10 => PersonalFormWorkbooks.Mau10(Mau10Data.From(record, await GetMemberExplanationAsync(record.Id)), fields),
             _ => throw new ArgumentException($"Mẫu {formCode} không xuất Excel theo cách này.")
         };
         return new ReportFileResult
@@ -1430,6 +1430,14 @@ public partial class ReportService : IReportService
 
         return (period, await query.ToListAsync(), branch);
     }
+
+    /// <summary>Giải trình mới nhất của chủ hồ sơ (Mẫu 10); bản sau thay bản trước.</summary>
+    private Task<string?> GetMemberExplanationAsync(Guid recordId) =>
+        _db.Set<RecordOpinion>().AsNoTracking()
+            .Where(o => o.RecordId == recordId && o.Kind == RecordOpinionKind.MemberExplanation)
+            .OrderByDescending(o => o.RecordedAt)
+            .Select(o => (string?)o.Content)
+            .FirstOrDefaultAsync();
 
     /// <summary>Tên tệp minh chứng (phiên bản hiện hành) của từng nhiệm vụ.</summary>
     private async Task<Dictionary<Guid, string>> GetEvidenceNamesAsync(IEnumerable<EvaluationTask> tasks)

@@ -63,7 +63,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
             var settings = await DataAsync(await manager.GetAsync("/api/settings/organization"));
             Assert.Equal($"ĐẢNG BỘ THỬ NGHIỆM {s}", settings.GetProperty("partyCommitteeName").GetString());
 
-            // Excel Mẫu 14: dòng tiêu đề trái = tổ chức Đảng cấp trên / tên Đảng bộ, dòng địa danh.
+            // Excel Mẫu 14: dòng tiêu đề trái = tổ chức Đảng cấp trên / Đảng ủy, dòng địa danh.
             var form14 = await manager.GetAsync($"/api/reports/form-14?periodId={periodId}");
             Assert.True(form14.StatusCode == HttpStatusCode.OK, await form14.Content.ReadAsStringAsync());
             using (var workbook = new XLWorkbook(new MemoryStream(await form14.Content.ReadAsByteArrayAsync())))
@@ -71,7 +71,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
                 var sheet = workbook.Worksheets.First();
                 // Mẫu 14: dòng 1 là "Mẫu 14", tiêu đề trái ở dòng 2–3, dòng địa danh ở khối phải.
                 Assert.Equal($"ĐẢNG BỘ CẤP TRÊN {s}", sheet.Cell("A2").GetString());
-                Assert.Equal($"ĐẢNG BỘ THỬ NGHIỆM {s}", sheet.Cell("A3").GetString());
+                Assert.Equal($"ĐẢNG ỦY THỬ NGHIỆM {s}", sheet.Cell("A3").GetString());
                 Assert.StartsWith("Đà Nẵng, ngày", sheet.Cell("I3").GetString());
             }
 
@@ -98,7 +98,7 @@ public sealed class OrgSettingsTemplateIntegrationTests
 
         // Cài đặt mặc định: biểu mẫu in đúng chuỗi mặc định.
         using var defaults = new XLWorkbook(new MemoryStream(await (await manager.GetAsync($"/api/reports/form-14?periodId={periodId}")).Content.ReadAsByteArrayAsync()));
-        Assert.Equal("ĐẢNG BỘ CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", defaults.Worksheets.First().Cell("A3").GetString());
+        Assert.Equal("ĐẢNG ỦY CÔNG TY TNHH KỸ THUẬT QUẢN LÝ BAY", defaults.Worksheets.First().Cell("A3").GetString());
     }
 
     [SkippableFact]

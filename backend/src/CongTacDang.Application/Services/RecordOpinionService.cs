@@ -16,10 +16,13 @@ namespace CongTacDang.Application.Services;
 /// <summary>Ý kiến ghi nhận trước phê duyệt danh mục và trước nhận xét; không chặn bước nào của luồng.</summary>
 public interface IRecordOpinionService
 {
-    /// <summary><c>evaluation.read</c> trên hồ sơ.</summary>
+    /// <summary><c>evaluation.read</c> trên hồ sơ; chủ hồ sơ chỉ thấy giải trình của cá nhân.</summary>
     Task<RecordOpinionsDto> GetAsync(Guid recordId, CancellationToken ct = default);
 
-    /// <summary><c>evaluation.opinion.record</c> trên hồ sơ, không phải chủ hồ sơ, hồ sơ chưa công bố.</summary>
+    /// <summary>
+    /// <c>evaluation.opinion.record</c> trên hồ sơ, không phải chủ hồ sơ, hồ sơ chưa công bố. Giải trình của cá nhân: chỉ chủ hồ sơ,
+    /// sau thẩm định và trước quyết định.
+    /// </summary>
     Task<RecordOpinionsDto> CreateAsync(Guid recordId, CreateRecordOpinionDto request, CancellationToken ct = default);
 }
 
@@ -77,6 +80,7 @@ public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinion
         RecordOpinionKind.ListCheck => "Kết quả rà soát hợp lệ",
         RecordOpinionKind.DeputyOnList => "Ý kiến Phó Giám đốc phụ trách về danh mục",
         RecordOpinionKind.DeputyOnReview => "Ý kiến Phó Giám đốc phụ trách về đề xuất mức",
+        RecordOpinionKind.MemberExplanation => "Giải trình của cá nhân",
         _ => kind.ToString()
     };
 
@@ -108,13 +112,23 @@ public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinion
         _ => null
     };
 
+    /// <summary>Chủ hồ sơ ghi giải trình khi đã có kết quả thẩm định nội bộ và chưa có quyết định.</summary>
+    public static bool CanExplain(EvaluationRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        return record.AppraisedAt.HasValue
+            && !record.DecisionRecordedAt.HasValue
+            && record.Status is not (RecordStatus.AwaitingPublish or RecordStatus.Published)
+            && record.Period?.Status != PeriodStatus.Closed;
+    }
+
     /// <inheritdoc />
     public async Task<RecordOpinionsDto> GetAsync(Guid recordId, CancellationToken ct = default)
     {
         var record = await RequireRecordAsync(recordId, ct);
-        // Ý kiến nội bộ trước phê duyệt không hiện cho chính người được đánh giá.
+        // Ý kiến nội bộ trước phê duyệt không hiện cho chính người được đánh giá; chủ hồ sơ chỉ thấy giải trình của mình.
         if (IsOwner(record))
-            throw new ForbiddenException("Bạn không xem ý kiến trước phê duyệt trên hồ sơ của chính mình.");
+            return await BuildOwnerAsync(record, ct);
         _guard.Ensure(PermissionCodes.EvaluationRead, AccessTarget.ForRecord(record));
         return await BuildAsync(record, ct);
     }
@@ -124,13 +138,26 @@ public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinion
     {
         ArgumentNullException.ThrowIfNull(request);
         var record = await RequireRecordAsync(recordId, ct);
-        _guard.Ensure(PermissionCodes.EvaluationOpinionRecord, AccessTarget.ForRecord(record));
-        if (IsOwner(record))
-            throw new ForbiddenException("Bạn không ghi ý kiến trên hồ sơ của chính mình.");
-        if (record.Status == RecordStatus.Published)
-            throw new ConflictException("Hồ sơ đã công bố, không ghi thêm ý kiến.");
-        if (!Enum.TryParse<RecordOpinionKind>(request.Kind?.Trim(), true, out var kind) || !Enum.IsDefined(kind))
-            throw new ValidationException("Hãy chọn loại ý kiến.");
+        var parsed = Enum.TryParse<RecordOpinionKind>(request.Kind?.Trim(), true, out var kind) && Enum.IsDefined(kind);
+        var owner = IsOwner(record);
+        if (owner)
+        {
+            // Chủ hồ sơ ghi giải trình vì là chủ, không cần quyền ghi ý kiến.
+            if (!parsed || kind != RecordOpinionKind.MemberExplanation)
+                throw new ForbiddenException("Bạn không ghi ý kiến trên hồ sơ của chính mình.");
+            if (!CanExplain(record))
+                throw new ConflictException("Ghi giải trình không thành công: hồ sơ chưa có kết quả thẩm định hoặc đã có quyết định.");
+        }
+        else
+        {
+            _guard.Ensure(PermissionCodes.EvaluationOpinionRecord, AccessTarget.ForRecord(record));
+            if (record.Status == RecordStatus.Published)
+                throw new ConflictException("Hồ sơ đã công bố, không ghi thêm ý kiến.");
+            if (!parsed)
+                throw new ValidationException("Hãy chọn loại ý kiến.");
+            if (kind == RecordOpinionKind.MemberExplanation)
+                throw new ForbiddenException("Ghi ý kiến không thành công: giải trình của cá nhân do chủ hồ sơ ghi.");
+        }
 
         var content = request.Content?.Trim();
         if (string.IsNullOrEmpty(content))
@@ -151,7 +178,7 @@ public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinion
             CreatedAt = now
         });
         await _unitOfWork.SaveChangesAsync(ct);
-        return await BuildAsync(record, ct);
+        return owner ? await BuildOwnerAsync(record, ct) : await BuildAsync(record, ct);
     }
 
     private async Task<RecordOpinionsDto> BuildAsync(EvaluationRecord record, CancellationToken ct)
@@ -163,20 +190,34 @@ public sealed class RecordOpinionService : IRecordOpinionService, IRecordOpinion
             RecordId = record.Id,
             CanRecord = !IsOwner(record) && record.Status != RecordStatus.Published
                 && _guard.Can(PermissionCodes.EvaluationOpinionRecord, target),
-            Kinds = KindsFor(code => _guard.Can(code, target), record.Status)
-                .Select(k => new RecordOpinionKindDto { Value = k.ToString(), Name = KindName(k) })
-                .ToList(),
-            Items = items.Select(o => new RecordOpinionDto
-            {
-                Id = o.Id,
-                Kind = o.Kind.ToString(),
-                KindName = KindName(o.Kind),
-                Content = o.Content,
-                RecordedByName = o.RecordedByName,
-                RecordedAt = o.RecordedAt
-            }).ToList()
+            Kinds = KindsFor(code => _guard.Can(code, target), record.Status).Select(ToKindDto).ToList(),
+            Items = items.Select(ToDto).ToList()
         };
     }
+
+    private async Task<RecordOpinionsDto> BuildOwnerAsync(EvaluationRecord record, CancellationToken ct)
+    {
+        var items = await _repo.ListByRecordAsync(record.Id, ct);
+        return new RecordOpinionsDto
+        {
+            RecordId = record.Id,
+            CanRecord = CanExplain(record),
+            Kinds = new List<RecordOpinionKindDto> { ToKindDto(RecordOpinionKind.MemberExplanation) },
+            Items = items.Where(o => o.Kind == RecordOpinionKind.MemberExplanation).Select(ToDto).ToList()
+        };
+    }
+
+    private static RecordOpinionKindDto ToKindDto(RecordOpinionKind kind) => new() { Value = kind.ToString(), Name = KindName(kind) };
+
+    private static RecordOpinionDto ToDto(RecordOpinion o) => new()
+    {
+        Id = o.Id,
+        Kind = o.Kind.ToString(),
+        KindName = KindName(o.Kind),
+        Content = o.Content,
+        RecordedByName = o.RecordedByName,
+        RecordedAt = o.RecordedAt
+    };
 
     /// <inheritdoc />
     public async Task<List<WorkQueueGroupDto>> GetGroupsAsync(Guid? periodId, CancellationToken ct = default)

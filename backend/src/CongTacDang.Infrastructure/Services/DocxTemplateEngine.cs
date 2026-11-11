@@ -135,15 +135,18 @@ public static class DocxTemplateEngine
         return styles.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.Justification?.Val?.Value;
     }
 
-    /// <summary>Chữ ghi chú dưới chức danh người ký — đánh dấu khối chữ ký.</summary>
-    private const string SignatureNote = "ghi rõ họ tên";
+    /// <summary>Chữ ghi chú dưới chức danh người ký — đánh dấu khối chữ ký (Mẫu 11: "có thể ký hoặc không ký tên").</summary>
+    private static readonly string[] SignatureNotes = ["ghi rõ họ tên", "không ký tên"];
+
+    private static bool HasSignatureNote(string text) =>
+        SignatureNotes.Any(note => text.Contains(note, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Giữ khối chữ ký cùng trang với nội dung ngay trước nó (tránh trang chỉ có chữ ký).</summary>
     private static void KeepSignaturesWithContent(Body body)
     {
         foreach (var element in body.Elements().ToList())
         {
-            if (element is Table table && table.InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+            if (element is Table table && HasSignatureNote(table.InnerText))
             {
                 var rows = table.Elements<TableRow>().ToList();
                 if (rows.Count <= 3)
@@ -156,14 +159,14 @@ public static class DocxTemplateEngine
                     }
                     KeepPreviousWith(table);
                 }
-                else if (rows[^1].InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+                else if (HasSignatureNote(rows[^1].InnerText))
                 {
                     // Hàng chữ ký nằm cuối bảng (Mẫu 01): đi cùng trang với hàng ngay trên.
                     NotSplit(rows[^1]);
                     KeepWithNext(rows[^2].Descendants<Paragraph>());
                 }
             }
-            else if (element is Paragraph paragraph && paragraph.InnerText.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase))
+            else if (element is Paragraph paragraph && HasSignatureNote(paragraph.InnerText))
             {
                 KeepPreviousWith(paragraph);
             }
@@ -180,7 +183,7 @@ public static class DocxTemplateEngine
             {
                 KeepWithNext(new[] { paragraph });
                 var text = paragraph.InnerText.Trim();
-                var signatureLine = text.Length == 0 || text.Contains(SignatureNote, StringComparison.OrdinalIgnoreCase)
+                var signatureLine = text.Length == 0 || HasSignatureNote(text)
                     || (text.Any(char.IsLetter) && text == text.ToUpperInvariant());
                 if (!signatureLine)
                     return;

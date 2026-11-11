@@ -322,6 +322,13 @@ public static class PersonalFormWorkbooks
         ScoreRow("2. Nhóm sản phẩm chuyên môn (CV / 70đ)", data.TasksSelfScore, data.TasksAppraisalScore, data.TasksDiff);
         ScoreRow("TỔNG ĐIỂM (100đ)", data.TotalSelfScore, data.TotalAppraisalScore, data.TotalDiff);
         ws.Range(row - 1, 1, row - 1, last).Style.Font.Bold = true;
+        // Căn cứ của người thẩm định nằm ở cột căn cứ dòng tổng, không lẫn với giải trình của cá nhân.
+        if (data.AppraisalExplanation != null)
+        {
+            ws.Cell(row - 1, last).Value = data.AppraisalExplanation;
+            ws.Cell(row - 1, last).Style.Font.Bold = false;
+            ws.Cell(row - 1, last).Style.Alignment.WrapText = true;
+        }
         // Mức chất lượng chỉ có ở thẩm định nên cột tự chấm để trống.
         ws.Cell(row, 1).Value = "3. Đánh giá 3 Mức chất lượng nhiệm vụ";
         ws.Cell(row, 3).Value = data.TaskLevels ?? "Mức 1: … SP\nMức 2: … SP\nMức 3: … SP";
@@ -343,7 +350,7 @@ public static class PersonalFormWorkbooks
         row++;
         TextRow(ws, row++, last, "II. Ý KIẾN CỦA CÁC BÊN VÀ KẾT QUẢ GIẢI TRÌNH", bold: true);
         TextRow(ws, row++, last, $"Ý kiến của Người trực tiếp sử dụng cán bộ: {data.SupervisorComment ?? "…………"}");
-        TextRow(ws, row++, last, $"Nội dung giải trình của cá nhân (khi chênh lệch ≥ 5 điểm): {data.AppraisalExplanation ?? "…………"}");
+        TextRow(ws, row++, last, $"Nội dung giải trình của cá nhân (khi chênh lệch ≥ 5 điểm): {data.MemberExplanation ?? "…………"}");
         TextRow(ws, row++, last, $"Kết luận của Cơ quan thẩm định: {data.AppraisalComment ?? "…………"}");
         TextRow(ws, row++, last, "Mức xếp loại đề xuất trình cấp có thẩm quyền:", bold: true);
         TextRow(ws, row++, last,

@@ -160,6 +160,19 @@ public class PersonalFormWorkbookTests
     }
 
     [Fact]
+    public void Mau10_MemberExplanationInExplanationRow_AppraiserGroundsInTotalRow()
+    {
+        var record = DocumentTemplateTests.SampleData().Records[0];
+        record.AppraisalExplanation = "Căn cứ: biên bản nghiệm thu";
+        using var wb = Open(PersonalFormWorkbooks.Mau10(Mau10Data.From(record, "Sản phẩm 2 đã nghiệm thu"), Org));
+        var ws = wb.Worksheet(1);
+
+        var total = Find(ws, "TỔNG ĐIỂM (100đ)").Address.RowNumber;
+        Assert.Equal("Căn cứ: biên bản nghiệm thu", ws.Cell(total, 5).GetString());
+        Assert.Contains("Nội dung giải trình của cá nhân (khi chênh lệch ≥ 5 điểm): Sản phẩm 2 đã nghiệm thu", Texts(ws));
+    }
+
+    [Fact]
     public void SetNumber_ReadsFormTextNumbers_AndKeepsOtherTextAsIs()
     {
         using var wb = new XLWorkbook();

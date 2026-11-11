@@ -54,8 +54,11 @@ public sealed class Mau10Data
 
     [TemplateField("APPRAISAL_COMMENT")] public string? AppraisalComment { get; init; }
 
-    /// <summary>Giải trình khi chênh lệch tự chấm – thẩm định vượt ngưỡng của bộ tiêu chí.</summary>
+    /// <summary>Căn cứ của người thẩm định khi chênh lệch tự chấm – thẩm định vượt ngưỡng của bộ tiêu chí.</summary>
     [TemplateField("APPRAISAL_EXPLANATION")] public string? AppraisalExplanation { get; init; }
+
+    /// <summary>Giải trình mới nhất của chính cán bộ sau thẩm định; chưa có → giữ dòng chấm.</summary>
+    [TemplateField("MEMBER_EXPLANATION")] public string? MemberExplanation { get; init; }
 
     /// <summary>Ô ☒/☐ theo mức Tổ thẩm định đề xuất; chưa đề xuất → mọi ô ☐.</summary>
     [TemplateField("CHECK_EXCELLENT")] public string? CheckExcellent { get; init; }
@@ -71,7 +74,7 @@ public sealed class Mau10Data
     /// <summary>Ô "Đại diện cơ quan thẩm định": người đã thẩm định.</summary>
     [TemplateField("APPRAISER_NAME")] public string? AppraiserName { get; init; }
 
-    public static Mau10Data From(EvaluationRecord record)
+    public static Mau10Data From(EvaluationRecord record, string? memberExplanation = null)
     {
         string Box(EvaluationGrade grade) => record.AppraisalProposedGrade == grade ? "☒" : "☐";
         // Chưa tự chấm (vd Chưa xếp loại): điểm tự chấm và chênh lệch để dòng chấm, không in 0.
@@ -100,6 +103,7 @@ public sealed class Mau10Data
             SupervisorComment = FormText.OrNull(record.DirectorComment),
             AppraisalComment = FormText.OrNull(record.AppraisalComment),
             AppraisalExplanation = FormText.OrNull(record.AppraisalExplanation),
+            MemberExplanation = FormText.OrNull(memberExplanation),
             CheckExcellent = Box(EvaluationGrade.HoanThanhXuatSac),
             CheckGood = Box(EvaluationGrade.HoanThanhTot),
             CheckDone = Box(EvaluationGrade.HoanThanh),

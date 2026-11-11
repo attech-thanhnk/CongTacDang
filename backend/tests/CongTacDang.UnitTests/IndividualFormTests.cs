@@ -490,8 +490,9 @@ public class IndividualFormTests
         Assert.Equal("ĐẢNG CỘNG SẢN VIỆT NAM", header[1][0]);
         var rows = tables[1].Elements<TableRow>()
             .Select(r => r.Elements<TableCell>().Select(c => c.InnerText).ToList()).ToList();
-        // 2 dòng tiêu đề + đúng 6 dòng trục như biểu mẫu gốc (không có dòng nhiệm vụ riêng).
-        Assert.Equal(2 + 6, rows.Count);
+        // 2 dòng tiêu đề + đúng 6 dòng trục như biểu mẫu gốc (không có dòng nhiệm vụ riêng) + hàng khối ký cuối bảng.
+        Assert.Equal(2 + 6 + 1, rows.Count);
+        Assert.Contains("CÁ NHÂN TỰ ĐÁNH GIÁ", rows[^1][0]);
         Assert.Equal(new[] { "Trục 1", axes[0].Name, "30/9/2026", "Đã xong", "Báo cáo", "Đúng hạn", "" }, rows[2]);
         Assert.Equal(new[] { "Trục 2", axes[1].Name, "", "", "", "", "" }, rows[3]);
         Assert.Equal("Trục 6", rows[7][0]);

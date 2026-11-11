@@ -364,6 +364,25 @@ public class DocumentTemplateTests
     }
 
     [Fact]
+    public void Mau10_MemberExplanation_FromOwner_SeparateFromAppraiserGrounds()
+    {
+        var (_, records) = SampleData();
+        var record = records[0];
+        record.AppraisalExplanation = "Căn cứ: biên bản nghiệm thu";
+        Assert.Null(Mau10Data.From(record).MemberExplanation);
+
+        var data = Mau10Data.From(record, "Sản phẩm 2 đã nghiệm thu");
+        Assert.Equal("Sản phẩm 2 đã nghiệm thu", data.MemberExplanation);
+        Assert.Equal("Căn cứ: biên bản nghiệm thu", data.AppraisalExplanation);
+
+        var result = DocxTemplateEngine.Render(new FileWordTemplateStore().Load(Mau10Data.TemplateFileName), TemplateDataBinder.Bind(data));
+        using var doc = Open(result.Content);
+        var text = BodyText(doc);
+        Assert.Contains("Sản phẩm 2 đã nghiệm thu", text);
+        Assert.Contains("Căn cứ: biên bản nghiệm thu", text);
+    }
+
+    [Fact]
     public void Mau02_DepartmentHasNoTrailingDots()
     {
         var (_, records) = SampleData();

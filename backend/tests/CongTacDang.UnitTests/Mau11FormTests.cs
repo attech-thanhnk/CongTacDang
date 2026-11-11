@@ -70,8 +70,9 @@ public class Mau11FormTests
         Assert.Equal("ĐẢNG ỦY CÔNG TY A", data.BaseAuthority);
         Assert.Equal("ĐẢNG BỘ CÔNG TY A", data.PartyCell);
         var rows = RenderRows(data);
-        // 3 dòng tiêu đề + mục I (tiêu đề + 1) + mục II (tiêu đề + 2).
-        Assert.Equal(8, rows.Count);
+        // 3 dòng tiêu đề + mục I (tiêu đề + 1) + mục II (tiêu đề + 2) + hàng khối ký cuối bảng.
+        Assert.Equal(9, rows.Count);
+        Assert.Contains("NGƯỜI GHI PHIẾU", rows[^1][0]);
         Assert.Equal("I", rows[3][0]);
         Assert.Equal(
             new[] { "1", "Nguyễn Văn A", "Bí thư Đảng ủy, Giám đốc — Công ty A", "30", "57,5", "Hoàn thành tốt nhiệm vụ",
@@ -99,7 +100,7 @@ public class Mau11FormTests
         Assert.False(data.ShowSuperior);
         Assert.True(data.ShowBase);
         var rows = RenderRows(data);
-        Assert.Equal(5, rows.Count);
+        Assert.Equal(6, rows.Count);
         Assert.Equal("II", rows[3][0]);
         Assert.EndsWith("CỦA CHI BỘ KỸ THUẬT", rows[3][1]);
         // Chưa tự chấm → cột (4a)–(4c) trống.
@@ -112,7 +113,7 @@ public class Mau11FormTests
         var data = Mau11Data.From(Period(), new List<Mau11Line>(), null);
 
         var rows = RenderRows(data);
-        Assert.Equal(7, rows.Count);
+        Assert.Equal(8, rows.Count);
         Assert.Equal("I", rows[3][0]);
         Assert.All(rows[4], c => Assert.Equal(string.Empty, c));
         Assert.Equal("II", rows[5][0]);

@@ -186,7 +186,8 @@ public class ControlCrosscheckCalibrationFormsTests
     {
         var text = BodyText(Render(Mau03Data.TemplateFileName, Mau03Data.From(Crosscheck(), "Trưởng phòng Kỹ thuật — Phòng Kỹ thuật")));
 
-        Assert.Contains("TỔNG CÔNG TY B", text);
+        Assert.Contains("CÔNG TY A", text);
+        Assert.DoesNotContain("TỔNG CÔNG TY B", text);
         Assert.Contains("PHÒNG KỸ THUẬT - AN TOÀN - CHẤT LƯỢNG", text);
         Assert.Contains("Hà Nội, ngày 12 tháng 09 năm 2026", text);
         Assert.Contains("Kính gửi: Ban Tổ chức cán bộ - Lao động", text);
@@ -239,7 +240,7 @@ public class ControlCrosscheckCalibrationFormsTests
             Mau19Data.From(ControlCheck(), "Phòng Kỹ thuật", new DateTime(2026, 7, 1), new DateTime(2026, 9, 30))));
 
         Assert.Contains("ĐẢNG BỘ CẤP TRÊN", text);
-        Assert.Contains("ĐẢNG BỘ A", text);
+        Assert.Contains("ĐẢNG ỦY A", text);
         Assert.Contains("Hà Nội, ngày 21 tháng 09 năm 2026", text);
         Assert.Contains("Cơ quan/đơn vị:Phòng Kỹ thuật", text);
         Assert.Contains("Từ ngày 01/07/2026 đến ngày 30/09/2026", text);

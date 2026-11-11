@@ -440,7 +440,8 @@ public sealed class PostPublishIntegrationTests
             Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
             Assert.Contains("Ngày bắt đầu kế hoạch", await MessageAsync(refused));
         }
-        var startDate = published.AddDays(1);
+        // Bắt đầu hôm nay: ghi được kết quả mốc ngay (trước ngày bắt đầu bị chặn).
+        var startDate = published;
         plan = await Data(await w.ManagerC.PutAsJsonAsync($"/api/improvement-plans/{planId}", new
         {
             version = plan.GetProperty("version").GetUInt32(),

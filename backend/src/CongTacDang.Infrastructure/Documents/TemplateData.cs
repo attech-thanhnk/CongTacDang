@@ -214,6 +214,9 @@ public sealed class OrganizationTemplateFields
 
     [TemplateField("ORG_PARTY_NAME")] public string? PartyCommitteeName { get; init; }
 
+    /// <summary>Tổ chức ban hành phiếu, biên bản của Đảng ủy: "ĐẢNG ỦY …".</summary>
+    [TemplateField("ORG_PARTY_COMMITTEE_UPPER")] public string? PartyCommitteeUpper { get; init; }
+
     [TemplateField("ORG_SUPERIOR_PARTY_NAME")] public string? SuperiorPartyName { get; init; }
 
     [TemplateField("ORG_COMPANY_NAME")] public string? CompanyName { get; init; }
@@ -246,6 +249,7 @@ public sealed class OrganizationTemplateFields
         string? guideNumber = null, DateOnly? guideDate = null) => new()
     {
         PartyCommitteeName = OrNull(partyCommitteeName),
+        PartyCommitteeUpper = Forms.CollectiveFormText.CommitteeUpper(partyCommitteeName),
         SuperiorPartyName = OrNull(superiorPartyName),
         CompanyName = OrNull(companyName),
         CompanyNameUpper = OrNull(companyName)?.ToUpper(Vietnamese),

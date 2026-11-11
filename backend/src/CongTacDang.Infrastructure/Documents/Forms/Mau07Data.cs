@@ -13,6 +13,9 @@ public sealed class Mau07Data
 
     [TemplateField("PARTY_ORG")] public string? PartyOrganization { get; init; }
 
+    /// <summary>Ô ký "T/M ĐẢNG ỦY" hoặc "T/M CHI BỘ" theo tổ chức lập báo cáo; không xác định → giữ chữ mặc định.</summary>
+    [TemplateField("SIGN_ON_BEHALF")] public string? SignOnBehalf { get; init; }
+
     /// <summary>Lần cập nhật hồ sơ tập thể gần nhất (chưa sửa → ngày tạo).</summary>
     [TemplateField("DATE_LINE")] public string? DateLine { get; init; }
 
@@ -62,6 +65,7 @@ public sealed class Mau07Data
         {
             PartyParent = PartyHeader.Lines(header.Parent),
             PartyOrganization = PartyHeader.Lines(header.Organization),
+            SignOnBehalf = CollectiveFormText.SignOnBehalf(header.Organization),
             DateLine = CollectiveFormText.DateLine(record.UpdatedAt ?? record.CreatedAt),
             SubjectNameUpper = PartyHeader.Upper(record.SubjectName),
             Quarter = " " + CollectiveFormText.RomanQuarter(record.Period.Quarter) + " ",

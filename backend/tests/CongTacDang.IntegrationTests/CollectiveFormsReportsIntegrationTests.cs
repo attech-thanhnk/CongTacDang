@@ -140,8 +140,8 @@ public sealed class CollectiveFormsReportsIntegrationTests
         Assert.Contains("Bí thư các chi bộ trực thuộc đảng ủy cơ sở.", text);
         Assert.Contains("33,3%", text);
         Assert.Contains("Bí thư Test", text);
-        // Tên Đảng bộ dài ở tiêu đề trái được ngắt thành hai dòng.
-        Assert.Contains(org.GetProperty("partyCommitteeName").GetString()!.ToUpperInvariant(), text.Replace("\n", " "));
+        // Tên Đảng ủy dài ở tiêu đề trái được ngắt thành hai dòng.
+        Assert.Contains(org.GetProperty("partyCommitteeName").GetString()!.ToUpperInvariant().Replace("ĐẢNG BỘ", "ĐẢNG ỦY"), text.Replace("\n", " "));
         // Mục III.3 đã bỏ ở lần lưu sau → giữ đoạn mẫu của biểu mẫu.
         Assert.Contains("3. Ý kiến đề xuất khác (nếu có).", text);
 

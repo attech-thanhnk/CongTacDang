@@ -12,9 +12,9 @@ public sealed record PartyHeader(string? Parent, string? Organization, string? U
 {
     private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
 
-    /// <summary>unitName null → dùng organization (xem <see cref="CollectiveFormText.NameInSentence"/>).</summary>
+    /// <summary>Dòng hai là tổ chức ban hành: "Đảng bộ X" in "ĐẢNG ỦY X"; unitName null → dùng organization.</summary>
     public static PartyHeader Of(string? parent, string? organization, string? unitName = null) => new(
-        Upper(parent), Upper(organization), FormText.OrNull(unitName?.Trim()) ?? FormText.OrNull(organization?.Trim()));
+        Upper(parent), CollectiveFormText.CommitteeUpper(organization), FormText.OrNull(unitName?.Trim()) ?? FormText.OrNull(organization?.Trim()));
 
     public static string? Upper(string? value) => FormText.OrNull(value?.Trim())?.ToUpper(Vietnamese);
 

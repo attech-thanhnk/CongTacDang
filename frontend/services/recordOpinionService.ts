@@ -1,12 +1,13 @@
 import { request } from "./apiClient";
 
-export type RecordOpinionKind = "ListMeeting" | "ListCheck" | "DeputyOnList" | "DeputyOnReview";
+export type RecordOpinionKind = "ListMeeting" | "ListCheck" | "DeputyOnList" | "DeputyOnReview" | "MemberExplanation";
 
 export const RECORD_OPINION_KINDS: { value: RecordOpinionKind; label: string }[] = [
   { value: "ListMeeting", label: "Kết quả họp rà soát danh mục" },
   { value: "ListCheck", label: "Kết quả rà soát hợp lệ" },
   { value: "DeputyOnList", label: "Ý kiến Phó Giám đốc phụ trách về danh mục" },
   { value: "DeputyOnReview", label: "Ý kiến Phó Giám đốc phụ trách về đề xuất mức" },
+  { value: "MemberExplanation", label: "Giải trình của cá nhân" },
 ];
 
 export interface RecordOpinionDto {
