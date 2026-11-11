@@ -80,15 +80,16 @@ $numQuy.Add_ValueChanged({ Select-NextStage })
 $form.Controls.Add($cboStage)
 
 $chkScenario = New-Object System.Windows.Forms.CheckBox
-$chkScenario.Text = 'Thêm tình huống (trả lại, thu hồi, điều chỉnh việc, ý kiến PGĐ, Chưa xếp loại, mở lại)'
-$chkScenario.Location = New-Object System.Drawing.Point(200, 122); $chkScenario.AutoSize = $true
+$chkScenario.Text = "Thêm tình huống: trả lại, thu hồi, Chưa xếp loại, ý kiến rà soát/PGĐ, Mẫu 04, 05, diện cấp trên,`r`n" +
+    "Xuất sắc, khống chế, chênh lệch và giải trình, Mẫu 03, 19, 06-08, 16, 17, kiến nghị, mở lại"
+$chkScenario.Location = New-Object System.Drawing.Point(200, 118); $chkScenario.AutoSize = $true
 $chkScenario.Checked = [bool](Get-Saved 'tinhHuong' $true)
 $form.Controls.Add($chkScenario)
 
 # Không lưu lựa chọn này: chỉ tự tích khi chưa có kỳ đang chạy
 $chkCreate = New-Object System.Windows.Forms.CheckBox
 $chkCreate.Text = 'Tạo kỳ mới nếu chưa có (đã có kỳ của năm/quý này thì dùng kỳ đó)'
-$chkCreate.Location = New-Object System.Drawing.Point(200, 150); $chkCreate.AutoSize = $true
+$chkCreate.Location = New-Object System.Drawing.Point(200, 158); $chkCreate.AutoSize = $true
 $chkCreate.Add_CheckedChanged({ if (-not $chkCreate.Checked) { Select-NextStage } })
 $form.Controls.Add($chkCreate)
 if (-not $saved['kyId']) { $chkCreate.Checked = $true }

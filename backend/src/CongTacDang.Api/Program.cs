@@ -102,6 +102,7 @@ builder.Services.AddPostPublish(builder.Configuration); // Sau công bố: kết
 builder.Services.AddImports(); // Nhập dữ liệu từ Excel: đơn vị, tổ chức Đảng, cán bộ, gán vai trò (Api/Extensions/ImportExtensions.cs)
 
 builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new CongTacDang.Api.Json.UtcDateTimeConverter()))
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>

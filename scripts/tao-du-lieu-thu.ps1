@@ -15,6 +15,17 @@
   -TaoKy: chưa có kỳ của -Nam/-Quy thì tạo, thêm mọi cán bộ giữ chức vụ thuộc diện đánh giá, mở kỳ rồi đẩy như -KyCoSan; đã có kỳ thì dùng kỳ đó.
     powershell -File scripts/tao-du-lieu-thu.ps1 -TaoKy -ApiUrl http://192.168.22.149:3001 -Nam 2027 -Quy 1 -GiaiDoan dang-ky
   -GiuLai: hồ sơ để nguyên, tự thao tác trên giao diện.
+  Luôn làm: biên bản họp tập thể (B3a) và hội nghị quyết định (B4) ghi đủ địa điểm, giờ, chủ trì, thư ký, số dự, quy chế,
+    người được cử dự, tổ kiểm phiếu; Mẫu 20 ghi người họp, phạm vi, nhận xét, trường hợp thảo luận; Mẫu 19 ghi minh chứng từng mục.
+  -TinhHuong: mỗi tình huống làm một lần trên một hồ sơ (lưu lựa chọn trong %TEMP%\ctd-tinh-huong-<mã kỳ>.json, chạy lại không lặp):
+    - Chưa xếp loại; trả lại ở gửi danh mục, rà soát, duyệt, chi bộ, thẩm định; thu hồi duyệt danh mục; ý kiến rà soát, ý kiến Phó Giám đốc
+    - Điều chỉnh việc Mẫu 04 kèm minh chứng; việc đột xuất Mẫu 05 có đơn vị phối hợp
+    - Diện cấp trên: TCCB-LĐ cập nhật danh mục khi chờ duyệt, ghi điều chỉnh đã duyệt kèm văn bản
+    - Tự chấm có cam kết không bị khống chế (phần lớn hồ sơ); một hồ sơ tự đề xuất Xuất sắc, thẩm định ghi đè điều kiện Xuất sắc
+    - Phiếu đối soát chuyên ngành Mẫu 03; thẩm định chênh lệch điểm kèm giải trình của cá nhân; thẩm định khống chế mức
+    - Phiếu kiểm soát Mẫu 19 (khi cổng chỉ ghi nhận); hồ sơ tập thể Mẫu 06, 07, 08 (Đảng bộ Công ty, Đảng bộ bộ phận, một chi bộ)
+    - Quyết định mức Hoàn thành, Không hoàn thành rồi kế hoạch Mẫu 17 (lập, duyệt, xác nhận, kết quả mốc 30 ngày)
+    - Sau công bố: kiến nghị và trả lời, mở lại rồi công bố lại; bản nháp Mẫu 16 Đảng bộ Công ty và Đảng bộ bộ phận
   -LamSach làm rỗng các bảng vận hành (kỳ, hồ sơ, biên bản, phiếu, nhật ký) của CSDL thử qua docker; tài khoản, danh mục giữ nguyên.
 #>
 param(
@@ -27,7 +38,7 @@ param(
     [int]$Nam = 2026,
     [int]$Quy = 4,
     [string[]]$GiuLai = @(),
-    # Thêm trả lại, thu hồi, điều chỉnh việc, ý kiến, Chưa xếp loại, mở lại trên vài hồ sơ diện cơ sở
+    # Thêm các tình huống ở phần chú thích đầu script
     [switch]$TinhHuong,
     [switch]$LamSach,
     [string]$ApiUrl = 'http://localhost:5000',
@@ -93,6 +104,12 @@ $CalibrationConcluders = @('long.nc', 'hung.dt', 'thao.nt')
 # Lập biên bản họp tập thể bước 3a (vai trò Thư ký hội nghị phạm vi toàn Công ty)
 $MeetingSecretaries = @('hung.dt', 'long.nc', 'thao.nt', 'loan.ttp')
 $script:Meetings = @{}
+$script:DecisionMeeting = $null
+$script:People = $null
+$script:BadLogin = @{}
+# Mức quyết định riêng theo mã hồ sơ (tình huống Mẫu 17)
+$script:DecisionGrade = @{}
+$script:State = @{}
 $Steps = @('B1_REGISTER', 'B1_UNIT_SUBMIT', 'B1_HR_REVIEW', 'B1_APPROVE', 'B2_SELF_SCORE', 'B2_CELL_CONFIRM', 'B3A_COLLECTIVE', 'B3B_APPRAISAL', 'B3C_DIRECTOR', 'B4_DECISION', 'B5_PUBLISH')
 $StageStep = @{
     'dang-ky' = 'B1_REGISTER'; 'gui-danh-muc' = 'B1_UNIT_SUBMIT'; 'ra-soat' = 'B1_HR_REVIEW'; 'duyet' = 'B1_APPROVE'
@@ -147,9 +164,13 @@ function Read-Body($response) {
 }
 
 # Gọi API; trả về @{ Status; Ok; Data; Message; Body }. Không ném lỗi theo mã HTTP để người gọi tự quyết.
-function Invoke-Api($session, [string]$method, [string]$path, $body = $null) {
+function Invoke-Api($session, [string]$method, [string]$path, $body = $null, [string]$contentType = $null) {
     $params = @{ Uri = "$ApiUrl$path"; Method = $method; UseBasicParsing = $true; TimeoutSec = 120; WebSession = $session }
-    if ($null -ne $body) {
+    if ($contentType) {
+        # Thân đã dựng sẵn (tải tệp)
+        $params.Body = $body
+        $params.ContentType = $contentType
+    } elseif ($null -ne $body) {
         $json = $body | ConvertTo-Json -Depth 30 -Compress
         $params.Body = [System.Text.Encoding]::UTF8.GetBytes($json)
         $params.ContentType = 'application/json; charset=utf-8'
@@ -183,6 +204,31 @@ function Invoke-ApiOk($session, [string]$method, [string]$path, $body, [string]$
     return $r.Data
 }
 
+# Tệp PDF một trang tự tạo làm minh chứng thử
+function New-PdfBytes([string]$title) {
+    $text = "%PDF-1.4`n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj`n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj`n" +
+        "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 100]>>endobj`n% $title`ntrailer<</Root 1 0 R>>`n%%EOF`n"
+    return [System.Text.Encoding]::ASCII.GetBytes($text)
+}
+
+# Tải tệp lên (multipart); không có ownerType thì tệp chưa gắn, gắn sau qua attachmentId. Trả về tệp đã lưu.
+function Send-File($session, [string]$fileName, [string]$formCode, [string]$description, [string]$ownerType = $null, [string]$ownerId = $null) {
+    $boundary = [Guid]::NewGuid().ToString('N')
+    $utf8 = [System.Text.Encoding]::UTF8
+    $stream = New-Object System.IO.MemoryStream
+    $write = { param([string]$s) $b = $utf8.GetBytes($s); $stream.Write($b, 0, $b.Length) }
+    $fields = [ordered]@{ formCode = $formCode; description = $description }
+    if ($ownerType) { $fields['ownerType'] = $ownerType; $fields['ownerId'] = $ownerId }
+    foreach ($k in $fields.Keys) { & $write "--$boundary`r`nContent-Disposition: form-data; name=`"$k`"`r`n`r`n$($fields[$k])`r`n" }
+    & $write "--$boundary`r`nContent-Disposition: form-data; name=`"file`"; filename=`"$fileName`"`r`nContent-Type: application/pdf`r`n`r`n"
+    $pdf = New-PdfBytes $description
+    $stream.Write($pdf, 0, $pdf.Length)
+    & $write "`r`n--$boundary--`r`n"
+    $r = Invoke-Api $session 'POST' '/api/attachments/upload' $stream.ToArray() "multipart/form-data; boundary=$boundary"
+    if (-not $r.Ok) { Fail "Tải tệp $fileName không thành công: HTTP $($r.Status) - $($r.Message)" }
+    return $r.Data
+}
+
 # Đăng nhập một lần cho mỗi tài khoản; giới hạn đăng nhập theo phút nên gặp 429 thì chờ rồi thử lại
 function Get-Session([string]$username) {
     if ($script:Sessions.ContainsKey($username)) { return $script:Sessions[$username] }
@@ -197,6 +243,17 @@ function Get-Session([string]$username) {
     if (-not $r.Ok) { Fail "Đăng nhập $username không thành công: HTTP $($r.Status) - $($r.Message)" }
     $script:Sessions[$username] = $session
     return $session
+}
+
+# Tài khoản thêm (không bắt buộc): bỏ qua nếu không đăng nhập được bằng mật khẩu chung
+function Select-Usable([string[]]$users) {
+    return @(foreach ($u in $users) {
+            if ($script:Sessions.ContainsKey($u)) { $u; continue }
+            if ($script:BadLogin.ContainsKey($u)) { continue }
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $r = Invoke-Api $session 'POST' '/api/auth/login' @{ username = $u; password = $MatKhau }
+            if ($r.Ok) { $script:Sessions[$u] = $session; $u } else { $script:BadLogin[$u] = $true }
+        })
 }
 
 function Get-WorkingDay([int]$count) {
@@ -278,6 +335,9 @@ function New-TaskList($criteria, [string]$fullName) {
 function New-SelfScore($criteria, $record, [string]$username) {
     $score = $Profiles[$username]
     if (-not $score) { $score = @{ Ratio = 0.8; NotAssured = @() } }
+    # Hồ sơ tình huống tự đề xuất Xuất sắc: đủ điểm, sản phẩm đầu vượt chuẩn (đã gắn minh chứng)
+    $excellent = $script:State['xuat-sac'] -eq [string]$record.id
+    if ($excellent) { $score = @{ Ratio = 1.0; NotAssured = @() } }
     $general = [ordered]@{}
     foreach ($group in @($criteria.generalGroups)) {
         foreach ($item in @($group.items)) {
@@ -288,9 +348,11 @@ function New-SelfScore($criteria, $record, [string]$username) {
             }
         }
     }
+    $first = $true
     $taskScores = @(foreach ($t in @($record.tasks)) {
         [ordered]@{ taskId = $t.id; criteriaA_Ratio = $score.Ratio; criteriaB_Ratio = $score.Ratio
-            criteriaC_Ratio = $score.Ratio; criteriaD_Ratio = $score.Ratio; isExceedStandard = $false }
+            criteriaC_Ratio = $score.Ratio; criteriaD_Ratio = $score.Ratio; isExceedStandard = ($excellent -and $first) }
+        $first = $false
     })
     $assessment = [ordered]@{}
     foreach ($section in @($criteria.selfAssessmentSections)) {
@@ -307,10 +369,14 @@ function New-SelfScore($criteria, $record, [string]$username) {
     }
     $groupNotes = [ordered]@{}
     foreach ($group in @($criteria.generalGroups)) { $groupNotes[$group.code] = 'Chấp hành tốt' }
+    # Phần lớn hồ sơ cam kết không bị khống chế; khoảng 1/5 để trống để thử bản in "Không cam kết"
+    $sum = 0; foreach ($ch in $username.ToCharArray()) { $sum += [int]$ch }
     return [ordered]@{
         generalScores = $general; taskScores = $taskScores
-        selfProposedGrade = 'HoanThanhTot'; selfGradeExplanation = 'Tự nhận mức theo kết quả thực hiện nhiệm vụ trong quý'
+        selfProposedGrade = $(if ($excellent) { 'HoanThanhXuatSac' } else { 'HoanThanhTot' })
+        selfGradeExplanation = 'Tự nhận mức theo kết quả thực hiện nhiệm vụ trong quý'
         selfAssessment = $assessment; axisReports = $axisReports; generalGroupNotes = $groupNotes
+        selfDeclaresNoCap = ($excellent -or $sum % 5 -ne 0)
     }
 }
 
@@ -321,7 +387,8 @@ $ExternalAuthority = @{
 }
 
 function New-StepBody([string]$step, [string]$action, $record, [string]$username, $criteria) {
-    $decisionGrade = if ($MucQuyetDinh.ContainsKey($username)) { $MucQuyetDinh[$username] } else { 'HoanThanhTot' }
+    $decisionGrade = if ($script:DecisionGrade.ContainsKey([string]$record.id)) { $script:DecisionGrade[[string]$record.id] }
+        elseif ($MucQuyetDinh.ContainsKey($username)) { $MucQuyetDinh[$username] } else { 'HoanThanhTot' }
     if ($action -eq 'RecordExternal') {
         $grade = if ($step -eq 'B4_DECISION') { $decisionGrade } else { 'HoanThanhTot' }
         return [ordered]@{
@@ -359,13 +426,119 @@ function New-StepBody([string]$step, [string]$action, $record, [string]$username
         }
         'B3C_DIRECTOR' { return @{ comment = 'Hoàn thành tốt nhiệm vụ được giao'; proposedGrade = 'HoanThanhTot' } }
         'B4_DECISION' {
+            # Kết quả kiểm phiếu ghi vào biên bản hội nghị quyết định (Mẫu 12, 13)
+            $meeting = Get-DecisionMeeting $record
+            $present = [int]$meeting.presentCount
+            $votes = [ordered]@{ votesExcellent = 0; votesGood = 0; votesSatisfactory = 0; votesUnsatisfactory = 0; votesNotRated = 0; invalidVotes = 0 }
+            $voteKey = @{ HoanThanhXuatSac = 'votesExcellent'; HoanThanhTot = 'votesGood'; HoanThanh = 'votesSatisfactory'; KhongHoanThanh = 'votesUnsatisfactory' }[$decisionGrade]
+            if ($voteKey) { $votes[$voteKey] = $present } else { $votes['votesNotRated'] = $present }
             return [ordered]@{
                 finalGrade = $decisionGrade; documentNumber = '01-QĐ/ĐU'; documentDate = $TodayIso
-                explanation = 'Theo kết quả thẩm định và nhận xét'
+                explanation = 'Theo kết quả thẩm định và nhận xét'; meetingId = $meeting.id; votes = $votes
             }
         }
         'B5_PUBLISH' { return [ordered]@{ comment = 'Công bố kết quả' } }
         default { Fail "Bước $step chưa được hỗ trợ trong script." }
+    }
+}
+
+# Cán bộ kèm chức vụ (danh sách thêm người vào kỳ) để ghi tên chủ trì, thư ký, người dự trên biên bản
+function Get-People {
+    if ($null -eq $script:People) {
+        $script:People = @(Invoke-ApiOk (Get-Session $ManagerUser) 'GET' "/api/evaluations/periods/$($script:Period.id)/candidates" $null 'Lấy danh sách cán bộ')
+    }
+    return $script:People
+}
+
+function Get-Title($person) {
+    if (-not $person -or -not $person.positionName) { return 'Đảng viên' }
+    return ($person.positionName -split ',')[0].Trim()
+}
+
+# Giờ Việt Nam đổi sang UTC (API chỉ lưu được thời điểm UTC)
+function Get-VnTime([int]$hour, [int]$minute) { return $Today.Date.AddHours($hour - 7).AddMinutes($minute).ToString('yyyy-MM-ddTHH:mm:00Z') }
+
+# Nội dung đầy đủ của biên bản Mẫu 12/13: địa điểm, giờ, chủ trì, thư ký, số dự, quy chế, người được cử dự, tổ kiểm phiếu
+function New-MeetingBody($periodId, $departmentId, [string]$departmentName, $partyCellId, [string]$partyCellName, [string]$stage) {
+    $people = Get-People
+    $decision = $stage -eq 'B4_DECISION'
+    if ($decision) {
+        $members = @($people)
+        $chair = @($members | Where-Object { $_.positionName -match 'Bí thư Đảng ủy' }) + @($members) | Select-Object -First 1
+        $secretary = @($members | Where-Object { $_.username -ne $chair.username -and $_.positionName -match 'Đảng ủy viên|Ủy viên Ban Thường vụ' }) + @($members) |
+            Where-Object { $_.username -ne $chair.username } | Select-Object -First 1
+        $unit = 'Ban Chấp hành Đảng bộ'
+    } else {
+        $members = @($people | Where-Object { $(if ($departmentName) { $_.departmentName -eq $departmentName } else { $_.partyCellName -eq $partyCellName }) })
+        if ($members.Count -eq 0) { $members = @($people) }
+        $chair = @($members | Where-Object { $_.positionName -match '^(Giám đốc|Trưởng|Chánh|Chủ tịch|Bí thư)' }) + @($members) | Select-Object -First 1
+        $secretary = @($members | Where-Object { $_.username -ne $chair.username -and $_.positionName -match '^Phó' }) + @($members | Where-Object { $_.username -ne $chair.username }) + @($people | Where-Object { $_.username -ne $chair.username }) |
+            Select-Object -First 1
+        $unit = if ($departmentName) { $departmentName } else { $partyCellName }
+    }
+    $others = @($members + $people | Where-Object { $_.username -ne $chair.username -and $_.username -ne $secretary.username } | Select-Object -First 3)
+    $reporting = @($people | Where-Object { $_.departmentName -match 'Tổ chức cán bộ' } | Select-Object -First 1)
+    $present = 6
+    return [ordered]@{
+        periodId = $periodId; departmentId = $departmentId; partyCellId = $partyCellId; stage = $stage; formCode = 'M12'
+        meetingType = $(if ($decision) { 'Hội nghị Ban Chấp hành Đảng bộ' } else { 'Họp tập thể lãnh đạo đơn vị' })
+        location = 'Phòng họp tầng 2, trụ sở đơn vị'
+        startedAt = $(if ($decision) { Get-VnTime 14 0 } else { Get-VnTime 8 0 }); endedAt = $(if ($decision) { Get-VnTime 16 30 } else { Get-VnTime 10 30 })
+        invitedCount = $present + 1; presentCount = $present; absentCount = 1; absentReasons = 'Đi công tác theo kế hoạch'
+        chairName = $chair.fullName; secretaryName = $secretary.fullName
+        minutesContent = "Hội nghị nghe báo cáo kết quả thực hiện nhiệm vụ trong quý của từng cán bộ, thảo luận, góp ý và bỏ phiếu đánh giá, xếp loại."
+        outcomeContent = 'Hội nghị thống nhất kết quả kiểm phiếu, giao thư ký hoàn thiện biên bản.'
+        voteCountingContent = 'Tổ kiểm phiếu đã kiểm phiếu công khai trước hội nghị.'
+        voteSummaries = @()
+        details = [ordered]@{
+            workingRules = $(if ($decision) { $null } else { "tập thể lãnh đạo $unit" })
+            reportingUnit = $(if ($reporting.Count) { $reporting[0].departmentName } else { $unit })
+            chairTitle = Get-Title $chair; secretaryTitle = Get-Title $secretary
+            attendees = @($others | Select-Object -First 2 | ForEach-Object { [ordered]@{ name = $_.fullName; title = Get-Title $_ } })
+            countingCommittee = @(@($secretary) + @($others) | Select-Object -First 3 | ForEach-Object { [ordered]@{ name = $_.fullName; title = Get-Title $_ } })
+            ballotsIssued = $present; ballotsCollected = $present; ballotsValid = $present; ballotsInvalid = 0
+        }
+    }
+}
+
+# Biên bản hội nghị quyết định (B4) cấp Công ty, dùng chung cho mọi hồ sơ quyết định trong hệ thống; dùng lại biên bản đã có
+function Get-DecisionMeeting($record) {
+    if ($script:DecisionMeeting) { return $script:DecisionMeeting }
+    foreach ($user in $MeetingSecretaries) {
+        $session = Get-Session $user
+        $list = Invoke-Api $session 'GET' "/api/evaluations/meetings?periodId=$($record.periodId)"
+        if ($list.Ok) {
+            $found = @($list.Data | Where-Object { $_.stage -eq 'B4_DECISION' -and -not $_.departmentId -and -not $_.partyCellId }) | Select-Object -First 1
+            if ($found) { $script:DecisionMeeting = $found; return $found }
+        }
+        $r = Invoke-Api $session 'POST' '/api/evaluations/meetings' (New-MeetingBody $record.periodId $null $null $null $null 'B4_DECISION')
+        if ($r.Ok) {
+            Write-Host "   Lập biên bản hội nghị quyết định cấp Công ty ($user)" -ForegroundColor DarkCyan
+            $script:DecisionMeeting = $r.Data
+            return $r.Data
+        }
+        if ($r.Status -ne 403) { Fail "Lập biên bản hội nghị quyết định không thành công: HTTP $($r.Status) - $($r.Message)" }
+    }
+    Fail "Lập biên bản hội nghị quyết định không thành công: không tài khoản nào trong $($MeetingSecretaries -join ', ') có quyền lập biên bản cấp Công ty."
+}
+
+# Biên bản lập từ lần chạy trước còn thiếu địa điểm, chủ trì...: ghi bổ sung (giữ kết quả kiểm phiếu)
+function Complete-Meetings($period) {
+    foreach ($user in $MeetingSecretaries) {
+        $session = Get-Session $user
+        $list = Invoke-Api $session 'GET' "/api/evaluations/meetings?periodId=$($period.id)"
+        if (-not $list.Ok -or @($list.Data).Count -eq 0) { continue }
+        foreach ($m in @($list.Data | Where-Object { -not $_.location })) {
+            $body = New-MeetingBody $period.id $m.departmentId $m.departmentName $m.partyCellId $m.partyCellName $m.stage
+            $body['version'] = $m.version
+            $body['presentCount'] = [Math]::Max([int]$body.presentCount, [int]$m.presentCount)
+            $body['invitedCount'] = $body.presentCount + 1
+            foreach ($k in 'ballotsIssued', 'ballotsCollected', 'ballotsValid') { $body.details[$k] = $body.presentCount }
+            $r = Invoke-Api $session 'PUT' "/api/evaluations/meetings/$($m.id)" $body
+            if ($r.Ok) { Write-Host "   Bổ sung nội dung biên bản $($m.meetingType) $($m.departmentName)$($m.partyCellName) ($user)" -ForegroundColor DarkCyan }
+            else { Write-Host "   Bổ sung biên bản $($m.departmentName)$($m.partyCellName) không thành công: HTTP $($r.Status) - $($r.Message)" -ForegroundColor DarkYellow }
+        }
+        return
     }
 }
 
@@ -376,11 +549,7 @@ function Get-CollectiveMeeting($record, [string]$owner) {
     $cellKey = "c:$($record.partyCellId)"
     if ($script:Meetings.ContainsKey($key)) { return $script:Meetings[$key] }
     if ($record.partyCellId -and $script:Meetings.ContainsKey($cellKey)) { return $script:Meetings[$cellKey] }
-    $byCell = [ordered]@{
-        periodId = $record.periodId; departmentId = $null; partyCellId = $record.partyCellId
-        stage = 'B3A_COLLECTIVE'; formCode = 'M12'; meetingType = 'Họp tập thể lãnh đạo đơn vị'
-        invitedCount = 5; presentCount = 5
-    }
+    $byCell = New-MeetingBody $record.periodId $null $null $record.partyCellId $record.partyCellName 'B3A_COLLECTIVE'
     foreach ($user in $MeetingSecretaries) {
         if ($user -eq $owner) { continue }
         $session = Get-Session $user
@@ -396,11 +565,8 @@ function Get-CollectiveMeeting($record, [string]$owner) {
                 if ($found) { $script:Meetings[$cellKey] = $found; return $found }
             }
         }
-        $body = [ordered]@{
-            periodId = $record.periodId; departmentId = $record.departmentId; partyCellId = $(if ($record.departmentId) { $null } else { $record.partyCellId })
-            stage = 'B3A_COLLECTIVE'; formCode = 'M12'; meetingType = 'Họp tập thể lãnh đạo đơn vị'
-            invitedCount = 5; presentCount = 5
-        }
+        $body = if ($record.departmentId) { New-MeetingBody $record.periodId $record.departmentId $record.departmentName $null $null 'B3A_COLLECTIVE' }
+            else { $byCell }
         $r = Invoke-Api $session 'POST' '/api/evaluations/meetings' $body
         if ($r.Ok) {
             Write-Host "   Lập biên bản họp tập thể của $($record.departmentName) ($user)" -ForegroundColor DarkCyan
@@ -422,7 +588,7 @@ function Get-CollectiveMeeting($record, [string]$owner) {
 }
 
 # Thực hiện bước hiện tại của một hồ sơ bằng tài khoản đầu tiên có nút
-function Invoke-RecordStep($manager, $participant, [string]$step) {
+function Invoke-RecordStep($manager, $participant, [string]$step, $extra = $null) {
     $performer = Find-Performer $participant.recordId $step
     if (-not $performer.User) {
         $why = if ($performer.Blocked) { " (bị khóa: $($performer.Blocked))" } else { '' }
@@ -432,6 +598,8 @@ function Invoke-RecordStep($manager, $participant, [string]$step) {
     $record = Get-Record $session $participant.recordId
     $body = New-StepBody $step $performer.Action $record $participant.username (Load-Criteria $manager $script:Period)
     $body['version'] = $record.version
+    # Trường thêm của tình huống (khống chế mức, điểm chênh lệch...)
+    if ($extra -and $performer.Action -ne 'RecordExternal') { foreach ($k in $extra.Keys) { $body[$k] = $extra[$k] } }
     $path = if ($performer.Action -eq 'RecordExternal') { "external/$step" } else { $ActionPath[$performer.Action] }
     $result = Invoke-ApiOk $session 'POST' "/api/evaluations/records/$($participant.recordId)/$path" $body `
         "Bước $step của hồ sơ $($participant.fullName) ($($performer.User))"
@@ -462,14 +630,37 @@ function Complete-Calibration($manager, $period, $records) {
         $created = Invoke-ApiOk $preparer 'POST' '/api/calibrations' ([ordered]@{
             periodId = $period.id; departmentId = $batch[0].departmentId; groupName = "Cán bộ quản lý $($batch[0].departmentName)"; recordIds = $ids
         }) "Lập biên bản họp thống nhất ($preparerUser)"
+        # Người họp lấy từ danh sách cán bộ, không là chủ hồ sơ trong biên bản
+        $people = @(Get-People | Where-Object { $owners -notcontains $_.username })
+        $chair = @($people | Where-Object { $_.positionName -match 'Bí thư Đảng ủy|Giám đốc' }) + $people | Select-Object -First 1
+        $secretary = @($people | Where-Object { $_.departmentName -match 'Tổ chức cán bộ' -and $_.username -ne $chair.username }) + $people |
+            Where-Object { $_.username -ne $chair.username } | Select-Object -First 1
+        $members = @($people | Where-Object { $_.username -ne $chair.username -and $_.username -ne $secretary.username } | Select-Object -First 2)
+        $attendees = @(@(@{ P = $chair; C = 'Chủ trì' }, @{ P = $secretary; C = 'Thư ký' }) + @($members | ForEach-Object { @{ P = $_; C = 'Thành viên' } }) | ForEach-Object {
+                [ordered]@{ fullName = $_.P.fullName; memberId = $_.P.memberId; capacity = $_.C; dissentNote = $null } })
+        $summary = @(foreach ($row in @($created.summary | Where-Object { $_.gradeCode -ne 'TOTAL' })) {
+                [ordered]@{ gradeCode = $row.gradeCode; notableDifference = 'Không có chênh lệch đáng kể giữa các đơn vị'; preliminaryConclusion = 'Phân bố mức hợp lý, giữ nguyên' } })
+        $first = @($created.records)[0]
+        $cases = @([ordered]@{
+                recordId = $first.recordId; clarification = 'Làm rõ minh chứng sản phẩm trọng tâm, thống nhất giữ nguyên'
+                gradeAfter = $first.gradeBefore; scoreAfter = $first.scoreBefore; basis = 'Minh chứng nộp kèm phiếu tự chấm và kết quả thẩm định'
+                responsibleName = $secretary.fullName; responsibleMemberId = $secretary.memberId
+            })
         $save = [ordered]@{
-            version = $created.version; groupName = $created.groupName; heldAt = (Get-Date).ToUniversalTime().ToString('o'); location = 'Phòng họp'
-            chairName = 'Chủ trì cuộc họp'; secretaryName = 'Thư ký cuộc họp'; recordIds = $ids
-            attendees = @([ordered]@{ fullName = 'Thành viên dự họp'; capacity = 'Ủy viên'; dissentNote = $null })
-            summary = @(); cases = @()
+            version = $created.version; groupName = $created.groupName; heldAt = (Get-VnTime 8 30); location = 'Phòng họp tầng 2, trụ sở đơn vị'
+            chairName = $chair.fullName; chairMemberId = $chair.memberId; secretaryName = $secretary.fullName; secretaryMemberId = $secretary.memberId
+            scopeNote = "Hồ sơ cán bộ quản lý $($batch[0].departmentName) chờ quyết định trong kỳ"; recordIds = $ids
+            attendees = $attendees; summary = $summary; cases = $cases
         }
         if ($ids.Count -eq 1) { $save['extraConclusion'] = 'Không có hồ sơ cùng nhóm chức danh để so sánh.' }
-        $saved = Invoke-ApiOk $preparer 'PUT' "/api/calibrations/$($created.id)" $save "Lưu biên bản họp thống nhất ($preparerUser)"
+        $r = Invoke-Api $preparer 'PUT' "/api/calibrations/$($created.id)" $save
+        if (-not $r.Ok -and $r.Status -eq 400) {
+            Write-Host "   Lưu trường hợp thảo luận không thành công ($($r.Message)), lưu biên bản không có trường hợp." -ForegroundColor DarkYellow
+            $save['cases'] = @()
+            $r = Invoke-Api $preparer 'PUT' "/api/calibrations/$($created.id)" $save
+        }
+        if (-not $r.Ok) { Fail "Lưu biên bản họp thống nhất ($preparerUser) không thành công: HTTP $($r.Status) - $($r.Message)" }
+        $saved = $r.Data
         $done = $false
         foreach ($user in $CalibrationConcluders) {
             if ($owners -contains $user) { continue }
@@ -496,7 +687,7 @@ function Complete-ControlCheck($manager, $period, $records) {
     }
     if (-not $creator) { Fail 'Lập phiếu kiểm tra không thành công: không tài khoản nào trong danh sách có quyền lập.' }
     $session = Get-Session $creator
-    $items = @(foreach ($i in @($check.items)) { [ordered]@{ itemCode = $i.itemCode; result = 'Pass'; evidence = $null } })
+    $items = @(foreach ($i in @($check.items)) { [ordered]@{ itemCode = $i.itemCode; result = 'Pass'; evidence = 'Đã đối chiếu hồ sơ, phiếu tự chấm, biên bản và minh chứng kèm theo' } })
     $filled = Invoke-ApiOk $session 'PUT' "/api/control-checks/$($check.id)" ([ordered]@{ version = $check.version; items = $items; conclusion = 'Eligible' }) "Điền phiếu kiểm tra ($creator)"
     $submitted = Invoke-ApiOk $session 'POST' "/api/control-checks/$($check.id)/submit" @{ version = $filled.version } "Gửi phiếu kiểm tra ($creator)"
     foreach ($user in (Get-AccountOrder)) {
@@ -570,6 +761,13 @@ function Complete-Gates($manager, $period) {
         }
     }
     Complete-Calibration $manager $period $calibration
+    # Cổng phiếu kiểm soát chỉ ghi nhận: tình huống vẫn lập một phiếu Mẫu 19 cho vài hồ sơ để thử bản in
+    if ($TinhHuong -and $control.Count -eq 0 -and -not (Test-Done 'phieu-kiem-soat')) {
+        $control = @($waiting | Where-Object {
+                (Get-ProfileSettings $period $_.workflowProfileCode).steps.B4_DECISION.mode -eq 'Internal' -and -not $checked.ContainsKey([string]$_.recordId)
+            } | Select-Object -First 2)
+        if ($control.Count) { Set-Done 'phieu-kiem-soat' }
+    }
     Complete-ControlCheck $manager $period $control
 }
 
@@ -697,8 +895,18 @@ $ScenarioName = [ordered]@{
     'tra-lai:B3B_APPRAISAL' = 'Thẩm định trả lại'; 'y-kien-ra-soat' = 'Ý kiến rà soát danh mục (TCCB-LĐ)'
     'y-kien-pgd' = 'Ý kiến Phó Giám đốc (danh mục, đề xuất mức)'
     'mo-lai' = 'Mở lại hồ sơ đã công bố rồi công bố lại'
+    'dot-xuat' = 'Việc đột xuất (Mẫu 05) có đơn vị phối hợp, duyệt'
+    'cap-tren' = 'Diện cấp trên: cập nhật danh mục, ghi điều chỉnh đã duyệt (TCCB-LĐ)'
+    'xuat-sac' = 'Tự đề xuất Xuất sắc; thẩm định ghi đè điều kiện Xuất sắc'
+    'doi-soat' = 'Phiếu đối soát chuyên ngành (Mẫu 03): tạo, ghi ý kiến, xác nhận'
+    'chenh-lech' = 'Thẩm định chênh lệch điểm, cá nhân giải trình'
+    'khong-che' = 'Thẩm định khống chế mức kèm lý do'
+    'muc:HoanThanh' = 'Quyết định mức Hoàn thành, kế hoạch Mẫu 17'
+    'muc:KhongHoanThanh' = 'Quyết định mức Không hoàn thành, kế hoạch Mẫu 17'
+    'kien-nghi' = 'Kiến nghị sau công bố và trả lời'
 }
-$script:State = @{}
+# Mức thấp để thử kế hoạch Mẫu 17 (mỗi mức một hồ sơ)
+$LowGrades = @('HoanThanh', 'KhongHoanThanh')
 $script:StateFile = $null
 
 function Load-State($period) {
@@ -707,6 +915,7 @@ function Load-State($period) {
         $obj = Get-Content $script:StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
         foreach ($prop in $obj.PSObject.Properties) { $script:State[$prop.Name] = [string]$prop.Value }
     }
+    foreach ($grade in $LowGrades) { if ($script:State.ContainsKey("muc:$grade")) { $script:DecisionGrade[$script:State["muc:$grade"]] = $grade } }
 }
 
 function Save-State { $script:State | ConvertTo-Json | Set-Content -Path $script:StateFile -Encoding UTF8 }
@@ -814,14 +1023,22 @@ function Invoke-TaskChange($manager, $p) {
         taskName = $task.taskName; targetOutput = "$($task.targetOutput) - điều chỉnh chỉ tiêu"; deadline = $task.deadline; axisCode = $task.axisCode
         productCode = $task.productCode; role = $task.role; exceedCriteria = $task.exceedCriteria; evidenceSource = $task.evidenceSource; confirmer = $task.confirmer
     }
+    # Minh chứng kèm đề nghị, in ở ô "Văn bản/minh chứng" Mẫu 04
+    $file = Send-File $owner 'minh-chung-dieu-chinh.pdf' 'M04' 'Văn bản yêu cầu điều chỉnh chỉ tiêu'
     $r = Invoke-Api $owner 'POST' "/api/evaluations/records/$($p.recordId)/task-changes" ([ordered]@{
         version = $record.version; type = 'Adjust'; taskId = $task.id; proposal = $proposal; reason = 'Thay đổi yêu cầu công việc trong quý'
+        attachmentId = $file.id
     })
     if (-not $r.Ok) {
         Write-Host "   [Tình huống] $($p.fullName): đề nghị điều chỉnh việc không thành công: HTTP $($r.Status) - $($r.Message)" -ForegroundColor DarkYellow
         Set-Done $key
         return
     }
+    Approve-TaskChange $p $key
+}
+
+# Người duyệt danh mục duyệt đề nghị đang chờ của hồ sơ
+function Approve-TaskChange($p, [string]$key) {
     foreach ($user in (Get-AccountOrder)) {
         $session = Get-Session $user
         $r = Invoke-Api $session 'GET' "/api/evaluations/records/$($p.recordId)/task-changes"
@@ -850,15 +1067,447 @@ function Invoke-Revoke($manager, $p) {
     Push-Record $manager ([string]$p.recordId) ([array]::IndexOf($Steps, 'B2_SELF_SCORE'))
 }
 
-# Gọi trước khi làm bước $step của hồ sơ; chỉ áp dụng diện cơ sở (đủ các bước trong hệ thống)
+# Chủ hồ sơ ghi việc đột xuất (Mẫu 05) kèm đơn vị phối hợp, giảm trọng số việc đầu; người duyệt danh mục duyệt
+function Invoke-UrgentTask($manager, $p) {
+    $key = 'dot-xuat'
+    if ((Test-Done $key) -or -not (Select-ForScenario $key $p)) { return }
+    $owner = Get-Session $p.username
+    $record = Get-Record $owner $p.recordId
+    $task = @($record.tasks | Sort-Object weight -Descending)[0]
+    $weight = [Math]::Min(10, [double]$task.weight / 2)
+    $proposal = [ordered]@{
+        taskName = 'Khắc phục sự cố thiết bị dẫn đường đột xuất'; targetOutput = 'Thiết bị hoạt động trở lại, có báo cáo sự cố'
+        deadline = ([datetime]$script:Period.endDate).ToString('yyyy-MM-dd'); axisCode = $task.axisCode; role = 'ChuTri'
+        exceedCriteria = 'Khắc phục trước hạn, không ảnh hưởng hoạt động bay'; evidenceSource = 'Báo cáo sự cố, biên bản nghiệm thu'
+        confirmer = 'Lãnh đạo đơn vị'; coordination = 'Phòng Kỹ thuật - An toàn - Chất lượng; Đội kỹ thuật trực ca'; weight = $weight
+    }
+    $r = Invoke-Api $owner 'POST' "/api/evaluations/records/$($p.recordId)/task-changes" ([ordered]@{
+        version = $record.version; type = 'Urgent'; proposal = $proposal; weights = @{ ([string]$task.id) = [double]$task.weight - $weight }
+        reason = 'Lãnh đạo Công ty giao nhiệm vụ đột xuất trong quý'
+    })
+    if (-not $r.Ok) { Fail "Ghi việc đột xuất của $($p.fullName) không thành công: HTTP $($r.Status) - $($r.Message)" }
+    Approve-TaskChange $p $key
+}
+
+# Tài khoản cập nhật thay (evaluation.tasks.proxy), TCCB-LĐ trước
+function Get-ProxyUsers($p) {
+    return @(@(Select-Usable @('loan.ctp', 'loan.ttp')) + (Get-AccountOrder) | Where-Object { $_ -ne $p.username } | Select-Object -Unique)
+}
+
+# Diện cấp trên duyệt danh mục: khi chờ duyệt, TCCB-LĐ cập nhật danh mục cho khớp kết quả duyệt
+function Invoke-ExternalTaskUpdate($p) {
+    $key = 'cap-tren:cap-nhat'
+    if ((Test-Done $key) -or -not (Select-ForScenario 'cap-tren' $p)) { return }
+    foreach ($user in (Get-ProxyUsers $p)) {
+        $session = Get-Session $user
+        $record = Get-Record $session $p.recordId
+        $tasks = @(foreach ($t in @($record.tasks)) {
+                [ordered]@{
+                    taskName = $t.taskName; targetOutput = "$($t.targetOutput) (theo ý kiến cấp trên)"; weight = $t.weight; deadline = $t.deadline
+                    axisCode = $t.axisCode; productCode = $t.productCode; kind = $t.kind; role = $t.role; exceedCriteria = $t.exceedCriteria
+                    evidenceSource = $t.evidenceSource; confirmer = $t.confirmer
+                } })
+        $r = Invoke-Api $session 'POST' "/api/evaluations/records/$($p.recordId)/tasks/update" ([ordered]@{ version = $record.version; tasks = $tasks })
+        if ($r.Ok) { Write-Scenario "$($p.fullName): cập nhật danh mục khi chờ cấp trên duyệt ($user)"; Set-Done $key; return }
+        if ($r.Status -ne 403) { Fail "Cập nhật danh mục của $($p.fullName) ($user) không thành công: HTTP $($r.Status) - $($r.Message)" }
+    }
+    Fail "Cập nhật danh mục của $($p.fullName) không thành công: không tài khoản nào có quyền cập nhật thay."
+}
+
+# Diện cấp trên: ghi điều chỉnh đã được cấp trên duyệt (cơ quan, số, ngày văn bản, tệp đính kèm)
+function Invoke-ExternalTaskChange($p) {
+    $key = 'cap-tren:dieu-chinh'
+    if ((Test-Done $key) -or $script:State['cap-tren'] -ne [string]$p.recordId) { return }
+    foreach ($user in (Get-ProxyUsers $p)) {
+        $session = Get-Session $user
+        $info = Invoke-Api $session 'GET' "/api/evaluations/records/$($p.recordId)/task-changes"
+        if (-not $info.Ok -or -not $info.Data.canRequestChange) { continue }
+        $record = Get-Record $session $p.recordId
+        $task = @($record.tasks)[0]
+        $file = Send-File $session 'van-ban-cap-tren.pdf' 'M04' 'Văn bản phê duyệt điều chỉnh của cấp trên'
+        $r = Invoke-Api $session 'POST' "/api/evaluations/records/$($p.recordId)/task-changes" ([ordered]@{
+            version = $record.version; type = 'Adjust'; taskId = $task.id; weights = @{}
+            proposal = [ordered]@{ targetOutput = "$($task.targetOutput); bổ sung chỉ tiêu theo văn bản cấp trên" }
+            reason = 'Cấp trên điều chỉnh chỉ tiêu trong quý'
+            externalApproval = [ordered]@{
+                authorityName = 'Hội đồng thành viên Tổng công ty'; documentNumber = '15/QĐ-HĐTV'; documentDate = $TodayIso; attachmentId = $file.id
+            }
+        })
+        if (-not $r.Ok) { Fail "Ghi điều chỉnh đã duyệt của $($p.fullName) ($user) không thành công: HTTP $($r.Status) - $($r.Message)" }
+        Write-Scenario "$($p.fullName): ghi điều chỉnh đã được cấp trên duyệt, kèm văn bản ($user)"
+        Set-Done $key
+        return
+    }
+    Write-Host "   [Tình huống] $($p.fullName): không tài khoản nào ghi được điều chỉnh đã duyệt." -ForegroundColor DarkYellow
+    Set-Done $key
+}
+
+# Chọn hồ sơ tự đề xuất Xuất sắc; gắn minh chứng cho sản phẩm vượt chuẩn trước khi tự chấm
+function Select-Excellent($p) {
+    if ((Test-Done 'xuat-sac:minh-chung') -or -not (Select-ForScenario 'xuat-sac' $p)) { return }
+    $owner = Get-Session $p.username
+    $record = Get-Record $owner $p.recordId
+    $task = @($record.tasks)[0]
+    Send-File $owner 'minh-chung-vuot-chuan.pdf' 'M02' 'Minh chứng sản phẩm vượt chuẩn' 'EvaluationTask' ([string]$task.id) | Out-Null
+    Write-Scenario "$($p.fullName): gắn minh chứng sản phẩm vượt chuẩn, tự đề xuất Xuất sắc"
+    Set-Done 'xuat-sac:minh-chung'
+}
+
+# Phiếu đối soát chuyên ngành (Mẫu 03): yêu cầu, đơn vị chuyên môn ghi ý kiến, gửi, người khác xác nhận (đóng phiếu)
+function Invoke-Crosscheck($p) {
+    $key = 'doi-soat'
+    if ((Test-Done $key) -or -not (Select-ForScenario $key $p)) { return }
+    $id = [string]$p.recordId
+    $requester = $null
+    foreach ($user in @(@(Select-Usable @('loan.ctp', 'loan.ttp')) + (Get-AccountOrder) | Where-Object { $_ -ne $p.username } | Select-Object -Unique)) {
+        $r = Invoke-Api (Get-Session $user) 'GET' "/api/evaluations/records/$id/crosschecks"
+        if ($r.Ok -and $r.Data.canRequest) { $requester = $user; break }
+    }
+    if (-not $requester) { Write-Host "   [Tình huống] $($p.fullName): không tài khoản nào yêu cầu đối soát được." -ForegroundColor DarkYellow; Set-Done $key; return }
+    $session = Get-Session $requester
+    $record = Get-Record $session $id
+    $depts = @(Invoke-ApiOk $session 'GET' '/api/organizations/departments' $null 'Lấy danh sách đơn vị' | Where-Object { $_.parentId -and $_.id -ne $record.departmentId })
+    $expert = @($depts | Where-Object { $_.name -match 'An toàn' }) + $depts | Select-Object -First 1
+    $items = @(foreach ($t in @($record.tasks)) { [ordered]@{ taskId = $t.id; itemName = $t.taskName; selfData = 'Tự đánh giá: hoàn thành đúng hạn, đạt yêu cầu' } })
+    $cc = Invoke-ApiOk $session 'POST' "/api/evaluations/records/$id/crosschecks" ([ordered]@{
+        expertDepartmentId = $expert.id; fields = @('SAFETY_QUALITY'); addresseeName = "Lãnh đạo $($expert.name)"
+        requestReason = 'Đề nghị xác nhận số liệu an toàn - chất lượng của sản phẩm đăng ký'; items = $items
+    }) "Yêu cầu đối soát của $($p.fullName) ($requester)"
+    $responder = $null
+    foreach ($user in (Get-AccountOrder)) {
+        if ($user -eq $p.username) { continue }
+        $s = Get-Session $user
+        $r = Invoke-Api $s 'GET' "/api/crosschecks/$($cc.id)"
+        if (-not $r.Ok -or -not $r.Data.canRespond) { continue }
+        $rows = @(foreach ($i in @($r.Data.items)) {
+                [ordered]@{ id = $i.id; sourceData = 'Số liệu hệ thống giám sát an toàn quý khớp với tự đánh giá'; result = 'Pass'; adjustmentType = 'None'
+                    adjustmentPoints = $null; basisText = 'Báo cáo an toàn - chất lượng quý'; basisDocNumber = '120/BC-KTAT'; basisDocDate = $TodayIso
+                    basisAgency = $expert.name; notApplicable = $false } })
+        $saved = Invoke-ApiOk $s 'PUT' "/api/crosschecks/$($cc.id)/response" ([ordered]@{ version = $r.Data.version; issuedDate = $TodayIso; items = $rows }) "Ghi ý kiến đối soát ($user)"
+        Invoke-ApiOk $s 'POST' "/api/crosschecks/$($cc.id)/submit" @{ version = $saved.version } "Gửi phiếu đối soát ($user)" | Out-Null
+        $responder = $user; break
+    }
+    if (-not $responder) { Fail "Ghi ý kiến đối soát của $($p.fullName) không thành công: không tài khoản nào thuộc $($expert.name) lập được phiếu." }
+    foreach ($user in (Get-AccountOrder)) {
+        if ($user -eq $p.username -or $user -eq $responder) { continue }
+        $s = Get-Session $user
+        $r = Invoke-Api $s 'GET' "/api/crosschecks/$($cc.id)"
+        if (-not $r.Ok -or -not $r.Data.canConfirm) { continue }
+        Invoke-ApiOk $s 'POST' "/api/crosschecks/$($cc.id)/confirm" @{ version = $r.Data.version } "Xác nhận phiếu đối soát ($user)" | Out-Null
+        Write-Scenario "$($p.fullName): $($ScenarioName[$key]) (yêu cầu $requester, lập $responder, xác nhận $user)"
+        Set-Done $key
+        return
+    }
+    Fail "Xác nhận phiếu đối soát của $($p.fullName) không thành công: không tài khoản nào khác người lập xác nhận được."
+}
+
+# Thẩm định có tình huống: chênh lệch điểm (kèm giải trình của cá nhân), khống chế mức, ghi đè điều kiện Xuất sắc
+function Invoke-AppraisalScenario($manager, $p, [string]$key) {
+    if (Test-Done $key) { return }
+    if ($key -eq 'xuat-sac') {
+        if ($script:State['xuat-sac'] -ne [string]$p.recordId) { return }
+        $doneKey = 'xuat-sac:dieu-kien'
+        if (Test-Done $doneKey) { return }
+    } else {
+        if (-not (Select-ForScenario $key $p)) { return }
+        $doneKey = $key
+    }
+    $record = Get-Record $manager $p.recordId
+    $extra = switch ($key) {
+        'chenh-lech' {
+            @{ tasksScore = [Math]::Max(0, [Math]::Round([double]$record.tasksScore - 6, 1))
+                explanation = 'Hai sản phẩm thiếu minh chứng hoàn thành đúng hạn, giảm điểm theo kết quả đối chiếu' }
+        }
+        'khong-che' { @{ gradeCap = 'HoanThanhTot'; capReason = 'Đơn vị phụ trách để xảy ra sự cố an toàn mức độ nhẹ trong quý' } }
+        'xuat-sac' {
+            @{ conditionOverrides = [ordered]@{ I = $true; II = $true; III = $true; IV = $true; V = $true; VI = $false }
+                explanation = 'Còn nhiệm vụ trọng tâm Mức 2 nên chưa đủ điều kiện Xuất sắc' }
+        }
+    }
+    Invoke-RecordStep $manager $p 'B3B_APPRAISAL' $extra
+    Write-Scenario "$($p.fullName): $($ScenarioName[$key])"
+    if ($key -eq 'chenh-lech') {
+        # Chủ hồ sơ giải trình sau thẩm định (in ở Mẫu 10)
+        $owner = Get-Session $p.username
+        $r = Invoke-Api $owner 'GET' "/api/evaluations/records/$($p.recordId)/opinions"
+        if ($r.Ok -and $r.Data.canRecord -and @($r.Data.kinds | ForEach-Object { $_.value }) -contains 'MemberExplanation') {
+            Invoke-ApiOk $owner 'POST' "/api/evaluations/records/$($p.recordId)/opinions" ([ordered]@{
+                kind = 'MemberExplanation'; content = 'Hai sản phẩm đã hoàn thành đúng hạn, biên bản nghiệm thu được bổ sung kèm theo; đề nghị xem xét lại điểm.' }) `
+                "Giải trình của $($p.fullName)" | Out-Null
+            Write-Scenario "$($p.fullName): cá nhân giải trình sau thẩm định"
+        } else { Write-Host "   [Tình huống] $($p.fullName): chủ hồ sơ không ghi được giải trình." -ForegroundColor DarkYellow }
+    }
+    Set-Done $doneKey
+}
+
+# Trước quyết định: chọn hồ sơ nhận mức thấp để thử Mẫu 17
+function Select-LowGrade($p) {
+    foreach ($grade in $LowGrades) {
+        $key = "muc:$grade"
+        if ($script:State.ContainsKey($key)) { continue }
+        if (Select-ForScenario $key $p) { $script:DecisionGrade[[string]$p.recordId] = $grade; Write-Scenario "$($p.fullName): quyết định mức $grade"; return }
+    }
+}
+
+# Gọi trước khi làm bước $step của hồ sơ; phần lớn tình huống dùng diện cơ sở (đủ các bước trong hệ thống)
 function Invoke-Scenarios($manager, $p, [string]$step) {
-    if ($p.workflowProfileCode -ne 'co-so' -or (Test-KeyAccount $p.username)) { return }
+    if (Test-KeyAccount $p.username) { return }
+    if ($p.workflowProfileCode -eq 'cap-tren') {
+        if ($step -eq 'B1_APPROVE') { Invoke-ExternalTaskUpdate $p }
+        if ($step -eq 'B2_SELF_SCORE') { Invoke-ExternalTaskChange $p }
+        return
+    }
+    if ($p.workflowProfileCode -ne 'co-so') { return }
     if ($OpinionAt.ContainsKey($step)) { Invoke-Opinion $p $step }
     if ($ReturnAt.Contains($step)) { Invoke-Return $manager $p $step }
     if ($step -eq 'B2_SELF_SCORE') {
         Invoke-Revoke $manager $p
         Invoke-TaskChange $manager $p
+        Invoke-UrgentTask $manager $p
+        Select-Excellent $p
     }
+    if ($step -eq 'B3B_APPRAISAL') {
+        $p = Get-Participant $manager ([string]$p.recordId)
+        if ($p.currentStep -ne $step) { return }
+        Invoke-AppraisalScenario $manager $p 'xuat-sac'
+        Invoke-Crosscheck $p
+        Invoke-AppraisalScenario $manager $p 'chenh-lech'
+        $p = Get-Participant $manager ([string]$p.recordId)
+        if ($p.currentStep -eq $step) { Invoke-AppraisalScenario $manager $p 'khong-che' }
+    }
+    if ($step -eq 'B4_DECISION') { Select-LowGrade $p }
+}
+
+# Sau công bố: kế hoạch 30-60-90 ngày (Mẫu 17) cho hồ sơ mức thấp: lập, duyệt, cá nhân xác nhận, ghi kết quả mốc 30 ngày
+function Invoke-ImprovementPlans($manager) {
+    $ids = @($script:DecisionGrade.Keys)
+    foreach ($u in $MucQuyetDinh.Keys) {
+        $p = Get-Participants $manager $script:Period.id | Where-Object { $_.username -eq $u } | Select-Object -First 1
+        if ($p) { $ids += [string]$p.recordId }
+    }
+    foreach ($id in ($ids | Select-Object -Unique)) {
+        $key = "ke-hoach:$id"
+        if (Test-Done $key) { continue }
+        $p = Get-Participant $manager $id
+        if (-not $p -or $p.status -ne 'Published') { continue }
+        $preparer = $null; $info = $null
+        foreach ($user in (Get-AccountOrder)) {
+            if ($user -eq $p.username) { continue }
+            $r = Invoke-Api (Get-Session $user) 'GET' "/api/evaluations/records/$id/improvement-plan"
+            if ($r.Ok -and -not $r.Data.required) { $info = $r.Data; break }
+            if ($r.Ok -and $r.Data.canManage) { $preparer = $user; $info = $r.Data; break }
+        }
+        if ($info -and -not $info.required) { Set-Done $key; continue }
+        if (-not $preparer) { Fail "Lập kế hoạch Mẫu 17 của $($p.fullName) không thành công: không tài khoản nào có quyền lập." }
+        $session = Get-Session $preparer
+        $plan = $info.plan
+        if (-not $plan) {
+            $record = Get-Record $session $id
+            $supporter = @(Get-People | Where-Object { $_.departmentName -eq $record.departmentName -and $_.username -ne $p.username }) + @(Get-People | Where-Object { $_.username -eq $preparer }) |
+                Select-Object -First 1
+            $stages = @(foreach ($code in 'M30', 'M60', 'M90') {
+                    [ordered]@{ code = $code; limitation = 'Tiến độ hoàn thành sản phẩm trọng tâm chậm so với kế hoạch'
+                        target = "Hoàn thành dứt điểm các việc còn chậm trong giai đoạn $($code.Substring(1)) ngày"
+                        measures = 'Lập kế hoạch tuần, báo cáo tiến độ với lãnh đạo đơn vị'; coordination = 'Lãnh đạo đơn vị, Phòng Tổ chức cán bộ - Lao động' } })
+            $plan = Invoke-ApiOk $session 'POST' "/api/evaluations/records/$id/improvement-plan" ([ordered]@{
+                supporterName = $supporter.fullName; supporterTitle = Get-Title $supporter; startDate = $TodayIso; milestones = $stages
+            }) "Lập kế hoạch Mẫu 17 của $($p.fullName) ($preparer)"
+        }
+        if ($plan.status -eq 'Draft') {
+            $approver = $null
+            foreach ($user in (Get-AccountOrder)) {
+                if ($user -eq $preparer -or $user -eq $p.username) { continue }
+                $r = Invoke-Api (Get-Session $user) 'GET' "/api/evaluations/records/$id/improvement-plan"
+                if (-not $r.Ok -or -not $r.Data.canApprove) { continue }
+                $plan = Invoke-ApiOk (Get-Session $user) 'POST' "/api/improvement-plans/$($plan.id)/approve" @{ version = $r.Data.plan.version } "Duyệt kế hoạch Mẫu 17 ($user)"
+                $approver = $user; break
+            }
+            if (-not $approver) { Fail "Duyệt kế hoạch Mẫu 17 của $($p.fullName) không thành công: không tài khoản nào khác người lập duyệt được." }
+        }
+        if ($plan.status -eq 'Approved') {
+            $owner = Get-Session $p.username
+            $r = Invoke-Api $owner 'GET' "/api/evaluations/records/$id/improvement-plan"
+            if ($r.Ok -and $r.Data.canAcknowledge) {
+                $plan = Invoke-ApiOk $owner 'POST' "/api/improvement-plans/$($plan.id)/acknowledge" ([ordered]@{ version = $r.Data.plan.version; comment = 'Thống nhất thực hiện kế hoạch' }) "Xác nhận kế hoạch Mẫu 17 ($($p.username))"
+            }
+        }
+        $m30 = @($plan.milestones | Where-Object { $_.code -eq 'M30' })[0]
+        if (-not $m30.result) {
+            $plan = Invoke-ApiOk $session 'POST' "/api/improvement-plans/$($plan.id)/milestone-result" ([ordered]@{
+                version = $plan.version; milestone = 'M30'; result = 'Achieved'; note = 'Đã hoàn thành các việc chậm tiến độ' }) "Ghi kết quả mốc 30 ngày ($preparer)"
+        }
+        Write-Scenario "$($p.fullName): kế hoạch Mẫu 17 lập ($preparer), duyệt, xác nhận, ghi kết quả mốc 30 ngày"
+        Set-Done $key
+    }
+}
+
+# Sau công bố: chủ hồ sơ gửi kiến nghị, người có quyền nhận xem xét rồi trả lời (không chấp nhận, không mở lại hồ sơ)
+function Invoke-AppealScenario($manager) {
+    $key = 'kien-nghi'
+    if (Test-Done $key) { return }
+    $p = $null
+    if ($script:State.ContainsKey($key)) { $p = Get-Participant $manager $script:State[$key] }
+    else {
+        foreach ($c in @(Get-Participants $manager $script:Period.id | Where-Object {
+                    $_.workflowProfileCode -eq 'co-so' -and $_.status -eq 'Published' -and $GiuLai -notcontains $_.username -and -not (Test-KeyAccount $_.username) })) {
+            if (Select-ForScenario $key $c) { $p = $c; break }
+        }
+    }
+    if (-not $p) { return }
+    $id = [string]$p.recordId
+    $owner = Get-Session $p.username
+    $info = Invoke-ApiOk $owner 'GET' "/api/evaluations/records/$id/appeals" $null "Đọc kiến nghị của $($p.fullName)"
+    $appeal = @($info.appeals)[0]
+    if (-not $appeal) {
+        if (-not $info.canSubmit) { Write-Host "   [Tình huống] $($p.fullName): không gửi được kiến nghị ($($info.submitBlockedReason))." -ForegroundColor DarkYellow; Set-Done $key; return }
+        $step = @($info.stepOptions)[0].step
+        $appeal = Invoke-ApiOk $owner 'POST' "/api/evaluations/records/$id/appeals" ([ordered]@{
+            content = 'Đề nghị xem xét lại điểm sản phẩm trọng tâm: đã có biên bản nghiệm thu đúng hạn kèm theo.'; concernedSteps = @($step) }) "Gửi kiến nghị của $($p.fullName)"
+    }
+    foreach ($user in (Get-AccountOrder)) {
+        if ($user -eq $p.username) { continue }
+        $s = Get-Session $user
+        $r = Invoke-Api $s 'GET' "/api/evaluations/records/$id/appeals"
+        if (-not $r.Ok) { continue }
+        $a = @($r.Data.appeals | Where-Object { $_.id -eq $appeal.id })[0]
+        if (-not $a -or -not $a.canResolve) { continue }
+        if ($a.status -eq 'Submitted') {
+            $a = Invoke-ApiOk $s 'POST' "/api/appeals/$($a.id)/start-review" @{ version = $a.version } "Nhận xem xét kiến nghị ($user)"
+        }
+        Invoke-ApiOk $s 'POST' "/api/appeals/$($a.id)/resolve" ([ordered]@{
+            version = $a.version; accepted = $false; response = 'Đã đối chiếu biên bản nghiệm thu; điểm thẩm định đã tính sản phẩm này, giữ nguyên kết quả.' }) "Trả lời kiến nghị ($user)" | Out-Null
+        Write-Scenario "$($p.fullName): $($ScenarioName[$key]) ($user trả lời)"
+        Set-Done $key
+        return
+    }
+    Fail "Trả lời kiến nghị của $($p.fullName) không thành công: không tài khoản nào có quyền xử lý."
+}
+
+# Đơn vị chính quyền ứng với tổ chức Đảng: tên đơn vị nằm trong tên tổ chức, không có thì đơn vị của đa số cán bộ thuộc tổ chức
+function Get-CellDepartment($cell, $depts, $participants) {
+    if (-not $cell.parentId) { return @($depts | Where-Object { -not $_.parentId })[0] }
+    $byName = @($depts | Where-Object { $_.parentId -and $cell.name.Contains($_.name) } | Sort-Object { $_.name.Length } -Descending)
+    if ($byName.Count) { return $byName[0] }
+    $top = @($participants | Where-Object { $_.partyCellId -eq $cell.id -and $_.departmentId } | Group-Object departmentId | Sort-Object Count -Descending)
+    if ($top.Count) { return @($depts | Where-Object { $_.id -eq $top[0].Name })[0] }
+    return $null
+}
+
+# Hồ sơ tập thể Mẫu 06, 07, 08 của Đảng bộ Công ty, một Đảng bộ bộ phận và một chi bộ
+function Invoke-CollectiveScenario($manager) {
+    if (Test-Done 'tap-the') { return }
+    $period = $script:Period
+    $cells = @(Invoke-ApiOk $manager 'GET' '/api/organizations/branches' $null 'Lấy danh sách tổ chức Đảng')
+    $depts = @(Invoke-ApiOk $manager 'GET' '/api/organizations/departments' $null 'Lấy danh sách đơn vị')
+    $participants = @(Get-Participants $manager $period.id)
+    $root = @($cells | Where-Object { -not $_.parentId })[0]
+    $branch = @($cells | Where-Object { $_.parentId -and $_.childCount -gt 0 })[0]
+    $leaf = @($cells | Where-Object { $_.parentId -eq $root.id -and -not $_.childCount } |
+            Where-Object { $c = $_; @($participants | Where-Object { $_.partyCellId -eq $c.id }).Count -gt 0 })[0]
+    $catalog = Invoke-ApiOk $manager 'GET' "/api/evaluations/collective-forms/catalog?periodId=$($period.id)" $null 'Lấy danh mục biểu mẫu tập thể'
+    $scores = [ordered]@{}; $general = 0.0; $task = 0.0
+    foreach ($g in @($catalog.collectiveGroups)) {
+        foreach ($i in @($g.items)) { $scores[$i.code] = [double]$i.maxScore; if ($g.kind -eq 'Task') { $task += $i.maxScore } else { $general += $i.maxScore } }
+    }
+    if ($scores.Count -eq 0) { $general = [Math]::Round($catalog.generalMaxScore * 0.9, 1); $task = [Math]::Round($catalog.taskMaxScore * 0.9, 1) }
+    $writers = @(@(Select-Usable @('anh.ntl', 'hien.nm', 'huong.nt')) + (Get-AccountOrder) | Select-Object -Unique)
+    foreach ($cell in @($root, $branch, $leaf | Where-Object { $_ })) {
+        $dept = Get-CellDepartment $cell $depts $participants
+        $unitName = if ($dept) { $dept.name } else { $cell.name }
+        $head = @(Get-People | Where-Object { $_.departmentName -eq $unitName -and $_.positionName -match '^(Giám đốc|Trưởng|Chủ tịch|Chánh)' }) + @(Get-People | Where-Object { $_.departmentName -eq $unitName }) |
+            Select-Object -First 1
+        foreach ($form in 'M06', 'M07', 'M08') {
+            $key = "tap-the:${form}:$($cell.id)"
+            if (Test-Done $key) { continue }
+            # Chỉ gắn tổ chức Đảng: quyền của Bí thư theo phạm vi tổ chức không bao trùm đơn vị chính quyền
+            $deptId = $null
+            $body = [ordered]@{
+                periodId = $period.id; form = $form; partyCellId = $cell.id; departmentId = $deptId; headId = $head.memberId
+                subjectName = $(switch ($form) { 'M06' { "Tập thể lãnh đạo $unitName" } 'M07' { $cell.name } default { $unitName } })
+                strengths = 'Lãnh đạo hoàn thành các chỉ tiêu sản xuất, kinh doanh của quý; giữ vững an toàn hoạt động bay.'
+                limitations = 'Một số nhiệm vụ còn chậm tiến độ; công tác phối hợp giữa các bộ phận có lúc chưa chặt chẽ.'
+                causes = 'Khối lượng công việc phát sinh lớn, nhân lực còn thiếu.'
+                previousRemediation = 'Đã khắc phục các hạn chế nêu ở kỳ trước về tiến độ báo cáo.'
+                explanation = 'Không có vấn đề được gợi ý kiểm điểm.'
+                responsibilities = 'Tập thể lãnh đạo chịu trách nhiệm chung; người đứng đầu chịu trách nhiệm chỉ đạo khắc phục.'
+                remediationPlan = 'Rà soát kế hoạch hằng tháng, tăng cường kiểm tra, đôn đốc tiến độ.'
+                generalCriteriaScore = $general; taskCriteriaScore = $task; selfProposedGrade = 'HoanThanhTot'
+                items = @(); sections = @{}
+            }
+            if ($scores.Count -and $form -ne 'M08') { $body['criteriaScores'] = $scores }
+            switch ($form) {
+                'M06' {
+                    $body.sections = [ordered]@{
+                        'H.NAME' = $head.fullName; 'H.TITLE' = (Get-Title $head); 'T.ASSIGNED' = '24'; 'T.ONTIME' = '22'; 'T.LATE' = '1'; 'T.OBJECTIVE' = '1'
+                        'S.SAFETY' = 'Bảo đảm an toàn tuyệt đối hoạt động bay, không để xảy ra sự cố do chủ quan; an ninh hàng không được giữ vững.'
+                        'S.PARTY' = 'Tổ chức sinh hoạt đúng quy định, nội bộ đoàn kết, không có đảng viên vi phạm kỷ luật.'
+                    }
+                }
+                'M07' {
+                    $body.sections = [ordered]@{}
+                    foreach ($s in @($catalog.form07Strengths)) { $body.sections[$s.code] = "Thực hiện tốt nội dung $($s.code) trong quý; chấp hành nghiêm quy chế làm việc." }
+                }
+                'M08' {
+                    $body.items = @(foreach ($c in @($catalog.form08Categories)) {
+                            [ordered]@{ itemOrder = [int]$c.code; category = $c.code; taskName = "Nhiệm vụ trọng tâm nhóm $($c.code) của quý"
+                                planOrDirection = 'Theo kế hoạch công tác quý được giao'; result = 'Hoàn thành đúng tiến độ, đạt yêu cầu'
+                                limitations = 'Không có tồn tại đáng kể'; notes = '' } })
+                }
+            }
+            $done = $false; $tried = @()
+            # Bí thư, lãnh đạo của tổ chức Đảng (quyền theo phạm vi tổ chức) thử trước
+            # Cấp ủy Đảng bộ thường sinh hoạt ở chi bộ con: xét cả người có chức danh Bí thư Đảng ủy/Đảng bộ ở chi bộ con
+            $subNames = @($cell.name) + @($cells | Where-Object { $_.parentId -eq $cell.id } | ForEach-Object { $_.name })
+            $own = @(Get-People | Where-Object {
+                    ($_.partyCellName -eq $cell.name -and $_.positionName -match 'Bí thư|Giám đốc|Trưởng') -or
+                    ($subNames -contains $_.partyCellName -and $_.positionName -match 'Bí thư Đảng ủy|Bí thư Đảng bộ')
+                } | ForEach-Object { $_.username })
+            foreach ($user in @(@(Select-Usable $own) + $writers | Select-Object -Unique)) {
+                $s = Get-Session $user
+                $list = Invoke-Api $s 'GET' "/api/evaluations/collective-records?periodId=$($period.id)"
+                if ($list.Ok -and @($list.Data | Where-Object { $_.form -eq $form -and $_.partyCellId -eq $cell.id -and $_.departmentId -eq $deptId }).Count) { $done = $true; break }
+                $r = Invoke-Api $s 'POST' '/api/evaluations/collective-records' $body
+                if ($r.Ok) { Write-Scenario "Hồ sơ tập thể $form của $($cell.name) ($user)"; $done = $true; break }
+                $tried += "$user=$($r.Status)"
+                if ($r.Status -ne 403) { Fail "Lập hồ sơ tập thể $form của $($cell.name) ($user) không thành công: HTTP $($r.Status) - $($r.Message)" }
+            }
+            if (-not $done) {
+                Write-Host "   [Tình huống] Lập hồ sơ tập thể $form của $($cell.name) không thành công: không tài khoản nào đăng nhập được có quyền với tổ chức này ($($tried -join ', '))." -ForegroundColor DarkYellow
+            }
+            Set-Done $key
+        }
+    }
+    Set-Done 'tap-the'
+}
+
+# Bản nháp Mẫu 16 của Đảng bộ Công ty và Đảng bộ bộ phận: ngày hội nghị, số văn bản, đề xuất
+function Invoke-Form16Drafts($manager) {
+    if (Test-Done 'mau-16') { return }
+    $cells = @(Invoke-ApiOk $manager 'GET' '/api/organizations/branches' $null 'Lấy danh sách tổ chức Đảng')
+    $targets = @(@{ Id = $null; Name = 'Đảng bộ Công ty'; No = '25-BC/ĐU' }) +
+        @($cells | Where-Object { $_.parentId -and $_.childCount -gt 0 } | Select-Object -First 1 | ForEach-Object { @{ Id = $_.id; Name = $_.name; No = '12-BC/ĐBBP' } })
+    foreach ($t in $targets) {
+        $query = "periodId=$($script:Period.id)" + $(if ($t.Id) { "&branchId=$($t.Id)" } else { '' })
+        $done = $false
+        foreach ($user in (Select-Usable @('long.nc', 'hung.dt', 'thao.nt', 'anh.ntl'))) {
+            $s = Get-Session $user
+            $r = Invoke-Api $s 'GET' "/api/reports/mau-16/draft?$query"
+            if ($r.Status -eq 403) { continue }
+            if (-not $r.Ok) { Fail "Đọc bản nháp Mẫu 16 của $($t.Name) không thành công: HTTP $($r.Status) - $($r.Message)" }
+            $content = [ordered]@{
+                documentNumber = $t.No; recipient = $null; workingRules = $null; meetingDate = $Today.ToString('d/M/yyyy'); organizer = $null; proposer = $null
+                proposal1 = 'Đề nghị công nhận kết quả đánh giá, xếp loại cán bộ thuộc thẩm quyền theo danh sách kèm theo.'
+                proposal2 = 'Đề nghị cấp trên xem xét, quyết định mức xếp loại đối với cán bộ thuộc diện cấp trên quản lý.'
+                proposal3 = 'Giao các chi bộ triển khai kế hoạch khắc phục đối với cán bộ xếp loại Hoàn thành nhiệm vụ trở xuống.'
+                signerName = $null
+            }
+            Invoke-ApiOk $s 'PUT' "/api/reports/mau-16/draft?$query" ([ordered]@{ version = $r.Data.version; content = $content }) "Lưu bản nháp Mẫu 16 của $($t.Name) ($user)" | Out-Null
+            Write-Scenario "Bản nháp Mẫu 16 của $($t.Name) ($user)"
+            $done = $true; break
+        }
+        if (-not $done) { Fail "Lưu bản nháp Mẫu 16 của $($t.Name) không thành công: không tài khoản nào có quyền xuất báo cáo." }
+    }
+    Set-Done 'mau-16'
 }
 
 function Invoke-NotRatedScenario($manager) {
@@ -904,6 +1553,11 @@ function Show-Scenarios($manager) {
         $p = $all | Where-Object { [string]$_.recordId -eq $script:State[$key] } | Select-Object -First 1
         Write-Host ("   {0,-62} {1}" -f $ScenarioName[$key], "$($p.fullName) ($($p.username))")
     }
+    $other = @()
+    if (Test-Done 'tap-the') { $other += 'hồ sơ tập thể Mẫu 06, 07, 08' }
+    if (Test-Done 'phieu-kiem-soat') { $other += 'phiếu kiểm soát Mẫu 19' }
+    if (Test-Done 'mau-16') { $other += 'bản nháp Mẫu 16' }
+    if ($other.Count) { Write-Host "   Đã lập: $($other -join ', ')" }
 }
 
 # ---------------------------------------------------------------- Làm sạch
@@ -995,8 +1649,14 @@ foreach ($step in $Steps) {
         Invoke-RecordStep $manager $p $step
     }
 }
-if ($TinhHuong -and $GiaiDoan -eq 'xong') { Invoke-ReopenScenario $manager }
-if ($TinhHuong) { Show-Scenarios $manager }
+if ($TinhHuong -and $GiaiDoan -eq 'xong') {
+    Invoke-ReopenScenario $manager
+    Invoke-AppealScenario $manager
+    Invoke-ImprovementPlans $manager
+}
+# Biên bản lập trước đây còn thiếu nội dung thì ghi bổ sung để bản in đủ
+Complete-Meetings $period
+if ($TinhHuong) { Invoke-CollectiveScenario $manager; Invoke-Form16Drafts $manager; Show-Scenarios $manager }
 
 if ($KyCoSan) {
     # Kỳ đông người: chỉ tóm tắt theo trạng thái, người làm tiếp xem ở Việc cần xử lý
