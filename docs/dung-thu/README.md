@@ -1,6 +1,6 @@
 # Hướng dẫn dùng thử theo vai trò
 
-Tìm tên mình ở bảng dưới, đọc các tệp ở cột "Đọc". Người giữ nhiều việc đọc đủ các tệp ghi trên dòng của mình. Lịch, cách đăng nhập và cách góp ý: [Kế hoạch dùng thử](ke-hoach-dung-thu.md).
+Mọi người đọc [Hướng dẫn chung](huong-dan-chung.md) trước. Tìm tên mình ở bảng dưới, đọc các tệp ở cột "Đọc". Người giữ nhiều việc đọc đủ các tệp ghi trên dòng của mình. Lịch, cách đăng nhập và cách góp ý: [Kế hoạch dùng thử](ke-hoach-dung-thu.md).
 
 | Người | Tài khoản | Đọc |
 |---|---|---|
@@ -24,7 +24,8 @@ Tìm tên mình ở bảng dưới, đọc các tệp ở cột "Đọc". Ngư�
 
 | Tệp | Cho ai | Việc chính |
 |---|---|---|
-| [can-bo.md](can-bo.md) | Người được đánh giá | Đăng nhập, đổi mật khẩu, đăng ký sản phẩm, điều chỉnh việc, tự chấm, minh chứng, giải trình sau thẩm định, kết quả, kiến nghị, kế hoạch khắc phục |
+| [huong-dan-chung.md](huong-dan-chung.md) | Mọi người (đọc trước) | Luồng đánh giá theo diện quyết định; đăng nhập, đổi mật khẩu, đăng xuất; Tổng quan, Việc cần xử lý, chọn kỳ, chuông nhắc việc; trang hồ sơ (thanh tiến trình, dải thông báo, các khối, lịch sử, biểu mẫu); nơi tải từng biểu mẫu; thuật ngữ; câu hỏi chung |
+| [can-bo.md](can-bo.md) | Người được đánh giá | Đăng ký sản phẩm, điều chỉnh việc, tự chấm, minh chứng, giải trình sau thẩm định, kết quả, kiến nghị, kế hoạch khắc phục |
 | [lanh-dao-don-vi.md](lanh-dao-don-vi.md) | Trưởng phòng, Trưởng trung tâm; phòng, đơn vị chuyên môn (Cơ quan chuyên môn) | Gửi danh mục, đề xuất mức cho Bí thư chi bộ là nhân viên (sau họp, kiểm phiếu), lập kế hoạch khắc phục, lập và xác nhận phiếu xác nhận số liệu (Mẫu 03) |
 | [chi-bo.md](chi-bo.md) | Bí thư, Phó Bí thư chi bộ | Xác nhận hoặc trả lại phiếu tự chấm, hồ sơ tập thể Mẫu 06, 07, 08, phiếu kín trắng Mẫu 11 |
 | [thu-ky.md](thu-ky.md) | Thư ký hội nghị (cấp Công ty: Cán bộ giúp việc đánh giá, Cán bộ giúp việc Đảng ủy) | Phiếu kín trắng Mẫu 11, biên bản hội nghị Mẫu 12, 13 (cả hội nghị Đảng ủy), kiểm phiếu, ghi đề xuất tập thể |

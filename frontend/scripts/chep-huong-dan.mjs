@@ -11,7 +11,7 @@ const kichThuocDich = join(goc, "content", "kich-thuoc-anh.json");
 
 // Thứ tự chương trên trang /help.
 const TEP = [
-  "luong-danh-gia",
+  "huong-dan-chung",
   "can-bo",
   "lanh-dao-don-vi",
   "chi-bo",
