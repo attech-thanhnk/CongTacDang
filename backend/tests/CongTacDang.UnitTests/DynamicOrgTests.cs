@@ -40,6 +40,22 @@ public class DynamicOrgTests
     }
 
     [Fact]
+    public void CommonAncestor_ReturnsNearestSharedNode()
+    {
+        var paths = OrgTree.BuildPaths(new[]
+        {
+            new OrgNodeLink(Root, null), new OrgNodeLink(Mid, Root), new OrgNodeLink(Leaf, Mid), new OrgNodeLink(Sibling, Root)
+        }).Paths;
+
+        Assert.Equal(Root, OrgTree.CommonAncestor(new[] { paths[Leaf], paths[Sibling] }));
+        Assert.Equal(Mid, OrgTree.CommonAncestor(new[] { paths[Leaf], paths[Mid] }));
+        Assert.Equal(Leaf, OrgTree.CommonAncestor(new[] { paths[Leaf] }));
+        Assert.Null(OrgTree.CommonAncestor(new[] { paths[Leaf], OrgTree.BuildPath(null, Guid.NewGuid()) }));
+        Assert.Null(OrgTree.CommonAncestor(new[] { paths[Leaf], "" }));
+        Assert.Null(OrgTree.CommonAncestor(Array.Empty<string?>()));
+    }
+
+    [Fact]
     public void BuildPaths_DetectsCycle_AndMissingParent()
     {
         var a = Guid.NewGuid();

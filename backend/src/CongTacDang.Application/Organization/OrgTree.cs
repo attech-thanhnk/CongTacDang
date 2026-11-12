@@ -119,6 +119,34 @@ public static class OrgTree
         return new OrgTreeBuildResult(paths, cycle, missing);
     }
 
+    /// <summary>
+    /// Nút sâu nhất là chính hoặc tổ tiên của mọi đường dẫn đã cho; null khi tập rỗng, có đường dẫn rỗng
+    /// hoặc các nút không chung gốc.
+    /// </summary>
+    public static Guid? CommonAncestor(IEnumerable<string?> paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        List<string>? common = null;
+        foreach (var path in paths)
+        {
+            if (string.IsNullOrEmpty(path))
+                return null;
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (common == null)
+            {
+                common = segments.ToList();
+                continue;
+            }
+            var n = 0;
+            while (n < common.Count && n < segments.Length && string.Equals(common[n], segments[n], StringComparison.OrdinalIgnoreCase))
+                n++;
+            common.RemoveRange(n, common.Count - n);
+            if (common.Count == 0)
+                return null;
+        }
+        return common is { Count: > 0 } && Guid.TryParse(common[^1], out var id) ? id : null;
+    }
+
     /// <summary>Id các nút là <paramref name="rootId"/> hoặc con cháu của nó (theo đường dẫn).</summary>
     public static IReadOnlyList<Guid> SelfAndDescendants(IEnumerable<(Guid Id, string Path)> nodes, Guid rootId)
         => nodes.Where(n => n.Id == rootId || IsSelfOrDescendant(n.Path, rootId)).Select(n => n.Id).Distinct().ToList();

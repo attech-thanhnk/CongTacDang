@@ -298,6 +298,11 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         EnsureAll(PermissionCodes.EvaluationControlPerform, records);
         EnsureAwaitingDecision(records);
 
+        var (departmentId, partyCellId) = request.DepartmentId is null && request.PartyCellId is null
+            ? RecordGroupUnits.Resolve(_guard, PermissionCodes.EvaluationControlPerform, records, "Lập phiếu kiểm tra")
+            : (request.DepartmentId, request.PartyCellId);
+        _guard.Ensure(PermissionCodes.EvaluationControlPerform, AccessTarget.ForUnitsWrite(departmentId, partyCellId));
+
         await ReleaseOrRejectAsync(records, null, ct);
 
         var now = DateTime.UtcNow;
@@ -306,8 +311,8 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
         {
             PeriodId = request.PeriodId,
             GroupName = groupName,
-            DepartmentId = request.DepartmentId ?? Common(records.Select(r => r.DepartmentId)),
-            PartyCellId = request.PartyCellId ?? Common(records.Select(r => r.PartyCellId)),
+            DepartmentId = departmentId,
+            PartyCellId = partyCellId,
             Status = ControlCheckStatus.Draft,
             ItemsVersion = ControlCheckRules.ItemsVersion,
             Revision = 1,
@@ -673,12 +678,6 @@ public sealed class ControlCheckService : IControlCheckService, IControlCheckGat
 
     private bool CanAll(string permission, IEnumerable<EvaluationRecord> records) =>
         records.All(r => _guard.Can(permission, AccessTarget.ForRecord(r).ForWrite()));
-
-    private static Guid? Common(IEnumerable<Guid?> values)
-    {
-        var distinct = values.Distinct().ToList();
-        return distinct.Count == 1 ? distinct[0] : null;
-    }
 
     private static ControlCheckRecord NewRow(ControlCheck check, EvaluationRecord record)
     {

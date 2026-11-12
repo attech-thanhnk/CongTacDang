@@ -111,12 +111,13 @@ public sealed class QualityUiContractIntegrationTests
     }
 
     [SkippableFact]
-    public async Task Calibration_Create_RecordsOfDifferentUnits_AreRefusedWithGuidance_AndPickerHasUnitInfo()
+    public async Task Calibration_Create_RecordsWithoutCommonUnit_AreRefusedWithGuidance_AndPickerHasUnitInfo()
     {
         Skip.If(_factory.SkipReason != null, _factory.SkipReason);
         var w = await SetupAsync(CalibrationGate.On);
         await _factory.WithDbAsync(async db =>
         {
+            // Hai đơn vị gốc riêng, không có đơn vị chung để gắn biên bản.
             var d = new AdministrativeDepartment { Code = $"UI-P2-{Guid.NewGuid():N}"[..14], Name = "Phòng khác giao diện" };
             db.Add(d);
             await db.SaveChangesAsync();
@@ -132,7 +133,7 @@ public sealed class QualityUiContractIntegrationTests
             $$"""{"periodId":"{{w.PeriodId}}","groupName":"Hai đơn vị","recordIds":["{{w.RecordA}}","{{w.RecordC}}"]}""");
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Contains("cùng một đơn vị", body.RootElement.GetProperty("message").GetString());
+        Assert.Contains("không xác định được đơn vị chung", body.RootElement.GetProperty("message").GetString());
     }
 
     [SkippableFact]

@@ -204,6 +204,48 @@ public sealed class ControlCheckIntegrationTests
     }
 
     [SkippableFact]
+    public async Task Create_ForRecordsOfSeveralUnits_TakesNearestCommonUnit_AndRequiresScopeOnIt()
+    {
+        var w = await WorldAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        Guid root = Guid.Empty, deptA = Guid.Empty, deptB = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var r = new AdministrativeDepartment { Code = $"KS-G-{suffix}", Name = $"Khối KS {suffix}" };
+            r.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(null, r.Id);
+            var a = new AdministrativeDepartment { Code = $"KS-A-{suffix}", Name = $"Phòng KS A {suffix}", ParentId = r.Id };
+            a.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(r.Path, a.Id);
+            var b = new AdministrativeDepartment { Code = $"KS-B-{suffix}", Name = $"Phòng KS B {suffix}", ParentId = r.Id };
+            b.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(r.Path, b.Id);
+            db.AddRange(r, a, b);
+            await db.SaveChangesAsync();
+            (root, deptA, deptB) = (r.Id, a.Id, b.Id);
+        });
+        var headA = await _factory.CreateUserAsync(deptA, null, ApprovalAuthority.CoSo, $"KS Trưởng phòng A {suffix}");
+        var headB = await _factory.CreateUserAsync(deptB, null, ApprovalAuthority.CoSo, $"KS Trưởng phòng B {suffix}");
+        var periodId = await OpenPeriodAsync(w, headA.Id, headB.Id);
+        var records = new[] { await RecordAwaitingDecisionAsync(w, periodId, headA.Id), await RecordAwaitingDecisionAsync(w, periodId, headB.Id) };
+        var body = new { periodId, groupName = "Trưởng phòng và tương đương", recordIds = records };
+
+        // Có quyền riêng trên từng phòng nhưng không trên đơn vị chung → 403.
+        var role = (await _factory.CreateRoleAsync(PermissionCodes.EvaluationControlPerform, PermissionCodes.EvaluationRead)).Id;
+        var split = await _factory.CreateUserAsync(null, null);
+        await _factory.AssignAsync(split.Id, role, RoleScopeType.Department, deptA);
+        await _factory.AssignAsync(split.Id, role, RoleScopeType.Department, deptB);
+        var splitC = await _factory.LoginAsAsync(split.Username, split.Password, distinctClientIp: true);
+        Assert.Equal(HttpStatusCode.Forbidden, (await splitC.PostAsJsonAsync("/api/control-checks", body)).StatusCode);
+
+        // Quyền trên đơn vị chung: phiếu gắn với đơn vị chung gần nhất, người lập xem lại được.
+        var scoped = await _factory.CreateUserAsync(null, null);
+        await _factory.AssignAsync(scoped.Id, role, RoleScopeType.Department, root);
+        var scopedC = await _factory.LoginAsAsync(scoped.Username, scoped.Password, distinctClientIp: true);
+        var created = await Data(await scopedC.PostAsJsonAsync("/api/control-checks", body));
+        Assert.Equal(root, created.GetProperty("departmentId").GetGuid());
+        Assert.Equal(2, created.GetProperty("records").GetArrayLength());
+        await Data(scopedC, $"/api/control-checks/{created.GetProperty("id").GetGuid()}");
+    }
+
+    [SkippableFact]
     public async Task RecordOwner_IsRefusedOnEveryWrite_EvenWithControlPermissions()
     {
         var w = await WorldAsync();

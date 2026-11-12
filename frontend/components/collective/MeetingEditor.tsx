@@ -7,6 +7,7 @@ import { MeetingAttendee, MeetingRecord, SaveMeetingRecord, collectiveService } 
 import { usePermissionScope, withinScope } from "@/services/authService";
 import { errorMessage } from "@/components/admin/adminUtils";
 import { Button } from "@/components/common/Button";
+import { DateTimeField } from "@/components/evaluations/DateTimeField";
 import { useToast } from "@/contexts/ToastContext";
 import styles from "./Collective.module.css";
 
@@ -44,7 +45,7 @@ const VOTE_FIELDS: [keyof Vote, string][] = [
 /** Giờ họp nhập và hiển thị theo giờ Việt Nam (như giờ in trên biên bản), không phụ thuộc múi giờ của máy. */
 const VN_OFFSET = "+07:00";
 
-/** ISO (UTC) → giá trị ô datetime-local theo giờ Việt Nam. */
+/** ISO (UTC) → giá trị yyyy-MM-ddTHH:mm theo giờ Việt Nam. */
 const toLocalInput = (iso?: string | null) => {
   if (!iso) return "";
   const date = new Date(new Date(iso).getTime() + 7 * 60 * 60 * 1000);
@@ -320,11 +321,11 @@ export function MeetingEditor({ periodId, branches, departments, editing, onSave
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-start">Bắt đầu</label>
-            <input id="mt-start" type="datetime-local" className="form-control form-control-sm" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
+            <DateTimeField id="mt-start" value={startedAt} onChange={setStartedAt} />
           </div>
           <div className="col-md-6">
             <label className="form-label" htmlFor="mt-end">Kết thúc</label>
-            <input id="mt-end" type="datetime-local" className="form-control form-control-sm" value={endedAt} onChange={(e) => setEndedAt(e.target.value)} />
+            <DateTimeField id="mt-end" value={endedAt} onChange={setEndedAt} />
           </div>
           <div className="col-12">
             <label className="form-label" htmlFor="mt-location">Địa điểm</label>

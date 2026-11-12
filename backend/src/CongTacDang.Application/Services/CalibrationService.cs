@@ -208,10 +208,7 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             var chosen = (await _repo.GetRecordsAsync(picked, ct)).Where(r => !IsOwn(r)).ToList();
             if (chosen.Count == 0)
                 throw new ValidationException("Hãy chọn ít nhất một hồ sơ cho biên bản.");
-            departmentId = Common(chosen.Select(r => r.DepartmentId));
-            partyCellId = Common(chosen.Select(r => r.PartyCellId));
-            if (departmentId is null && partyCellId is null)
-                throw new ValidationException("Lập biên bản không thành công: các hồ sơ đã chọn không cùng một đơn vị hay tổ chức Đảng. Hãy chọn hồ sơ của cùng một đơn vị.");
+            (departmentId, partyCellId) = RecordGroupUnits.Resolve(_guard, PermissionCodes.EvaluationCalibrationManage, chosen, "Lập biên bản");
         }
         if (departmentId is { } d && !await _records.DepartmentExistsAsync(d, ct))
             throw new ValidationException("Đơn vị lập biên bản không tồn tại.");
@@ -491,12 +488,6 @@ public sealed class CalibrationService : ICalibrationService, ICalibrationGate, 
             throw new ConflictException($"Đưa hồ sơ vào biên bản không thành công: hồ sơ của {names} đã thuộc một biên bản họp thống nhất khác.");
         }
         return records.OrderBy(NameOf, StringComparer.CurrentCulture).ToList();
-    }
-
-    private static Guid? Common(IEnumerable<Guid?> values)
-    {
-        var distinct = values.Distinct().ToList();
-        return distinct.Count == 1 ? distinct[0] : null;
     }
 
     private static CalibrationRecord NewCalibrationRecord(Guid sessionId, EvaluationRecord record)

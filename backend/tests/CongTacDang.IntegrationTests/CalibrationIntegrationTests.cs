@@ -352,6 +352,56 @@ public sealed class CalibrationIntegrationTests
         Assert.Equal(HttpStatusCode.BadRequest, noName.StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Create_WithoutUnit_ForRecordsOfSeveralUnits_TakesNearestCommonUnit_AndRequiresScopeOnIt()
+    {
+        Skip.If(_factory.SkipReason != null, _factory.SkipReason);
+        var w = await SetupAsync();
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var ownerA = await _factory.CreateUserAsync(fullName: $"HC Trưởng phòng A {suffix}");
+        var ownerB = await _factory.CreateUserAsync(fullName: $"HC Trưởng phòng B {suffix}");
+        Guid root = Guid.Empty, deptA = Guid.Empty, deptB = Guid.Empty, recordA = Guid.Empty, recordB = Guid.Empty;
+        await _factory.WithDbAsync(async db =>
+        {
+            var r = new AdministrativeDepartment { Code = $"HC-G-{suffix}", Name = $"Khối HC {suffix}" };
+            r.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(null, r.Id);
+            var a = new AdministrativeDepartment { Code = $"HC-A-{suffix}", Name = $"Phòng A {suffix}", ParentId = r.Id };
+            a.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(r.Path, a.Id);
+            var b = new AdministrativeDepartment { Code = $"HC-B-{suffix}", Name = $"Phòng B {suffix}", ParentId = r.Id };
+            b.Path = CongTacDang.Application.Organization.OrgTree.BuildPath(r.Path, b.Id);
+            db.AddRange(r, a, b);
+            await db.SaveChangesAsync();
+            (root, deptA, deptB) = (r.Id, a.Id, b.Id);
+            var records = new[] { (ownerA, a.Id), (ownerB, b.Id) }.Select(x => new EvaluationRecord
+            {
+                PeriodId = w.PeriodId, MemberId = x.Item1.Id, DepartmentId = x.Item2, ApprovalAuthority = ApprovalAuthority.CoSo, WeightFrameCode = "K2",
+                Status = RecordStatus.AwaitingDecision, AppraisalProposedGrade = EvaluationGrade.HoanThanhTot, AppraisalScore = 85,
+                AppraisedAt = DateTime.UtcNow.AddHours(-1), SelfScoredAt = DateTime.UtcNow.AddDays(-1), TotalSelfScore = 85
+            }).ToList();
+            db.AddRange(records);
+            await db.SaveChangesAsync();
+            (recordA, recordB) = (records[0].Id, records[1].Id);
+        });
+        var body = new { periodId = w.PeriodId, groupName = "Trưởng phòng và tương đương", recordIds = new[] { recordA, recordB } };
+
+        // Có quyền riêng trên từng phòng nhưng không trên đơn vị chung → 403.
+        var role = await _factory.CreateRoleAsync(PermissionCodes.EvaluationCalibrationManage, PermissionCodes.EvaluationRead);
+        var split = await _factory.CreateUserAsync(fullName: $"HC Người lập từng phòng {suffix}");
+        await _factory.AssignAsync(split.Id, role.Id, RoleScopeType.Department, deptA);
+        await _factory.AssignAsync(split.Id, role.Id, RoleScopeType.Department, deptB);
+        var splitC = await _factory.LoginAsAsync(split.Username, split.Password, distinctClientIp: true);
+        Assert.Equal(HttpStatusCode.Forbidden, (await splitC.PostAsJsonAsync("/api/calibrations", body)).StatusCode);
+
+        // Quyền trên đơn vị chung: biên bản gắn với đơn vị chung gần nhất của các hồ sơ.
+        var scoped = await _factory.CreateUserAsync(fullName: $"HC Người lập khối {suffix}");
+        await _factory.AssignAsync(scoped.Id, role.Id, RoleScopeType.Department, root);
+        var scopedC = await _factory.LoginAsAsync(scoped.Username, scoped.Password, distinctClientIp: true);
+        var created = await Data(await scopedC.PostAsJsonAsync("/api/calibrations", body));
+        Assert.Equal(root, created.GetProperty("departmentId").GetGuid());
+        Assert.Equal(2, created.GetProperty("records").GetArrayLength());
+        await Data(scopedC, $"/api/calibrations/{created.GetProperty("id").GetGuid()}");
+    }
+
     /// <summary>Tệp đính kèm biên bản hiệu chuẩn: người lập tải lên/thay/gỡ, người chỉ chốt chỉ xem, chủ hồ sơ bị chặn, chốt hoặc kỳ đóng thì khóa.</summary>
     [SkippableFact]
     public async Task Calibration_Attachments_ScopeOwnerAndLocking()

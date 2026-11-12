@@ -99,8 +99,8 @@ if ($KyCoSan -or $TaoKy) { $Evaluated = [ordered]@{}; $NotRated = @{} }
 # Chủ hồ sơ tự đăng ký, tự chấm nên phải có trong danh sách tài khoản (trừ người Chưa xếp loại)
 $Accounts = @(@($TaiKhoan) + @($Evaluated.Keys | Where-Object { -not $NotRated.ContainsKey($_) }) | Select-Object -Unique)
 # Không lập, không chốt biên bản có hồ sơ của chính mình
-$CalibrationPreparers = @('loan.ctp', 'loan.ttp')
-$CalibrationConcluders = @('long.nc', 'hung.dt', 'thao.nt')
+$CalibrationPreparers = @('hoai.ntt', 'huong.ptt', 'loan.ctp', 'loan.ttp')
+$CalibrationConcluders = @('anh.ntl', 'hien.nm', 'huong.nt', 'long.nc', 'hung.dt', 'thao.nt')
 # Lập biên bản họp tập thể bước 3a (vai trò Thư ký hội nghị phạm vi toàn Công ty)
 $MeetingSecretaries = @('hung.dt', 'long.nc', 'thao.nt', 'loan.ttp')
 $script:Meetings = @{}
@@ -193,7 +193,7 @@ function Invoke-Api($session, [string]$method, [string]$path, $body = $null, [st
     if ($parsed -and $parsed.errors) { $message = "$message " + (@($parsed.errors) -join ' ') }
     return @{
         Status = $status; Ok = ($status -ge 200 -and $status -lt 300); Data = $(if ($parsed) { $parsed.data } else { $null })
-        Message = $message; RetryAfter = $retryAfter
+        Message = $message; RetryAfter = $retryAfter; Timestamp = $(if ($parsed) { $parsed.timestamp } else { $null })
     }
 }
 
@@ -324,7 +324,7 @@ function New-TaskList($criteria, [string]$fullName) {
         $weight = if ($i -eq $Products.Count - 1) { $total - $used } else { [Math]::Round($total * $p.Share / $shares, 1) }
         $used += $weight
         [ordered]@{
-            taskName = $p.Name; targetOutput = "Hoàn thành đúng hạn, đạt yêu cầu ($fullName)"; weight = $weight; axisCode = $axis
+            taskName = $p.Name; targetOutput = 'Hoàn thành đúng hạn, đạt yêu cầu'; weight = $weight; axisCode = $axis
             kind = $p.Kind; role = $p.Role; exceedCriteria = 'Hoàn thành trước hạn, chất lượng vượt yêu cầu'
             evidenceSource = 'Báo cáo, văn bản đã ban hành'; confirmer = 'Lãnh đạo đơn vị'
         }
@@ -455,6 +455,16 @@ function Get-Title($person) {
     return ($person.positionName -split ',')[0].Trim()
 }
 
+# Nhóm chức danh để họp thống nhất, kiểm tra theo nhóm (mỗi cuộc xét cả nhóm)
+function Get-PositionGroup([string]$username) {
+    $person = Get-People | Where-Object { $_.username -eq $username } | Select-Object -First 1
+    $titles = @(if ($person -and $person.positionName) { $person.positionName -split ',s*' })
+    if (@($titles | Where-Object { $_ -match '^(Quyền )?(Trưởng phòng|Chánh Văn phòng|Kế toán trưởng|Giám đốc đơn vị|Trưởng trung tâm)' }).Count) { return 'Trưởng phòng và tương đương' }
+    if (@($titles | Where-Object { $_ -match '^Phó (Trưởng phòng|Chánh Văn phòng|Giám đốc đơn vị|Trưởng trung tâm)' }).Count) { return 'Phó Trưởng phòng và tương đương' }
+    if (@($titles | Where-Object { $_ -match '^(Đài trưởng|Trạm trưởng|Đội trưởng)' }).Count) { return 'Cán bộ quản lý Đài, Trạm, Đội' }
+    return 'Cán bộ quản lý khác'
+}
+
 # Giờ Việt Nam đổi sang UTC (API chỉ lưu được thời điểm UTC)
 function Get-VnTime([int]$hour, [int]$minute) { return $Today.Date.AddHours($hour - 7).AddMinutes($minute).ToString('yyyy-MM-ddTHH:mm:00Z') }
 
@@ -476,9 +486,13 @@ function New-MeetingBody($periodId, $departmentId, [string]$departmentName, $par
             Select-Object -First 1
         $unit = if ($departmentName) { $departmentName } else { $partyCellName }
     }
-    $others = @($members + $people | Where-Object { $_.username -ne $chair.username -and $_.username -ne $secretary.username } | Select-Object -First 3)
+    # Hội nghị đơn vị: tổ kiểm phiếu là người trong đơn vị, người được cử dự ghi chép là cán bộ Phòng Tổ chức cán bộ (không thuộc đơn vị)
+    $pool = if ($decision) { @($members + $people) } else { @($members) }
+    $others = @($pool | Where-Object { $_.username -ne $chair.username -and $_.username -ne $secretary.username } | Select-Object -First 3)
     $reporting = @($people | Where-Object { $_.departmentName -match 'Tổ chức cán bộ' } | Select-Object -First 1)
-    $present = 6
+    $staff = @($people | Where-Object { $_.departmentName -match 'Tổ chức cán bộ' -and $members.username -notcontains $_.username -and $_.username -ne $chair.username -and $_.username -ne $secretary.username } | Select-Object -First 1)
+    # Hội nghị Ban Chấp hành đông hơn hội nghị đơn vị
+    $present = if ($decision) { 13 } else { 6 }
     return [ordered]@{
         periodId = $periodId; departmentId = $departmentId; partyCellId = $partyCellId; stage = $stage; formCode = 'M12'
         meetingType = $(if ($decision) { 'Hội nghị Ban Chấp hành Đảng bộ' } else { 'Họp tập thể lãnh đạo đơn vị' })
@@ -492,9 +506,9 @@ function New-MeetingBody($periodId, $departmentId, [string]$departmentName, $par
         voteSummaries = @()
         details = [ordered]@{
             workingRules = $(if ($decision) { $null } else { "tập thể lãnh đạo $unit" })
-            reportingUnit = $(if ($reporting.Count) { $reporting[0].departmentName } else { $unit })
+            reportingUnit = $(if ($decision -and $reporting.Count) { $reporting[0].departmentName } else { $unit })
             chairTitle = Get-Title $chair; secretaryTitle = Get-Title $secretary
-            attendees = @($others | Select-Object -First 2 | ForEach-Object { [ordered]@{ name = $_.fullName; title = Get-Title $_ } })
+            attendees = @($(if ($decision) { $others | Select-Object -First 2 } else { $staff }) | Where-Object { $_ } | ForEach-Object { [ordered]@{ name = $_.fullName; title = Get-Title $_ } })
             countingCommittee = @(@($secretary) + @($others) | Select-Object -First 3 | ForEach-Object { [ordered]@{ name = $_.fullName; title = Get-Title $_ } })
             ballotsIssued = $present; ballotsCollected = $present; ballotsValid = $present; ballotsInvalid = 0
         }
@@ -610,25 +624,36 @@ function Invoke-RecordStep($manager, $participant, [string]$step, $extra = $null
 # Biên bản họp thống nhất (Mẫu 20) cho các hồ sơ có cổng Bắt buộc: một người lập, người khác chốt
 function Complete-Calibration($manager, $period, $records) {
     if ($records.Count -eq 0) { return }
-    # Đơn vị mà người lập hoặc mọi người chốt đều có hồ sơ: tách mỗi hồ sơ một biên bản
+    $preparers = @(Select-Usable $CalibrationPreparers)
+    # Nhóm chức danh gồm nhiều đơn vị: biên bản lập ở đơn vị gốc (Công ty), bao trùm mọi đơn vị con
+    $rootDept = @(Invoke-ApiOk $manager 'GET' '/api/organizations/departments' $null 'Lấy danh sách đơn vị' | Where-Object { -not $_.parentId })[0]
+    $concluders = @(Select-Usable $CalibrationConcluders)
+    # Mỗi nhóm chức danh một biên bản; nhóm mà người lập hoặc mọi người chốt đều có hồ sơ thì tách theo đơn vị, rồi theo hồ sơ
     $batches = @()
-    foreach ($group in ($records | Group-Object departmentId)) {
+    foreach ($group in ($records | Group-Object { Get-PositionGroup $_.username })) {
         $owners = @($group.Group | ForEach-Object { $_.username })
-        $canPrepare = @($CalibrationPreparers | Where-Object { $owners -notcontains $_ }).Count -gt 0
-        $canConclude = @($CalibrationConcluders | Where-Object { $owners -notcontains $_ }).Count -gt 0
-        if ($canPrepare -and $canConclude) { $batches += , @($group.Group) }
-        else { foreach ($one in $group.Group) { $batches += , @($one) } }
+        if (@($preparers | Where-Object { $owners -notcontains $_ }).Count -and @($concluders | Where-Object { $owners -notcontains $_ }).Count) {
+            $batches += , @($group.Group); continue
+        }
+    foreach ($sub in ($group.Group | Group-Object departmentId)) {
+        $owners = @($sub.Group | ForEach-Object { $_.username })
+        $canPrepare = @($preparers | Where-Object { $owners -notcontains $_ }).Count -gt 0
+        $canConclude = @($concluders | Where-Object { $owners -notcontains $_ }).Count -gt 0
+        if ($canPrepare -and $canConclude) { $batches += , @($sub.Group) }
+        else { foreach ($one in $sub.Group) { $batches += , @($one) } }
+    }
     }
     foreach ($batch in $batches) {
         $ids = @($batch | ForEach-Object { $_.recordId })
         $owners = @($batch | ForEach-Object { $_.username })
         $names = ($batch | ForEach-Object { $_.fullName }) -join ', '
-        $preparerUser = @($CalibrationPreparers | Where-Object { $owners -notcontains $_ }) | Select-Object -First 1
+        $label = Get-PositionGroup $batch[0].username
+        $preparerUser = @($preparers | Where-Object { $owners -notcontains $_ }) | Select-Object -First 1
         if (-not $preparerUser) { Fail "Lập biên bản họp thống nhất cho $names không thành công: người lập trong danh sách đều có hồ sơ trong biên bản." }
         $preparer = Get-Session $preparerUser
         Write-Step "Lập biên bản họp thống nhất (Mẫu 20) cho: $names"
         $created = Invoke-ApiOk $preparer 'POST' '/api/calibrations' ([ordered]@{
-            periodId = $period.id; departmentId = $batch[0].departmentId; groupName = "Cán bộ quản lý $($batch[0].departmentName)"; recordIds = $ids
+            periodId = $period.id; departmentId = $(if (@($batch | ForEach-Object { $_.departmentId } | Select-Object -Unique).Count -gt 1) { $rootDept.id } else { $null }); groupName = $label; recordIds = $ids
         }) "Lập biên bản họp thống nhất ($preparerUser)"
         # Người họp lấy từ danh sách cán bộ, không là chủ hồ sơ trong biên bản
         $people = @(Get-People | Where-Object { $owners -notcontains $_.username })
@@ -649,7 +674,7 @@ function Complete-Calibration($manager, $period, $records) {
         $save = [ordered]@{
             version = $created.version; groupName = $created.groupName; heldAt = (Get-VnTime 8 30); location = 'Phòng họp tầng 2, trụ sở đơn vị'
             chairName = $chair.fullName; chairMemberId = $chair.memberId; secretaryName = $secretary.fullName; secretaryMemberId = $secretary.memberId
-            scopeNote = "Hồ sơ cán bộ quản lý $($batch[0].departmentName) chờ quyết định trong kỳ"; recordIds = $ids
+            scopeNote = "Hồ sơ nhóm $label chờ quyết định trong kỳ"; recordIds = $ids
             attendees = $attendees; summary = $summary; cases = $cases
         }
         if ($ids.Count -eq 1) { $save['extraConclusion'] = 'Không có hồ sơ cùng nhóm chức danh để so sánh.' }
@@ -662,7 +687,7 @@ function Complete-Calibration($manager, $period, $records) {
         if (-not $r.Ok) { Fail "Lưu biên bản họp thống nhất ($preparerUser) không thành công: HTTP $($r.Status) - $($r.Message)" }
         $saved = $r.Data
         $done = $false
-        foreach ($user in $CalibrationConcluders) {
+        foreach ($user in $concluders) {
             if ($owners -contains $user) { continue }
             $r = Invoke-Api (Get-Session $user) 'POST' "/api/calibrations/$($created.id)/conclude" @{ version = $saved.version }
             if ($r.Ok) { Write-Host "   Đã chốt biên bản ($user)"; $done = $true; break }
@@ -675,13 +700,19 @@ function Complete-Calibration($manager, $period, $records) {
 # Phiếu kiểm tra (Mẫu 19) cho các hồ sơ có cổng Bắt buộc: lập, kết luận Đủ điều kiện, gửi, người khác xác nhận
 function Complete-ControlCheck($manager, $period, $records) {
     if ($records.Count -eq 0) { return }
+    $groups = @($records | Group-Object { Get-PositionGroup $_.username })
+    if ($groups.Count -gt 1) { foreach ($g in $groups) { Complete-ControlCheck $manager $period @($g.Group) }; return }
+    $label = Get-PositionGroup $records[0].username
+    # Cán bộ giúp việc lập, Văn phòng Đảng ủy xác nhận trước
+    $makers = @(@(Select-Usable $CalibrationPreparers) + (Get-AccountOrder) | Select-Object -Unique)
+    $confirmers = @(@(Select-Usable $CalibrationConcluders) + (Get-AccountOrder) | Select-Object -Unique)
     $ids = @($records | ForEach-Object { $_.recordId })
     $owners = @($records | ForEach-Object { $_.username })
     Write-Step "Lập phiếu kiểm tra (Mẫu 19) cho: $(($records | ForEach-Object { $_.fullName }) -join ', ')"
     $creator = $null; $check = $null
-    foreach ($user in (Get-AccountOrder)) {
+    foreach ($user in $makers) {
         if ($owners -contains $user) { continue }
-        $r = Invoke-Api (Get-Session $user) 'POST' '/api/control-checks' ([ordered]@{ periodId = $period.id; groupName = 'Cán bộ quản lý'; recordIds = $ids })
+        $r = Invoke-Api (Get-Session $user) 'POST' '/api/control-checks' ([ordered]@{ periodId = $period.id; groupName = $label; recordIds = $ids })
         if ($r.Ok) { $creator = $user; $check = $r.Data; break }
         if ($r.Status -ne 403) { Fail "Lập phiếu kiểm tra ($user) không thành công: HTTP $($r.Status) - $($r.Message)" }
     }
@@ -690,7 +721,7 @@ function Complete-ControlCheck($manager, $period, $records) {
     $items = @(foreach ($i in @($check.items)) { [ordered]@{ itemCode = $i.itemCode; result = 'Pass'; evidence = 'Đã đối chiếu hồ sơ, phiếu tự chấm, biên bản và minh chứng kèm theo' } })
     $filled = Invoke-ApiOk $session 'PUT' "/api/control-checks/$($check.id)" ([ordered]@{ version = $check.version; items = $items; conclusion = 'Eligible' }) "Điền phiếu kiểm tra ($creator)"
     $submitted = Invoke-ApiOk $session 'POST' "/api/control-checks/$($check.id)/submit" @{ version = $filled.version } "Gửi phiếu kiểm tra ($creator)"
-    foreach ($user in (Get-AccountOrder)) {
+    foreach ($user in $confirmers) {
         if ($user -eq $creator -or $owners -contains $user) { continue }
         $r = Invoke-Api (Get-Session $user) 'POST' "/api/control-checks/$($check.id)/confirm" @{ version = $submitted.version }
         if ($r.Ok) { Write-Host "   Lập: $creator, xác nhận: $user"; return }
@@ -708,7 +739,7 @@ function Get-ProfileSettings($period, [string]$code) {
 # Người xem không thấy biên bản, phiếu có hồ sơ của chính mình: đọc bằng mọi người lập rồi gộp.
 function Get-CalibratedRecords($manager, $period) {
     $map = @{}; $seen = @{}
-    foreach ($viewer in @($CalibrationPreparers + $CalibrationConcluders | Select-Object -Unique)) {
+    foreach ($viewer in @(Select-Usable @($CalibrationPreparers + $CalibrationConcluders | Select-Object -Unique))) {
         $session = Get-Session $viewer
         $r = Invoke-Api $session 'GET' "/api/calibrations?periodId=$($period.id)"
         if (-not $r.Ok) { continue }
@@ -726,7 +757,7 @@ function Get-CalibratedRecords($manager, $period) {
 # Hồ sơ đã thuộc phiếu kiểm tra còn hiệu lực (chưa hủy) -> trạng thái phiếu.
 function Get-CheckedRecords($manager, $period) {
     $map = @{}; $seen = @{}
-    foreach ($viewer in @(@($ManagerUser) + $CalibrationPreparers | Select-Object -Unique)) {
+    foreach ($viewer in @(Select-Usable @(@($ManagerUser) + $CalibrationPreparers | Select-Object -Unique))) {
         $session = Get-Session $viewer
         $r = Invoke-Api $session 'GET' "/api/control-checks?periodId=$($period.id)"
         if (-not $r.Ok) { continue }
@@ -765,7 +796,7 @@ function Complete-Gates($manager, $period) {
     if ($TinhHuong -and $control.Count -eq 0 -and -not (Test-Done 'phieu-kiem-soat')) {
         $control = @($waiting | Where-Object {
                 (Get-ProfileSettings $period $_.workflowProfileCode).steps.B4_DECISION.mode -eq 'Internal' -and -not $checked.ContainsKey([string]$_.recordId)
-            } | Select-Object -First 2)
+            })
         if ($control.Count) { Set-Done 'phieu-kiem-soat' }
     }
     Complete-ControlCheck $manager $period $control
@@ -1579,6 +1610,14 @@ if ($LamSach) {
     exit 0
 }
 $manager = Get-Session $ManagerUser
+# Ngày nghiệp vụ theo giờ máy chủ (giờ Việt Nam) để ngày văn bản, giờ họp khớp thời điểm ghi trên hệ thống
+$serverTime = (Invoke-Api $manager 'GET' '/api/auth/me').Timestamp
+if ($serverTime) {
+    $utc = if ($serverTime -is [datetime]) { $serverTime.ToUniversalTime() }
+        else { [datetime]::Parse([string]$serverTime, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]'AdjustToUniversal, AssumeUniversal') }
+    $Today = $utc.AddHours(7).Date
+    $TodayIso = $Today.ToString('yyyy-MM-dd')
+}
 
 # ---------------------------------------------------------------- Tạo / dùng lại kỳ
 $GiuLai = @($GiuLai | ForEach-Object { $_ -split '[,;\s]+' } | Where-Object { $_ })
@@ -1656,7 +1695,12 @@ if ($TinhHuong -and $GiaiDoan -eq 'xong') {
 }
 # Biên bản lập trước đây còn thiếu nội dung thì ghi bổ sung để bản in đủ
 Complete-Meetings $period
-if ($TinhHuong) { Invoke-CollectiveScenario $manager; Invoke-Form16Drafts $manager; Show-Scenarios $manager }
+if ($TinhHuong) {
+    # Hồ sơ tập thể lập cuối kỳ (sau họp tập thể), bản nháp Mẫu 16 khi chờ công bố
+    if ($targetIndex -gt [array]::IndexOf($Steps, 'B3A_COLLECTIVE')) { Invoke-CollectiveScenario $manager }
+    if ($targetIndex -ge [array]::IndexOf($Steps, 'B5_PUBLISH')) { Invoke-Form16Drafts $manager }
+    Show-Scenarios $manager
+}
 
 if ($KyCoSan) {
     # Kỳ đông người: chỉ tóm tắt theo trạng thái, người làm tiếp xem ở Việc cần xử lý

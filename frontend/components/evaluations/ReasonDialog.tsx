@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useState } from "react";
 import { RecordActionDto, STEP_NAMES, WorkflowStepCode } from "@/services/evaluationService";
 import { formatDateTime } from "@/lib/dateFormat";
+import { DateTimeField } from "./DateTimeField";
 
 /** Thông tin hạn mở riêng hồ sơ (kỳ khóa dữ liệu) lấy từ hành động máy chủ trả về. */
 export type UnlockDeadlineInfo = Pick<
@@ -30,7 +31,7 @@ interface Props {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Giá trị cho ô `datetime-local` (giờ máy người dùng). */
+/** Giá trị yyyy-MM-ddTHH:mm cho ô ngày giờ (giờ máy người dùng). */
 function toLocalInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
@@ -117,15 +118,9 @@ export function ReasonDialog({ isOpen, title, description, confirmText, targetSt
               {showDeadline && (
                 <div className="mb-3">
                   <label className="form-label small fw-semibold" htmlFor="unlock-deadline">Mở riêng hồ sơ đến</label>
-                  <input
-                    id="unlock-deadline"
-                    type="datetime-local"
-                    className={`form-control form-control-sm ${touched && deadlineError ? "is-invalid" : ""}`}
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                  />
+                  <DateTimeField id="unlock-deadline" value={deadline} invalid={touched && !!deadlineError} onChange={setDeadline} />
                   {touched && deadlineError ? (
-                    <div className="invalid-feedback">{deadlineError}</div>
+                    <div className="invalid-feedback d-block">{deadlineError}</div>
                   ) : (
                     <div className="form-text">
                       {unlock?.currentUnlockedUntil ? `Hạn hiện tại: ${formatDateTime(unlock.currentUnlockedUntil)}.` : ""}
