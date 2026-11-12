@@ -69,15 +69,33 @@ Bấm tên người dùng ở góc trên bên phải, chọn **Đăng xuất**. 
 
 ## 3. Màn hình chính
 
-Thanh trên cùng gồm: nút menu (màn hình hẹp), tên trang, ô Kỳ, nút **Hướng dẫn** (dấu hỏi), chuông **Nhắc việc**, tên người dùng. Menu bên trái chỉ hiện các mục được phân quyền.
+Thanh trên cùng gồm: nút menu (màn hình hẹp), tên trang, ô Kỳ, nút **Hướng dẫn** (dấu hỏi), chuông **Nhắc việc**, tên người dùng.
 
-| Nhóm menu | Mục |
-|---|---|
-| (đầu menu) | Tổng quan, Việc cần xử lý |
-| Đánh giá | Hồ sơ đánh giá, Đánh giá tập thể, Xác nhận số liệu, Duyệt kết quả |
-| Kết quả | Kết quả đánh giá, Báo cáo |
-| Thiết lập | Kỳ đánh giá, Bộ tiêu chí, Danh mục tổ chức |
-| Hệ thống | Tài khoản, Vai trò, Người thực hiện, Nhập dữ liệu, Nhật ký hệ thống, Thông tin đơn vị, Biểu mẫu Word |
+Mỗi người chỉ thấy các mục được phân quyền; mục không thấy là mục không thuộc việc của mình.
+
+| Mục menu | Dùng để | Người thường dùng |
+|---|---|---|
+| **Tổng quan** | Xem hồ sơ của mình, lịch kỳ, tiến độ chung | Mọi người |
+| **Việc cần xử lý** | Danh sách việc đang chờ mình làm; bấm nút cuối dòng để làm | Mọi người có việc trong kỳ |
+| **Hồ sơ đánh giá** | Tra cứu mọi hồ sơ trong phạm vi được xem; lọc theo đơn vị, bước, trạng thái | Lãnh đạo, Phòng TCCB-LĐ, Văn phòng Đảng ủy |
+| **Đánh giá tập thể** | Lập biên bản hội nghị (Mẫu 12, 13), in phiếu kín (Mẫu 11); lập hồ sơ tập thể (Mẫu 06, 07, 08) | Thư ký, Bí thư chi bộ, Văn phòng Đảng ủy |
+| **Xác nhận số liệu** | Lập, trả lời phiếu xác nhận số liệu (Mẫu 03) | Phòng TCCB-LĐ, phòng chuyên môn |
+| **Duyệt kết quả** | Lập biên bản họp thống nhất (Mẫu 20), phiếu kiểm tra (Mẫu 19) | Phòng TCCB-LĐ, Văn phòng Đảng ủy |
+| **Kết quả đánh giá** | Xem kết quả đã công bố trong phạm vi được xem | Lãnh đạo, Phòng TCCB-LĐ, Văn phòng Đảng ủy |
+| **Báo cáo** | Tải danh sách, tổng hợp (Mẫu 14, 15A, 15B), soạn báo cáo quý (Mẫu 16), quyết định xếp loại | Phòng TCCB-LĐ, Văn phòng Đảng ủy |
+| **Kỳ đánh giá** | Tạo, cấu hình, mở, khóa, đóng kỳ | Phòng TCCB-LĐ |
+| **Bộ tiêu chí** | Soạn, công bố bộ tiêu chí chấm điểm | Phòng TCCB-LĐ |
+| **Danh mục tổ chức** | Đơn vị, tổ chức Đảng, chức vụ, ngày nghỉ | Quản trị |
+| **Ngày nghỉ** | Khai báo ngày nghỉ để tính hạn các bước | Phòng TCCB-LĐ |
+| **Tài khoản** | Tạo tài khoản, ghi chức vụ, đặt lại mật khẩu | Quản trị |
+| **Vai trò** | Xem, sửa quyền của từng vai trò | Quản trị |
+| **Người thực hiện** | Giao người làm từng việc theo đơn vị (người gửi danh mục, thư ký…) | Quản trị |
+| **Nhập dữ liệu** | Nhập đơn vị, tổ chức Đảng, cán bộ từ tệp Excel | Quản trị |
+| **Nhật ký hệ thống** | Tra cứu ai đã làm gì, lúc nào | Quản trị |
+| **Thông tin đơn vị** | Tên Đảng bộ, tên công ty, địa danh in trên biểu mẫu | Quản trị |
+| **Biểu mẫu Word** | Tải lên, thay mẫu Word của các biểu mẫu | Quản trị |
+
+Góc phải thanh trên: tên người dùng (mở **Tài khoản** của mình để đổi mật khẩu, đăng xuất).
 
 ### Tổng quan
 
